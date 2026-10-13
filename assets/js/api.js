@@ -45,11 +45,16 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, timeout
     return r;
   }
 
+  // KREAM 상품 미리보기 — 실패해도 신청은 막지 않는다(화면이 안내만 한다).
+  function preview(kreamUrl) {
+    return request('GET', '/kream/preview?url=' + encodeURIComponent(String(kreamUrl || '')));
+  }
+
   function health() {
     return request('GET', '/health');
   }
 
-  return { submitApplication, health };
+  return { submitApplication, preview, health };
 }
 
 function fail(kind, message, status) {

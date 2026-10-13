@@ -77,6 +77,23 @@ test('제한 시간을 넘기면 timeout 오류', async () => {
   assert.equal(r.error.kind, 'timeout');
 });
 
+test('미리보기 → GET {base}/kream/preview?url=…(인코딩), 결과 그대로', async () => {
+  const f = fakeFetch(() => json(200, { productId: '1', product: { name: 'x' } }));
+  const r = await createApiClient({ baseUrl: 'https://a/', fetchImpl: f }).preview('https://kream.co.kr/products/1?size=L');
+  assert.equal(r.ok, true);
+  assert.equal(r.data.product.name, 'x');
+  assert.equal(f.calls[0].url, 'https://a/kream/preview?url=' + encodeURIComponent('https://kream.co.kr/products/1?size=L'));
+  assert.equal(f.calls[0].init.method, 'GET');
+});
+
+test('미리보기 503(요청량 제한) → http 오류로, 서버 문구 전달', async () => {
+  const f = fakeFetch(() => json(503, { error: { code: 'kream_busy', message: '지금은 KREAM 정보를 불러올 수 없습니다.' } }));
+  const r = await createApiClient({ baseUrl: 'https://a', fetchImpl: f }).preview('kream.co.kr/products/1');
+  assert.equal(r.ok, false);
+  assert.equal(r.error.status, 503);
+  assert.match(r.error.message, /KREAM/);
+});
+
 test('health → GET {base}/health', async () => {
   const f = fakeFetch(() => json(200, { ok: true }));
   const r = await createApiClient({ baseUrl: 'https://a/', fetchImpl: f }).health();
