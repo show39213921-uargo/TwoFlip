@@ -1,0 +1,14 @@
+{
+  "name": "twoflip",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KREAM 링크로 신청받아 오프라인·공식몰에서 확보해 전달하는 구매대행 — 공개 신청 페이지",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "dev": "node dev/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
