@@ -1,0 +1,258 @@
+[
+  {
+    "kreamUrl": "https://kream.co.kr/products/1068133",
+    "kreamProductId": "1068133",
+    "consent": true,
+    "kream": {
+      "name": "Salomon UNI Cross Insulation Jacket Light Grey",
+      "nameKo": "살로몬 UNI 크로스 인슐레이션 자켓 라이트 그레이",
+      "brand": "Salomon",
+      "modelNo": "LD0274200",
+      "image": "https://kream-phinf.pstatic.net/MjAyNjA5MTBfMjQ0/MDAxNzg5MDI1MTkxMzk3.lnHq5LFSI4TymVihVofSRjKPyqXZScYMwMGXSXoJ8IMg.gctVK-LqtjUo4MAeTv1zOkyimfvc-8OcI0iAaUR5Jxgg.PNG/a_3ed5a668eee64a4393cb3d35933a1b88.png",
+      "buyNowPrice": 317000,
+      "sizes": [
+        {
+          "size": "XS",
+          "recentPrice": null,
+          "recentAgo": null,
+          "lowestAsk": null,
+          "highestBid": 351000
+        },
+        {
+          "size": "S",
+          "recentPrice": 356000,
+          "recentAgo": "1시간 전",
+          "lowestAsk": null,
+          "highestBid": null
+        },
+        {
+          "size": "M",
+          "recentPrice": 328000,
+          "recentAgo": "1시간 전",
+          "lowestAsk": null,
+          "highestBid": null
+        },
+        {
+          "size": "L",
+          "recentPrice": null,
+          "recentAgo": null,
+          "lowestAsk": 319000,
+          "highestBid": null
+        },
+        {
+          "size": "XL",
+          "recentPrice": 317000,
+          "recentAgo": "18분 전",
+          "lowestAsk": 317000,
+          "highestBid": null
+        },
+        {
+          "size": "XXL",
+          "recentPrice": 357000,
+          "recentAgo": "1시간 전",
+          "lowestAsk": null,
+          "highestBid": 345000
+        },
+        {
+          "size": "XXXL",
+          "recentPrice": null,
+          "recentAgo": null,
+          "lowestAsk": null,
+          "highestBid": 360000
+        }
+      ],
+      "checkedAt": "2026-10-13T07:44:35.002Z",
+      "cached": true
+    },
+    "source": "sample",
+    "id": "sample01",
+    "status": "received",
+    "receivedAt": "2026-10-13T07:44:53.494Z",
+    "size": "L",
+    "name": "샘플 고객A",
+    "phone": "01000000001",
+    "memo": "샘플 데이터입니다",
+    "sourcing": []
+  },
+  {
+    "kreamUrl": "https://kream.co.kr/products/1068133",
+    "kreamProductId": "1068133",
+    "consent": true,
+    "kream": {
+      "name": "Salomon UNI Cross Insulation Jacket Light Grey",
+      "nameKo": "살로몬 UNI 크로스 인슐레이션 자켓 라이트 그레이",
+      "brand": "Salomon",
+      "modelNo": "LD0274200",
+      "image": "https://kream-phinf.pstatic.net/MjAyNjA5MTBfMjQ0/MDAxNzg5MDI1MTkxMzk3.lnHq5LFSI4TymVihVofSRjKPyqXZScYMwMGXSXoJ8IMg.gctVK-LqtjUo4MAeTv1zOkyimfvc-8OcI0iAaUR5Jxgg.PNG/a_3ed5a668eee64a4393cb3d35933a1b88.png",
+      "buyNowPrice": 317000,
+      "sizes": [
+        {
+          "size": "XS",
+          "recentPrice": null,
+          "recentAgo": null,
+          "lowestAsk": null,
+          "highestBid": 351000
+        },
+        {
+          "size": "S",
+          "recentPrice": 356000,
+          "recentAgo": "1시간 전",
+          "lowestAsk": null,
+          "highestBid": null
+        },
+        {
+          "size": "M",
+          "recentPrice": 328000,
+          "recentAgo": "1시간 전",
+          "lowestAsk": null,
+          "highestBid": null
+        },
+        {
+          "size": "L",
+          "recentPrice": null,
+          "recentAgo": null,
+          "lowestAsk": 319000,
+          "highestBid": null
+        },
+        {
+          "size": "XL",
+          "recentPrice": 317000,
+          "recentAgo": "18분 전",
+          "lowestAsk": 317000,
+          "highestBid": null
+        },
+        {
+          "size": "XXL",
+          "recentPrice": 357000,
+          "recentAgo": "1시간 전",
+          "lowestAsk": null,
+          "highestBid": 345000
+        },
+        {
+          "size": "XXXL",
+          "recentPrice": null,
+          "recentAgo": null,
+          "lowestAsk": null,
+          "highestBid": 360000
+        }
+      ],
+      "checkedAt": "2026-10-13T07:44:35.002Z",
+      "cached": true
+    },
+    "source": "sample",
+    "id": "sample02",
+    "status": "sourcing",
+    "receivedAt": "2026-10-13T06:10:00.000Z",
+    "size": "XL",
+    "name": "샘플 고객B",
+    "phone": "01000000002",
+    "memo": "주말 연락 희망(샘플)",
+    "sourcing": [
+      {
+        "id": "c1",
+        "type": "official",
+        "name": "살로몬 공식몰",
+        "price": 320000,
+        "currency": "KRW",
+        "url": "https://salomon.co.kr/",
+        "note": "정가 · 2026-10-03 품절 확인(Resale 실측)",
+        "at": "2026-10-13T06:30:00.000Z"
+      },
+      {
+        "id": "c2",
+        "type": "overseas",
+        "name": "Salomon JP (샘플 가격)",
+        "price": 33000,
+        "currency": "JPY",
+        "url": "https://salomon.jp/",
+        "note": "샘플 값 — 실제 가격 아님",
+        "at": "2026-10-13T06:40:00.000Z"
+      },
+      {
+        "id": "c3",
+        "type": "offline",
+        "name": "강남 매장 (샘플)",
+        "price": 299000,
+        "currency": "KRW",
+        "url": "",
+        "note": "샘플 값 — 재고 1",
+        "at": "2026-10-13T06:50:00.000Z"
+      }
+    ]
+  },
+  {
+    "kreamUrl": "https://kream.co.kr/products/1068133",
+    "kreamProductId": "1068133",
+    "consent": true,
+    "kream": {
+      "name": "Salomon UNI Cross Insulation Jacket Light Grey",
+      "nameKo": "살로몬 UNI 크로스 인슐레이션 자켓 라이트 그레이",
+      "brand": "Salomon",
+      "modelNo": "LD0274200",
+      "image": "https://kream-phinf.pstatic.net/MjAyNjA5MTBfMjQ0/MDAxNzg5MDI1MTkxMzk3.lnHq5LFSI4TymVihVofSRjKPyqXZScYMwMGXSXoJ8IMg.gctVK-LqtjUo4MAeTv1zOkyimfvc-8OcI0iAaUR5Jxgg.PNG/a_3ed5a668eee64a4393cb3d35933a1b88.png",
+      "buyNowPrice": 317000,
+      "sizes": [
+        {
+          "size": "XS",
+          "recentPrice": null,
+          "recentAgo": null,
+          "lowestAsk": null,
+          "highestBid": 351000
+        },
+        {
+          "size": "S",
+          "recentPrice": 356000,
+          "recentAgo": "1시간 전",
+          "lowestAsk": null,
+          "highestBid": null
+        },
+        {
+          "size": "M",
+          "recentPrice": 328000,
+          "recentAgo": "1시간 전",
+          "lowestAsk": null,
+          "highestBid": null
+        },
+        {
+          "size": "L",
+          "recentPrice": null,
+          "recentAgo": null,
+          "lowestAsk": 319000,
+          "highestBid": null
+        },
+        {
+          "size": "XL",
+          "recentPrice": 317000,
+          "recentAgo": "18분 전",
+          "lowestAsk": 317000,
+          "highestBid": null
+        },
+        {
+          "size": "XXL",
+          "recentPrice": 357000,
+          "recentAgo": "1시간 전",
+          "lowestAsk": null,
+          "highestBid": 345000
+        },
+        {
+          "size": "XXXL",
+          "recentPrice": null,
+          "recentAgo": null,
+          "lowestAsk": null,
+          "highestBid": 360000
+        }
+      ],
+      "checkedAt": "2026-10-13T07:44:35.002Z",
+      "cached": true
+    },
+    "source": "sample",
+    "id": "sample03",
+    "status": "secured",
+    "receivedAt": "2026-10-12T23:20:00.000Z",
+    "size": "M",
+    "name": "샘플 고객C",
+    "phone": "01000000003",
+    "memo": "",
+    "sourcing": []
+  }
+]

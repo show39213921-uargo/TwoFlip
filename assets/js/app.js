@@ -3,11 +3,16 @@
 
 import { CONFIG } from './config.js';
 import { createApiClient } from './api.js';
+import { createLocalApi } from './local-api.js';
+import { createLocalStore, browserStorage } from './local-store.js';
 import { validateApplication } from './validate.js';
 import { parseKreamUrl } from './kream-url.js';
 import { buildPreviewModel } from './preview-view.js';
 
-const api = createApiClient({ baseUrl: CONFIG.apiBaseUrl });
+// demo: 서버 대신 이 브라우저에 저장(?demo=1 로만 켜진다) · api: 백엔드 · closed: 「준비 중」
+const api = CONFIG.mode === 'demo'
+  ? createLocalApi({ store: createLocalStore(browserStorage()) })
+  : createApiClient({ baseUrl: CONFIG.apiBaseUrl });
 const $ = (id) => document.getElementById(id);
 
 const form = $('apply-form');
@@ -56,10 +61,11 @@ function setStatus(kind, parts) {
   }
 }
 
-if (!CONFIG.apiBaseUrl) {
+if (CONFIG.mode === 'closed') {
   submitBtn.disabled = true;
   setStatus('info', '신청 접수 준비 중입니다. 곧 열립니다.');
 }
+if (CONFIG.mode === 'demo') $('demo-banner').hidden = false;
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -79,7 +85,8 @@ form.addEventListener('submit', async (e) => {
   if (r.ok) {
     form.reset();
     resetPreview();
-    setStatus('ok', ['신청이 접수되었습니다. 접수번호 ', { strong: r.data.id }, ' — 상품을 확보하면 적어 주신 번호로 연락드립니다.']);
+    if (CONFIG.mode === 'demo') setStatus('ok', ['테스트 신청이 이 브라우저에 저장되었습니다. 접수번호 ', { strong: r.data.id }, ' — 관리자 화면에서 확인하세요.']);
+    else setStatus('ok', ['신청이 접수되었습니다. 접수번호 ', { strong: r.data.id }, ' — 상품을 확보하면 적어 주신 번호로 연락드립니다.']);
     statusBox.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   } else {
     setStatus('error', r.error.message);
@@ -164,7 +171,7 @@ async function loadPreview() {
   const k = parseKreamUrl(urlInput.value);
   if (!k.ok) { resetPreview(); return; }
   if (k.productId === lastPreviewId) return;
-  if (!CONFIG.apiBaseUrl) return;
+  if (CONFIG.mode === 'closed') return;
 
   const seq = ++previewSeq;
   lastPreviewId = k.productId;
