@@ -8,7 +8,7 @@ export function formatWon(n) {
   return typeof n === 'number' && Number.isFinite(n) ? n.toLocaleString('ko-KR') + '원' : null;
 }
 
-function sizeChip(s) {
+export function sizeChip(s) {
   if (s.recentPrice != null) return { size: s.size, price: formatWon(s.recentPrice), basis: '최근 거래' };
   if (s.lowestAsk != null) return { size: s.size, price: formatWon(s.lowestAsk), basis: '판매 입찰' };
   if (s.highestBid != null) return { size: s.size, price: formatWon(s.highestBid), basis: '구매 입찰' };

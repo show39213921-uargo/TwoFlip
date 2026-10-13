@@ -24,10 +24,11 @@ jobs:
           node-version: 22
       - run: npm test
       # 공개 범위만 올린다 — dev/ · docs/ · test/ 는 배포하지 않는다(dev/server.js 의 PUBLIC 과 맞춘다).
+      # admin.html 은 서버 없이 이 브라우저 데이터·직접 연 JSON 만 읽는 임시 관리자다(공개돼도 노출되는 데이터 없음).
       - name: Collect site
         run: |
           mkdir _site
-          cp index.html _site/
+          cp index.html admin.html _site/
           cp -r assets _site/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5

@@ -14,8 +14,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.PORT) || 4400;
 
 // 배포되는 것과 같은 범위만 서빙한다(.github/workflows/pages.yml 의 복사 목록과 맞춘다).
-const PUBLIC = [/^\/index\.html$/, /^\/assets\/[\w./-]+$/];
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
+const PUBLIC = [/^\/(index|admin)\.html$/, /^\/assets\/[\w./-]+$/];
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
 
 function send(res, status, body, type) {
   res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store' });

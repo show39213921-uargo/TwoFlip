@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>TwoFlip 관리자 (임시)</title>
+  <meta name="theme-color" content="#0e0f12">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e0f12'/%3E%3Cpath d='M9 12h12l-3-3M23 20H11l3 3' stroke='%23c8f04a' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="stylesheet" href="assets/css/admin.css">
+  <script type="module" src="assets/js/admin.js"></script>
+</head>
+<body class="admin">
+  <header class="site-header">
+    <div class="wrap wide header-row">
+      <a class="logo" href="./" aria-label="신청 화면으로">
+        <svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M9 12h12l-3-3M23 20H11l3 3"/></svg>
+        <span>TwoFlip</span>
+        <span class="admin-badge">관리자 · 임시</span>
+      </a>
+      <a class="header-link" href="./?demo=1">신청 화면(테스트 모드) →</a>
+    </div>
+  </header>
+
+  <main class="wrap wide admin-main">
+    <p class="notice">
+      이 화면은 서버에 연결돼 있지 않습니다. <strong>이 브라우저에 저장된 테스트 신청</strong>과 <strong>직접 연 JSON 파일</strong>만 읽고, 어떤 데이터도 밖으로 보내지 않습니다.
+    </p>
+
+    <section class="toolbar" aria-label="데이터">
+      <div class="seg" role="tablist" aria-label="데이터 출처">
+        <button type="button" role="tab" id="src-browser" aria-selected="true">이 브라우저 <span class="count" id="count-browser">0</span></button>
+        <button type="button" role="tab" id="src-file" aria-selected="false">JSON 파일 <span class="count" id="count-file">—</span></button>
+      </div>
+      <div class="toolbar-actions">
+        <label class="btn-sm" for="file-input">JSON 열기</label>
+        <input id="file-input" type="file" accept="application/json,.json" hidden>
+        <button type="button" class="btn-sm" id="btn-sample">샘플 넣기</button>
+        <button type="button" class="btn-sm" id="btn-export-json">JSON 내보내기</button>
+        <button type="button" class="btn-sm" id="btn-export-csv">CSV 내보내기</button>
+        <button type="button" class="btn-sm danger" id="btn-clear">이 브라우저 데이터 비우기</button>
+      </div>
+    </section>
+    <p class="src-note" id="src-note" role="status"></p>
+
+    <details class="settings" id="settings">
+      <summary>설정 — 기준 지역 · 환율</summary>
+      <div class="settings-grid">
+        <label>기준 지역 <span class="sub">오프라인 지도 검색에 붙는다</span>
+          <input type="text" id="set-area" placeholder="예: 강남, 성수, 부산 서면" maxlength="20">
+        </label>
+        <div class="rates" id="set-rates"></div>
+      </div>
+      <p class="sub">환율은 원화 기준(JPY 는 1엔당 원). 해외 원가는 물품가 × 환율까지만 — 카드 수수료·관세·부가세·배송비는 별도입니다.</p>
+    </details>
+
+    <section class="kpis" id="kpis" aria-label="상태별 건수"></section>
+
+    <section class="filters">
+      <select id="f-status" aria-label="상태로 거르기"></select>
+      <input type="search" id="f-q" placeholder="이름 · 번호 · 모델번호 · 접수번호 · 메모 검색" aria-label="검색">
+    </section>
+
+    <section id="list" class="app-list" aria-live="polite"></section>
+  </main>
+</body>
+</html>
