@@ -87,16 +87,38 @@ const csvCell = (v) => {
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 };
 
-export function toCsv(records) {
+// stockOf(record) → 재고 요약 문구(선택). 주면 「재고」 열이 붙는다.
+export function toCsv(records, stockOf) {
   const head = ['접수번호', '접수시각(KST)', '상태', '이름', '휴대폰', '사이즈', '모델번호', '상품명', '신청 당시 KREAM 시세', 'KREAM 주소', '요청사항'];
+  if (stockOf) head.push('재고');
   const lines = records.map((r) => {
     const q = sizeQuoteFor(r);
     return [
       r.id, formatKst(r.receivedAt), statusLabel(r.status), r.name, formatPhone(r.phone), r.size,
       r.kream && r.kream.modelNo, r.kream && (r.kream.nameKo || r.kream.name), q ? `${q.price}(${q.basis})` : '', r.kreamUrl, r.memo,
+      ...(stockOf ? [stockOf(r)] : []),
     ].map(csvCell).join(',');
   });
   return '﻿' + [head.join(','), ...lines].join('\r\n');
+}
+
+// 샘플은 고정 시각으로 저장돼 있어 며칠 지나면 전부 「오래됨」이 된다 — 넣을 때 가장 최근 시각이 「지금 − leadMs」가 되도록 통째로 민다.
+// 사이 간격(예: 이틀 전 확인)은 그대로 남는다.
+export function shiftSampleTimes(records, nowMs, leadMs = 10 * 60000) {
+  const times = [];
+  for (const r of records) {
+    times.push(Date.parse(r.receivedAt));
+    for (const c of r.sourcing || []) times.push(Date.parse(c.at));
+  }
+  const latest = Math.max(...times.filter(Number.isFinite));
+  if (!Number.isFinite(latest)) return records;
+  const d = nowMs - leadMs - latest;
+  const move = (iso) => { const t = Date.parse(iso); return Number.isFinite(t) ? new Date(t + d).toISOString() : iso; };
+  return records.map((r) => ({
+    ...r,
+    receivedAt: move(r.receivedAt),
+    sourcing: (r.sourcing || []).map((c) => ({ ...c, at: move(c.at) })),
+  }));
 }
 
 export function normalizeImported(data) {

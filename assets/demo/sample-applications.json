@@ -152,31 +152,66 @@
         "id": "c1",
         "type": "official",
         "name": "살로몬 공식몰",
+        "size": "XL",
+        "stock": "out",
         "price": 320000,
         "currency": "KRW",
         "url": "https://salomon.co.kr/",
-        "note": "정가 · 2026-10-03 품절 확인(Resale 실측)",
+        "note": "정가 · 전 사이즈 품절(Resale 2026-10-03 실측)",
+        "method": "manual",
         "at": "2026-10-13T06:30:00.000Z"
       },
       {
         "id": "c2",
         "type": "overseas",
         "name": "Salomon JP (샘플 가격)",
+        "size": "XL",
+        "stock": "low",
         "price": 33000,
         "currency": "JPY",
         "url": "https://salomon.jp/",
         "note": "샘플 값 — 실제 가격 아님",
+        "method": "manual",
         "at": "2026-10-13T06:40:00.000Z"
       },
       {
         "id": "c3",
         "type": "offline",
         "name": "강남 매장 (샘플)",
+        "size": "XL",
+        "stock": "in",
         "price": 299000,
         "currency": "KRW",
         "url": "",
-        "note": "샘플 값 — 재고 1",
+        "note": "샘플 값 — 재고 1, 전화 확인",
+        "method": "manual",
         "at": "2026-10-13T06:50:00.000Z"
+      },
+      {
+        "id": "c4",
+        "type": "offline",
+        "name": "성수 매장 (샘플)",
+        "size": "L",
+        "stock": "in",
+        "price": 299000,
+        "currency": "KRW",
+        "url": "",
+        "note": "샘플 값 — 신청 사이즈 아님",
+        "method": "manual",
+        "at": "2026-10-13T06:55:00.000Z"
+      },
+      {
+        "id": "c5",
+        "type": "offline",
+        "name": "홍대 매장 (샘플)",
+        "size": "XL",
+        "stock": "in",
+        "price": 289000,
+        "currency": "KRW",
+        "url": "",
+        "note": "샘플 값 — 이틀 전 확인",
+        "method": "manual",
+        "at": "2026-10-11T06:00:00.000Z"
       }
     ]
   },
@@ -253,6 +288,20 @@
     "name": "샘플 고객C",
     "phone": "01000000003",
     "memo": "",
-    "sourcing": []
+    "sourcing": [
+      {
+        "id": "d1",
+        "type": "offline",
+        "name": "잠실 매장 (샘플)",
+        "size": "M",
+        "stock": "in",
+        "price": 310000,
+        "currency": "KRW",
+        "url": "",
+        "note": "샘플 값 — 확보 완료",
+        "method": "manual",
+        "at": "2026-10-13T00:10:00.000Z"
+      }
+    ]
   }
 ]

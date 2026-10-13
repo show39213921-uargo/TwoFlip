@@ -49,9 +49,14 @@
     <details class="settings" id="settings">
       <summary>설정 — 기준 지역 · 환율</summary>
       <div class="settings-grid">
-        <label>기준 지역 <span class="sub">오프라인 지도 검색에 붙는다</span>
-          <input type="text" id="set-area" placeholder="예: 강남, 성수, 부산 서면" maxlength="20">
-        </label>
+        <div class="settings-col">
+          <label>기준 지역 <span class="sub">오프라인 지도 검색에 붙는다</span>
+            <input type="text" id="set-area" placeholder="예: 강남, 성수, 부산 서면" maxlength="20">
+          </label>
+          <label>재고 확인 유효 시간 <span class="sub">이보다 오래된 확인은 「오래됨」</span>
+            <input type="text" id="set-stale" inputmode="numeric" placeholder="24" maxlength="4">
+          </label>
+        </div>
         <div class="rates" id="set-rates"></div>
       </div>
       <p class="sub">환율은 원화 기준(JPY 는 1엔당 원). 해외 원가는 물품가 × 환율까지만 — 카드 수수료·관세·부가세·배송비는 별도입니다.</p>
@@ -61,6 +66,12 @@
 
     <section class="filters">
       <select id="f-status" aria-label="상태로 거르기"></select>
+      <select id="f-stock" aria-label="재고로 거르기">
+        <option value="">재고 — 전체</option>
+        <option value="needs">재고 확인 필요</option>
+        <option value="available">재고 있음</option>
+        <option value="none">재고 없음</option>
+      </select>
       <input type="search" id="f-q" placeholder="이름 · 번호 · 모델번호 · 접수번호 · 메모 검색" aria-label="검색">
     </section>
 

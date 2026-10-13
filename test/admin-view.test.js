@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest, sizeQuoteFor, toCsv, normalizeImported,
+  STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest, sizeQuoteFor, toCsv, normalizeImported, shiftSampleTimes,
 } from '../assets/js/admin-view.js';
 
 const snap = {
@@ -64,6 +64,19 @@ test('CSV — BOM · 따옴표 이스케이프 · 번호는 전체(내보내기�
   assert.ok(csv.startsWith('﻿접수번호,접수시각(KST),상태'));
   assert.match(csv, /"저녁 연락, ""급함"""/);
   assert.match(csv, /011-123-4567/);
+});
+
+test('샘플 시각 밀기 — 가장 최근이 「지금 − 10분」, 사이 간격은 그대로', () => {
+  const now = Date.parse('2026-12-01T00:00:00Z');
+  const out = shiftSampleTimes([
+    { id: 'a', receivedAt: '2026-10-13T06:00:00Z', sourcing: [{ id: 'c', at: '2026-10-13T07:00:00Z' }, { id: 'd', at: '2026-10-11T07:00:00Z' }] },
+    { id: 'b', receivedAt: 'bad' },
+  ], now);
+  assert.equal(out[0].sourcing[0].at, '2026-11-30T23:50:00.000Z');
+  assert.equal(out[0].receivedAt, '2026-11-30T22:50:00.000Z');
+  assert.equal(out[0].sourcing[1].at, '2026-11-28T23:50:00.000Z');
+  assert.equal(out[1].receivedAt, 'bad');
+  assert.deepEqual(out[1].sourcing, []);
 });
 
 test('JSON 가져오기 — 배열 또는 { applications }, id 없는 행은 건너뛴다', () => {
