@@ -53,9 +53,16 @@ function card(m) {
   if (m.sub) body.append(el('p', 'shop-sub', m.sub));
   body.append(el('h3', 'shop-title', m.title));
   const meta = el('p', 'shop-meta');
-  meta.append(el('span', 'chip mono', m.size), el('strong', m.priceKnown ? 'shop-price' : 'shop-price ask', m.price));
+  meta.append(el('span', 'shop-size', `사이즈 ${m.size}`), el('strong', m.priceKnown ? 'shop-price' : 'shop-price ask', m.price));
   body.append(meta);
-  if (m.note) body.append(el('p', 'shop-note', m.note));
+  if (m.priceHint) body.append(el('p', 'shop-hint', m.priceHint));
+  if (m.reservedNote) body.append(el('p', 'shop-hint', m.reservedNote));
+  // 공개 설명 — 짧은 조각이면 칩(「새상품」「택 있음」), 아니면 글 그대로(3차 QA D-3)
+  if (m.noteChips) {
+    const chipsBox = el('p', 'shop-chips');
+    chipsBox.append(...m.noteChips.map((t) => el('span', 'shop-chip', t)));
+    body.append(chipsBox);
+  } else if (m.note) body.append(el('p', 'shop-note', m.note));
 
   const btn = el('button', 'btn ' + (m.reserved ? 'btn-outline' : 'btn-primary'), m.reserved ? '예약 중' : '구매 요청');
   btn.type = 'button';
@@ -73,7 +80,7 @@ function openSheet(m) {
   if (m.image) img.src = m.image; else img.removeAttribute('src');
   $('sheet-sub').textContent = m.sub || '';
   $('sheet-name').textContent = m.title;
-  $('sheet-size').textContent = m.size;
+  $('sheet-size').textContent = `사이즈 ${m.size}`;
   $('sheet-price').textContent = m.price;
   form.reset();
   showErrors({});
@@ -81,7 +88,7 @@ function openSheet(m) {
   form.hidden = false;
   $('item-done').hidden = true;
   if (typeof sheet.showModal === 'function') sheet.showModal(); else sheet.setAttribute('open', '');
-  $('it-name').focus();
+  // 이름 칸에 바로 커서를 두지 않는다 — 휴대폰 키보드가 먼저 올라와 상품 요약·보내기 버튼을 가린다(3차 QA U-3). 첫 포커스는 닫기 ✕
 }
 
 function closeSheet() {

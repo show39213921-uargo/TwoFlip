@@ -24,20 +24,31 @@ const httpsUrl = (u) => (typeof u === 'string' && /^https:\/\/\S+$/i.test(u) ? u
 export function itemCardModel(item) {
   const i = item || {};
   const title = i.title || i.nameKo || i.name || '상품 정보 준비 중';
-  const sub = [i.brand, i.title ? null : (i.nameKo && i.name ? i.name : null)].filter(Boolean).join(' · ');
+  const priceKnown = typeof i.salePrice === 'number';
   return {
     id: String(i.id || ''),
     title,
-    sub: sub || null,
+    sub: i.brand || null, // 브랜드만 — 영문 상품명을 되풀이하면 2열 카드에서 잘린다(3차 QA D-3)
     modelNo: i.modelNo || null,
     image: httpsUrl(i.image),
     size: i.size || '—',
     price: formatWon(i.salePrice) || '가격 문의',
-    priceKnown: typeof i.salePrice === 'number',
+    priceKnown,
+    // 카드만 보고도 뜻을 알게(3차 QA U-4) — 보장·확정 표현 없이
+    priceHint: priceKnown ? null : '가격은 연락드릴 때 안내해요',
     reserved: i.status === 'reserved',
+    reservedNote: i.status === 'reserved' ? '다른 분께 먼저 안내 중이에요' : null,
     statusLabel: itemStatusLabel(i.status),
     note: i.note || '',
+    noteChips: noteChips(i.note),
   };
+}
+
+// 공개 설명 「새상품 · 택 있음 · 매장 구매」 → 칩 3개(3차 QA D-3). 조각이 하나뿐이거나 길거나 많으면 칩으로 만들지 않고 글로 둔다(null)
+export function noteChips(note) {
+  const parts = String(note || '').split(/\s*[·,|/]\s*/).map((x) => x.trim()).filter(Boolean);
+  if (parts.length < 2 || parts.length > 5 || parts.some((x) => x.length > 16)) return null;
+  return parts;
 }
 
 /** 관리자 — 확보 상품 등록·수정 입력. create=false 면 넘긴 칸만 본다. 값은 서버로 보낼 모양 */
@@ -92,6 +103,7 @@ export function validateItemRequest(input = {}) {
   const v = validateApplication({ ...input, kreamUrl: ANY_KREAM, size: 'X' });
   if (v.spam) return { ok: false, spam: true, errors: {}, payload: null };
   const { kreamUrl, size, ...errors } = v.errors;
+  if (errors.consent) errors.consent = '개인정보 수집·이용에 동의해야 구매 요청을 보낼 수 있어요.'; // 신청서 문구를 그대로 쓰지 않는다(3차 QA B-3)
   if (Object.keys(errors).length) return { ok: false, errors, payload: null };
   const { name, phone, memo, consent } = v.payload;
   return { ok: true, errors: {}, payload: { name, phone, memo, consent } };
