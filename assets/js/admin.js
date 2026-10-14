@@ -32,6 +32,7 @@ const state = {
   open: new Set(),
   reveal: new Set(),
   history: new Map(), // 신청 id → 서버에서 받은 상태 이력
+  checkForm: new Map(), // 신청 id → 05 재고 기록 칸의 직전 종류·통화·사이즈
   localSettings: loadSettings(),
   settings: null,
 };
@@ -275,6 +276,7 @@ function logout(clearMsg = true) {
   state.history.clear();
   state.open.clear();
   state.reveal.clear();
+  state.checkForm.clear();
   state.msg = null;
   useSettings();
   render(); // 감춘 화면에도 신청자 정보가 남지 않게 비운다
@@ -519,6 +521,14 @@ function stockPanel(r, kPrice, stock) {
     url: h('input', { type: 'url', placeholder: 'https://… (선택)', 'aria-label': '주소' }),
     note: h('input', { type: 'text', placeholder: '메모 (수량·통화한 직원 등)', maxlength: '200', 'aria-label': '메모' }),
   };
+  // 같은 신청에서 이어 기록할 때 종류·통화·사이즈는 직전 값 유지(U-3) — 판매처·가격·주소·메모만 비우고 커서는 판매처로
+  const last = state.checkForm.get(r.id);
+  if (last) {
+    f.type.value = last.type;
+    f.currency.value = last.currency;
+    f.size.value = last.size;
+    if (last.focus) { last.focus = false; setTimeout(() => f.name.focus(), 0); }
+  }
   const err = h('p', { class: 'form-err', 'aria-live': 'polite' });
   f.type.addEventListener('change', () => { if (f.type.value !== 'overseas') f.currency.value = 'KRW'; });
   const add = h('button', {
@@ -526,6 +536,7 @@ function stockPanel(r, kPrice, stock) {
     onclick: () => {
       const v = validateCheck({ type: f.type.value, name: f.name.value, size: f.size.value, stock: f.stock.value, price: f.price.value, currency: f.currency.value, url: f.url.value, note: f.note.value });
       if (!v.ok) { err.textContent = Object.values(v.errors).join(' '); return; }
+      state.checkForm.set(r.id, { type: v.value.type, currency: v.value.currency, size: v.value.size, focus: true });
       ops.addCheck(r, v.value);
     },
   });
