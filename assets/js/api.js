@@ -6,10 +6,11 @@
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
-export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+// 요청 한 번 — 신청 API 와 관리자 API(admin-api.js)가 같이 쓴다. extraHeaders 는 매 요청에 붙는다(관리자 접속 키 등).
+export function createRequester({ baseUrl, fetchImpl = globalThis.fetch, timeoutMs = DEFAULT_TIMEOUT_MS, extraHeaders = {} } = {}) {
   const base = String(baseUrl || '').replace(/\/+$/, '');
 
-  async function request(method, path, body) {
+  return async function request(method, path, body) {
     if (!base) return fail('config', '신청 서버 주소가 아직 설정되지 않았습니다.');
 
     const ctrl = new AbortController();
@@ -18,7 +19,7 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, timeout
     try {
       res = await fetchImpl(base + path, {
         method,
-        headers: body === undefined ? { Accept: 'application/json' } : { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: { ...(body === undefined ? { Accept: 'application/json' } : { 'Content-Type': 'application/json', Accept: 'application/json' }), ...extraHeaders },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: ctrl.signal,
       });
@@ -33,11 +34,18 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, timeout
     try { data = await res.json(); } catch { data = null; }
 
     if (!res.ok) {
-      const msg = data && data.error && data.error.message;
-      return fail('http', msg || `요청이 처리되지 않았습니다. (HTTP ${res.status})`, res.status);
+      const err = data && data.error;
+      const r = fail('http', (err && err.message) || `요청이 처리되지 않았습니다. (HTTP ${res.status})`, res.status);
+      if (err && err.code) r.error.code = err.code;
+      if (err && err.fields) r.error.fields = err.fields;
+      return r;
     }
     return { ok: true, data };
-  }
+  };
+}
+
+export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+  const request = createRequester({ baseUrl, fetchImpl, timeoutMs });
 
   async function submitApplication(payload) {
     const r = await request('POST', '/applications', payload);

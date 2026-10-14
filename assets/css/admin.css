@@ -1,4 +1,7 @@
 /* 관리자(임시) — app.css 의 토큰을 그대로 쓴다 */
+
+/* hidden 속성이 아래 display 규칙(.btn-sm · .server-login 등)에 지지 않게 */
+[hidden] { display: none !important; }
 .wrap.wide { max-width: 1200px; }
 .admin-badge { font-size: .72rem; font-weight: 700; color: #0e0f12; background: var(--lime); padding: 2px 8px; border-radius: 999px; margin-left: 4px; letter-spacing: 0; }
 .header-link { color: var(--hero-ink-2); font-size: .88rem; text-decoration: none; }
@@ -20,6 +23,17 @@
 .btn-sm.danger { color: var(--error); }
 .btn-sm.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 .src-note { margin: 10px 0 0; font-size: .84rem; color: var(--ink-3); min-height: 1.3em; }
+
+/* 서버 로그인 */
+.server-bar { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; }
+.server-login, .server-session { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.server-login label { margin: 0; font-size: .86rem; }
+.server-login input[type="password"] { font: inherit; font-family: var(--mono); font-size: .86rem; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); min-width: 0; flex: 1 1 260px; max-width: 360px; }
+.server-login .remember { display: inline-flex; align-items: center; gap: 4px; font-weight: 500; color: var(--ink-2); }
+.server-session #server-who { font-weight: 700; font-size: .9rem; margin-right: 4px; }
+.assignee-sel { font: inherit; font-size: .84rem; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); }
+.history { margin: 0; padding-left: 18px; font-size: .84rem; font-weight: 500; }
+.history li { margin: 2px 0; }
 .src-note[data-kind="error"] { color: var(--error); }
 .src-note[data-kind="warn"] { color: #b26b00; }
 
