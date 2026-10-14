@@ -131,7 +131,7 @@ form.addEventListener('submit', async (e) => {
   submitBtn.textContent = '보내는 중…';
   const r = await api.submitApplication(v.payload);
   submitBtn.disabled = false;
-  submitBtn.textContent = '신청하기';
+  submitBtn.textContent = '이 상품 찾아 주세요';
 
   if (r.ok) {
     rememberApplied(key, r.data.id);
