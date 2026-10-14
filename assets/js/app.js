@@ -60,13 +60,41 @@ for (const el of form.querySelectorAll('[data-error-for]')) {
   const ids = new Set((input.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
   ids.add(el.id);
   input.setAttribute('aria-describedby', [...ids].join(' '));
-  const recheck = () => {
+  // 입력 중(input)에는 맞게 고쳐졌을 때 지우기만 한다 — 「010」까지만 쳤는데 오류를 바꿔 띄우지 않는다(2차 QA U-4).
+  // 칸을 벗어날 때(blur·change)는 다시 검사해 문구를 바꾼다.
+  const recheck = (typing) => {
     if (!el.textContent) return; // 아직 오류가 없는 칸은 입력 중에 다그치지 않는다
     const msg = validateApplication(readForm()).errors[key] || '';
+    if (typing && msg) return;
     el.textContent = msg;
     input.setAttribute('aria-invalid', msg ? 'true' : 'false');
   };
-  for (const ev of ['input', 'change', 'blur']) input.addEventListener(ev, recheck);
+  input.addEventListener('input', () => recheck(true));
+  for (const ev of ['change', 'blur']) input.addEventListener(ev, () => recheck(false));
+}
+
+// 휴대폰 키보드의 「다음」으로 다음 칸, 마지막 칸은 「완료」로 키보드를 닫는다(2차 QA U-6) — Enter 가 신청을 보내지 않게
+const ORDER = ['kreamUrl', 'size', 'name', 'phone'];
+ORDER.forEach((key, i) => {
+  const input = form.elements[key];
+  input.setAttribute('enterkeyhint', i < ORDER.length - 1 ? 'next' : 'done');
+  input.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    e.preventDefault();
+    const next = form.elements[ORDER[i + 1]];
+    if (next) next.focus(); else input.blur();
+  });
+});
+
+// 「신청하기」(헤더·히어로)를 누르면 신청 칸으로 가서 주소 칸에 바로 커서 — 한 번 더 누르지 않고 붙여 넣게(2차 QA U-1).
+// 누른 그 순간에 focus 해야 iOS 에서 키보드가 뜬다
+for (const a of document.querySelectorAll('a[href="#apply"]')) {
+  a.addEventListener('click', (e) => {
+    if (form.hidden) return; // 접수 완료 화면이면 그 자리로만
+    e.preventDefault();
+    urlInput.focus({ preventScroll: true });
+    urlInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
 }
 
 function setStatus(kind, parts) {
@@ -104,12 +132,45 @@ form.addEventListener('submit', async (e) => {
   if (r.ok) {
     form.reset();
     resetPreview();
-    if (CONFIG.mode === 'demo') setStatus('ok', ['테스트 신청이 이 브라우저에 저장되었습니다. 접수번호 ', { strong: r.data.id }, ' — 관리자 화면에서 확인하세요.']);
-    else setStatus('ok', ['신청이 접수되었습니다. 접수번호 ', { strong: r.data.id }, ' — 상품을 확보하면 적어 주신 번호로 연락드립니다.']);
-    statusBox.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    autoSize = null;
+    renderSizeHint();
+    showDone(r.data.id);
   } else {
     setStatus('error', r.error.message);
   }
+});
+
+// ── 접수 완료 카드 — 폼 자리를 바꿔 끼운다(2차 QA U-3: 화면 밖 안내 · 입력이 비워져 접수번호를 놓침) ──
+// 연락 시점은 아직 정해지지 않았다 — 「확보되면 연락」까지만 쓴다
+const done = $('apply-done');
+function showDone(id) {
+  $('done-id').textContent = id;
+  $('done-msg').textContent = CONFIG.mode === 'demo'
+    ? '테스트 신청이라 이 브라우저에만 저장됐어요. 관리자 화면에서 확인할 수 있어요.'
+    : '상품을 확보하면 적어 주신 번호로 연락드려요. 이 화면을 캡처해 두면 문의할 때 편해요.';
+  $('done-copy').textContent = '복사';
+  form.hidden = true;
+  done.hidden = false;
+  done.focus({ preventScroll: true });
+  done.scrollIntoView({ block: 'center' }); // 부드러운 스크롤은 느린 기기·탭에서 멈출 수 있어 바로 옮긴다
+}
+$('done-copy').addEventListener('click', async () => {
+  const id = $('done-id').textContent;
+  let ok = false;
+  try { await navigator.clipboard.writeText(id); ok = true; } catch { /* 권한 없음 — 아래에서 글자를 선택해 둔다 */ }
+  if (!ok) {
+    const range = document.createRange();
+    range.selectNodeContents($('done-id'));
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+  }
+  $('done-copy').textContent = ok ? '복사됨' : '선택됨 — 길게 눌러 복사';
+});
+$('done-again').addEventListener('click', () => {
+  done.hidden = true;
+  form.hidden = false;
+  urlInput.focus({ preventScroll: true });
+  urlInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
 });
 
 // ── KREAM 미리보기 ─────────────────────────────────────
@@ -123,7 +184,20 @@ function resetPreview() {
   preview.hidden = true;
   chips.hidden = true;
   chips.replaceChildren();
-  sizeHint.hidden = !previewDisabled; // 미리보기를 끈 서버면 안내 한 줄은 남긴다
+  chipsNote = '';
+  renderSizeHint();
+}
+
+// 사이즈 칸 아래 안내 한 줄 — 우선순위: 주소에서 가져온 사이즈 확인 > 시세 칩 안내 > (미리보기 꺼짐) 직접 확인 안내(2차 QA U-2)
+let chipsNote = '';
+let autoSize = null; // 주소의 ?size= 로 채운 값 — 사람이 바꾸면 안내를 거둔다
+function renderSizeHint() {
+  let text = '';
+  if (autoSize && sizeInput.value.trim().toUpperCase() === autoSize) text = `주소에 있던 사이즈(${autoSize})를 넣었어요. 맞는지 확인해 주세요.`;
+  else if (chipsNote) text = chipsNote;
+  else if (previewDisabled) text = '사이즈는 KREAM 상품 페이지에서 확인해 적어 주세요.';
+  sizeHint.textContent = text;
+  sizeHint.hidden = !text;
 }
 
 function setPreviewState(state) {
@@ -153,8 +227,8 @@ function renderChips(model) {
     });
     chips.append(b);
   }
-  sizeHint.hidden = usable.length === 0;
-  sizeHint.textContent = model.note + ' · 목록에 없는 사이즈는 직접 적어 주세요.';
+  chipsNote = usable.length ? model.note + ' · 목록에 없는 사이즈는 직접 적어 주세요.' : '';
+  renderSizeHint();
 }
 
 function syncChips() {
@@ -186,13 +260,13 @@ function renderPreview(model) {
   renderChips(model);
 }
 
-// 서버가 KREAM 을 읽지 않는 설정(KREAM_SERVER=off) — 미리보기 자리를 접고 안내 한 줄만. 이 화면에서는 다시 묻지 않는다.
+// 서버가 KREAM 을 읽지 않는 설정(KREAM_SERVER=off) — 미리보기 자리를 접고 주소 칸 아래 안내 한 줄만. 이 화면에서는 다시 묻지 않는다.
 let previewDisabled = false;
 function previewOff() {
   previewDisabled = true;
   resetPreview();
-  sizeHint.hidden = false;
-  sizeHint.textContent = '상품 정보는 접수 후 저희가 확인해요. 사이즈는 KREAM 상품 페이지에서 보고 적어 주세요.';
+  $('url-hint').textContent = '상품 정보는 접수 후 저희가 확인해요.';
+  $('url-hint').hidden = false;
 }
 
 async function loadPreview() {
@@ -218,30 +292,44 @@ async function loadPreview() {
     $('pv-error').textContent = previewFailText(r.ok ? '' : r.error.message);
     setPreviewState('error');
     chips.hidden = true;
-    sizeHint.hidden = true;
+    chipsNote = '';
+    renderSizeHint();
   }
 }
 
-// 붙여 넣은 글에 KREAM 주소가 하나 있으면 그 주소만 남긴다(U-1) · 주소의 ?size= 는 사이즈 칸이 비었을 때만 채운다(U-2)
-function tidyUrlInput() {
-  const ex = extractKreamUrl(urlInput.value);
-  if (!ex) return;
-  if (!parseKreamUrl(urlInput.value).ok) {
+// 찾은 주소를 칸에 넣고, 주소의 ?size= 는 사이즈 칸이 비었을 때만 채운다
+function applyExtracted(ex, raw) {
+  if (!parseKreamUrl(raw).ok) {
     urlInput.value = ex.url;
     urlInput.dispatchEvent(new Event('change')); // 떠 있던 주소 오류를 다시 검사
   }
   if (ex.size && !sizeInput.value.trim()) {
     sizeInput.value = ex.size;
+    autoSize = ex.size;
     sizeInput.dispatchEvent(new Event('input'));
   }
+}
+
+// 칸에 들어간 글에 KREAM 주소가 하나 있으면 그 주소만 남긴다(U-1 · U-2)
+function tidyUrlInput() {
+  const ex = extractKreamUrl(urlInput.value);
+  if (ex) applyExtracted(ex, urlInput.value);
 }
 
 urlInput.addEventListener('input', () => {
   clearTimeout(debounce);
   debounce = setTimeout(() => { tidyUrlInput(); loadPreview(); }, 450);
 });
-urlInput.addEventListener('paste', () => {
+// 붙여 넣을 때는 클립보드 원문(줄바꿈 포함)에서 찾는다 — 주소 칸(type=url)은 줄바꿈을 지워 앞 글자와 붙여 버린다(2차 QA B-1)
+urlInput.addEventListener('paste', (e) => {
+  const text = e.clipboardData ? e.clipboardData.getData('text') : '';
+  const ex = text ? extractKreamUrl(text) : null;
+  if (ex) {
+    e.preventDefault();
+    urlInput.value = '';
+    applyExtracted(ex, '');
+  }
   clearTimeout(debounce);
   debounce = setTimeout(() => { tidyUrlInput(); loadPreview(); }, 0);
 });
-sizeInput.addEventListener('input', syncChips);
+sizeInput.addEventListener('input', () => { syncChips(); renderSizeHint(); });

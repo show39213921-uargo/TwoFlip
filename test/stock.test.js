@@ -117,3 +117,11 @@ test('설정 유효 시간 — 1~168 정수만(B-3)', () => {
   assert.deepEqual(parseStaleHours('168'), { ok: true, value: 168 });
   for (const bad of ['0', '169', '1400', '-1', '2.5', 'abc', '']) assert.equal(parseStaleHours(bad).ok, false, bad);
 });
+
+test('최저가가 있어도 환율 없어 빠진 외화 기록은 배지에 「환율 필요 N곳」(2차 QA B-4)', () => {
+  const s = stockSummary(app([
+    { id: '1', name: '강남점', size: 'L', stock: 'in', price: 295000, currency: 'KRW', at: iso(H) },
+    { id: '2', name: 'EU', size: 'L', stock: 'in', price: 100, currency: 'EUR', at: iso(H) },
+  ]), { rates, now: NOW, staleHours: 24 });
+  assert.equal(s.label, '재고 있음 2곳 · 최저 295,000원 · 환율 필요 1곳');
+});

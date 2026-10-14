@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest, sizeQuoteFor, toCsv, normalizeImported, shiftSampleTimes,
+  STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest, sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes,
 } from '../assets/js/admin-view.js';
 
 const snap = {
@@ -83,4 +83,12 @@ test('JSON 가져오기 — 배열 또는 { applications }, id 없는 행은 건
   assert.deepEqual(normalizeImported([{ id: 'a' }, { x: 1 }]), { records: [{ id: 'a' }], skipped: 1 });
   assert.deepEqual(normalizeImported({ applications: [{ id: 'b' }] }), { records: [{ id: 'b' }], skipped: 0 });
   assert.throws(() => normalizeImported({ nope: 1 }), /형식/);
+});
+
+test('KREAM 대비 기준 — 신청 사이즈 시세만, 없으면 null(즉시 구매가로 대신하지 않음 · 2차 QA B-2)', () => {
+  const r = { size: '270', kream: { buyNowPrice: 315000, sizes: [{ size: '265', recentPrice: 300000 }, { size: '280', lowestAsk: 330000 }] } };
+  assert.equal(kreamPriceFor(r), null);
+  assert.equal(kreamPriceFor({ ...r, size: '280' }), 330000);
+  assert.equal(kreamPriceFor({ ...r, size: '265' }), 300000);
+  assert.equal(kreamPriceFor({ size: 'L', kream: null }), null);
 });

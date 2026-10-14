@@ -33,6 +33,7 @@ const state = {
   reveal: new Set(),
   history: new Map(), // 신청 id → 서버에서 받은 상태 이력
   checkForm: new Map(), // 신청 id → 05 재고 기록 칸의 직전 종류·통화·사이즈
+  jumpToRecord: null, // 접힌 카드의 「재고 기록」 — 다음 그리기 때 그 카드 05 기록 칸으로
   localSettings: loadSettings(),
   settings: null,
 };
@@ -419,7 +420,12 @@ function renderCard(r) {
     h('div', { class: 'sum-stock' },
       h('div', { class: 'cell-k', text: '재고' }),
       h('div', { class: `stock-badge ${stockTone}`, text: stock.label, title: stock.label })),
-    statusSel);
+    statusSel,
+    // 좁은 화면에서만 보인다 — 매장에서 펼쳐 05 까지 내려가지 않고 바로 기록(2차 QA U-5)
+    h('button', {
+      type: 'button', class: 'rec-btn', text: '05 재고 기록하기',
+      onclick: (e) => { e.preventDefault(); e.stopPropagation(); state.open.add(r.id); state.jumpToRecord = r.id; render(); },
+    }));
 
   const det = h('details', { class: 'app-card', 'data-id': r.id, open: state.open.has(r.id) }, summary, renderDetail(r, { k, brand, modelNo, revealed, stock }));
   det.addEventListener('toggle', () => { if (det.open) state.open.add(r.id); else state.open.delete(r.id); });
@@ -497,26 +503,28 @@ function stockPanel(r, kPrice, stock) {
         const krw = toKrw(c.price, c.currency, state.settings.rates);
         const isBest = stock.cheapest && c.id === stock.cheapest.id;
         const buyable = STOCK_STATES.some((s) => s.key === c.stock && s.buyable);
-        const cmp = buyable && (isBest || (c.sameSize && !c.stale)) ? compareToKream(krw, kPrice) : null; // 못 사는 곳은 비교하지 않는다
+        const cmpWanted = buyable && (isBest || (c.sameSize && !c.stale)); // 못 사는 곳은 비교하지 않는다
+        const cmp = cmpWanted ? compareToKream(krw, kPrice) : null;
+        const cmpText = cmp ? cmp.label.replace('KREAM 대비 ', '') : (cmpWanted && krw != null && kPrice == null ? '시세 미확인' : '—');
         const url = httpUrl(c.url);
         const stockSel = h('select', {
           class: `stock-sel s-${c.stock}`, 'aria-label': `${c.name} 재고 상태`,
           onchange: (e) => ops.updateCheck(r, c.id, { stock: e.target.value }),
         }, ...STOCK_STATES.map((s) => h('option', { value: s.key, selected: s.key === c.stock }, s.label)));
         return h('tr', { class: [isBest ? 'hl' : '', c.stale ? 'stale' : '', c.sameSize ? '' : 'other'].filter(Boolean).join(' ') || null },
-          h('td', { class: 'left' },
+          h('td', { class: 'left c-when' },
             h('div', { text: ago(c.at) }),
             h('div', { class: 'sub' }, formatKst(c.at), ' · ', METHOD_LABELS[c.method] || '수동', c.checkedBy ? ` · ${c.checkedBy}` : '', c.stale ? h('span', { class: 'tag warn', text: '오래됨' }) : null),
             h('button', { type: 'button', class: 'link-btn', text: '지금 다시 확인함', onclick: () => ops.updateCheck(r, c.id, {}) })),
-          h('td', { class: 'left' }, url ? ext(url, c.name) : c.name, isBest ? h('span', { class: 'cheapest', text: stock.cheapestStale ? '최저(오래됨)' : '최저' }) : null),
-          h('td', { text: typeLabel(c.type) }),
-          h('td', {}, c.size || '—', c.sameSize ? null : h('span', { class: 'tag', text: '다른 사이즈' })),
-          h('td', {}, stockSel),
-          h('td', { text: c.price == null ? '미기록' : (c.currency === 'KRW' ? formatWon(c.price) : `${Number(c.price).toLocaleString('ko-KR')} ${c.currency}`) }),
-          h('td', { text: c.price == null ? '—' : (krw != null ? formatWon(krw) : '환율 필요') }),
-          h('td', { class: cmp ? (cmp.cheaper ? 'diff-neg' : 'diff-pos') : null, text: cmp ? cmp.label.replace('KREAM 대비 ', '') : '—' }),
-          h('td', { class: 'left', text: c.note || '' }),
-          h('td', {}, h('button', {
+          h('td', { class: 'left c-name' }, url ? ext(url, c.name) : c.name, isBest ? h('span', { class: 'cheapest', text: stock.cheapestStale ? '최저(오래됨)' : '최저' }) : null),
+          h('td', { class: 'c-type', text: typeLabel(c.type) }),
+          h('td', { class: 'c-size' }, c.size || '—', c.sameSize ? null : h('span', { class: 'tag', text: '다른 사이즈' })),
+          h('td', { class: 'c-stock' }, stockSel),
+          h('td', { class: 'c-price', 'data-label': '가격', text: c.price == null ? '미기록' : (c.currency === 'KRW' ? formatWon(c.price) : `${Number(c.price).toLocaleString('ko-KR')} ${c.currency}`) }),
+          h('td', { class: 'c-krw', 'data-label': '원화', text: c.price == null ? '—' : (krw != null ? formatWon(krw) : '환율 필요') }),
+          h('td', { class: 'c-cmp' + (cmp ? (cmp.cheaper ? ' diff-neg' : ' diff-pos') : ''), 'data-label': 'KREAM 대비', text: cmpText }),
+          h('td', { class: 'left c-note', text: c.note || '' }),
+          h('td', { class: 'c-x' }, h('button', {
             type: 'button', class: 'x-btn', 'aria-label': `${c.name} 확인 기록 삭제`, text: '✕',
             onclick: () => ops.removeCheck(r, c.id),
           })));
@@ -541,6 +549,11 @@ function stockPanel(r, kPrice, stock) {
     f.size.value = last.size;
     if (last.focus) { last.focus = false; setTimeout(() => f.name.focus(), 0); }
   }
+  // 접힌 카드의 「재고 기록」으로 들어왔으면 기록 칸으로 바로(2차 QA U-5)
+  if (state.jumpToRecord === r.id) {
+    state.jumpToRecord = null;
+    setTimeout(() => { f.name.scrollIntoView({ block: 'center' }); f.name.focus({ preventScroll: true }); }, 0);
+  }
   const err = h('p', { class: 'form-err', 'aria-live': 'polite' });
   f.type.addEventListener('change', () => { if (f.type.value !== 'overseas') f.currency.value = 'KRW'; });
   const add = h('button', {
@@ -558,7 +571,8 @@ function stockPanel(r, kPrice, stock) {
     h('h3', {}, h('span', { class: 'n', text: '05' }), `재고 확인 — 신청 사이즈 ${want || '미지정'}`),
     h('p', { class: 'stock-line' },
       h('span', { class: `stock-badge ${stock.buyable ? 'ok' : (stock.needsCheck ? 'warn' : 'none')}`, text: stock.label }),
-      bestCmp ? h('span', { class: bestCmp.cheaper ? 'diff-neg' : 'diff-pos', text: ` ${bestCmp.label}(KREAM 수수료·배송비 전)` }) : null,
+      bestCmp ? h('span', { class: bestCmp.cheaper ? 'diff-neg' : 'diff-pos', text: ` ${bestCmp.label}(KREAM 수수료·배송비 전)` })
+        : (stock.cheapest && kPrice == null ? h('span', { class: 'sub', text: ` KREAM 대비 — (사이즈 ${want || '?'} 시세 미확인)` }) : null),
       h('span', { class: 'sub', text: ` · 최근 확인 기준 ${state.settings.staleHours}시간(설정) · 오래된 확인 ${stock.stale}건` + (stock.otherSize ? ` · 다른 사이즈 ${stock.otherSize}건` : '') })),
     table,
     h('div', { class: 'cand-form stock-form' }, f.type, f.name, f.size, f.stock, f.price, f.currency, f.url, f.note, add, err),
