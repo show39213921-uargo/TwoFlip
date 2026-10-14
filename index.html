@@ -65,6 +65,14 @@
             <a class="path path-main" href="#apply"><span class="path-k">찾아 주세요</span><strong>KREAM 링크로 신청하기</strong><span class="path-arrow" aria-hidden="true">→</span></a>
             <a class="path" href="shop.html" id="path-shop" hidden><span class="path-k">지금 있는 상품</span><strong id="path-shop-label">확보해 둔 상품 보기</strong><span class="path-arrow" aria-hidden="true">→</span></a>
           </div>
+          <!-- 첫 화면 상품 사진 줄(분위기 개선 1단계 · 가이드 §6) — 진행 순서 아래 미리보기를 여기로 합쳤다. 공개 상품이 있을 때만(home.js) -->
+          <section class="strip" id="strip" aria-labelledby="strip-title" hidden>
+            <div class="strip-head">
+              <h2 class="strip-title" id="strip-title">저희가 먼저 구해 둔 물건</h2>
+              <a class="strip-all" href="shop.html">전체 보기 →</a>
+            </div>
+            <div class="strip-row" id="strip-row"></div>
+          </section>
           <a class="hero-more" href="#how">어떻게 진행되나요?</a>
           <!-- 신청 칸까지 가야 보이던 안내를 앞으로(2차 QA D-1) — 이미 화면에 있는 내용만, 보장 표현 없음 -->
           <ul class="trust">
@@ -133,17 +141,6 @@
       </div>
     </section>
 
-    <!-- 바로 구매 미리보기 — 공개 상품이 있을 때만(home.js). 눌러서 바로 구매 페이지로 -->
-    <section class="peek" id="peek" hidden>
-      <div class="wrap">
-        <div class="peek-head">
-          <h2 class="section-title">지금 바로 살 수 있는 상품</h2>
-          <a class="peek-all" href="shop.html">전체 보기 →</a>
-        </div>
-        <p class="section-sub">저희가 먼저 확보해 둔 상품이에요. 바로 결제가 아니라, 먼저 구매 요청을 받아요.</p>
-        <div class="peek-row" id="peek-row"></div>
-      </div>
-    </section>
 
     <section class="apply" id="apply">
       <div class="wrap">
