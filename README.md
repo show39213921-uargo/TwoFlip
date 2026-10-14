@@ -42,7 +42,8 @@ docs/design-guide.md       디자인 가이드 — 원칙 · 브랜드 · 색 ·
 docs/qa-prompt.md          화면 QA · UI/UX 제안 지시서 — 다른 세션·사람에게 그대로 넘긴다(계정 비밀번호는 별도 전달)
 docs/ux-review-mobile-prompt.md  2차 UI/UX · 소비자 편의 디자인 제안 지시서(모바일 우선, 10-14 반영분 기준) — Claude in Chrome 용
 assets/img/                워드마크(twoflip-logo-white.svg) · 스플래시(twoflip-splash.svg)
-assets/js/shop.js          바로 구매 — 확보 상품 목록 · 구매 요청 시트(목록을 못 받으면 메뉴째 숨김)
+shop.html                  바로 구매 페이지(신청 index.html 과 따로 — 헤더 「바로 구매 | 신청하기」로 오간다)
+assets/js/shop.js          바로 구매 — 확보 상품 목록 · 구매 요청 시트(목록을 못 받으면 이유와 「신청하기」 안내)
 assets/js/admin-items.js   관리자 「확보 상품」 — 등록 · 공개 상태 · 판매가 · 구매 요청 중 하나를 골라 예약
 assets/js/items-view.js    바로 구매 화면 값 · 입력 검증(순수, 백엔드 validateItem 과 같은 규칙)
 assets/demo/sample-items.json  테스트 모드(?demo=1) 바로 구매 샘플 3개(판매 중 · 가격 문의 · 예약 중)

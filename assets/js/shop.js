@@ -1,7 +1,7 @@
-// 바로 구매 — 저희가 먼저 확보해 둔 상품 목록 · 구매 요청 시트. 화면 값·검증은 items-view.js(순수), 여기는 DOM 만.
+// 바로 구매 페이지(shop.html) — 저희가 먼저 확보해 둔 상품 목록 · 구매 요청 시트. 화면 값·검증은 items-view.js(순수), 여기는 DOM 만.
 // 외부 문자열(상품명·설명)은 textContent 로만 넣는다.
-//
-// 목록을 못 받으면(서버에 표가 아직 없음 · 오류 · 접수 준비 중) 메뉴와 구역을 통째로 숨긴다 — 빈 껍데기를 보이지 않는다.
+// 신청(index.html)과 다른 페이지다(10-14 재영 결정 — 위아래 한 페이지에서 나눔).
+// 목록을 못 받으면(서버 준비 전 · 오류 · 접수 준비 중) 빈 껍데기 대신 이유와 다음 할 일을 보인다.
 
 import { CONFIG } from './config.js';
 import { createApiClient } from './api.js';
@@ -15,24 +15,44 @@ const api = CONFIG.mode === 'demo'
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), cls ? { className: cls } : {}, text != null ? { textContent: text } : {});
 
-const section = $('shop');
 const list = $('shop-list');
 const sheet = $('item-sheet');
 const form = $('item-form');
 let current = null; // 시트에 열린 상품(화면 값)
 
+if (CONFIG.mode === 'demo') $('demo-banner').hidden = false;
+
+// 목록을 못 받았을 때 — 이유 한 줄 + 다음 할 일(다시 시도 · 신청으로)
+function notice(text, retry) {
+  const box = el('div', 'shop-empty');
+  box.append(el('p', null, text));
+  const links = el('p', 'shop-empty-actions');
+  if (retry) {
+    const b = el('button', 'btn btn-outline', '다시 불러오기');
+    b.type = 'button';
+    b.addEventListener('click', () => load());
+    links.append(b);
+  }
+  const a = Object.assign(el('a', 'btn btn-primary', 'KREAM 링크로 신청하기'), { href: './#apply' });
+  links.append(a);
+  box.append(links);
+  list.replaceChildren(box);
+}
+
 async function load() {
-  if (CONFIG.mode === 'closed') return;
+  if (CONFIG.mode === 'closed') { notice('바로 구매는 준비 중이에요.', false); return; }
   const r = await api.items();
-  if (!r.ok) return; // 준비 전(503)·오류 — 숨긴 채로 둔다
-  section.hidden = false;
-  $('nav-shop').hidden = false;
+  if (!r.ok) {
+    if (r.error.code === 'items_unavailable') notice('바로 구매는 준비 중이에요. 원하는 상품은 KREAM 링크로 신청해 주세요.', false);
+    else notice('상품 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.', true);
+    return;
+  }
   render(r.data.items || []);
 }
 
 function render(items) {
   if (!items.length) {
-    list.replaceChildren(el('p', 'shop-empty', '지금 바로 구매할 수 있는 상품이 없어요. 원하는 상품은 위에서 KREAM 링크로 신청해 주세요.'));
+    notice('지금 바로 구매할 수 있는 상품이 없어요. 원하는 상품은 KREAM 링크로 신청해 주세요.', false);
     return;
   }
   list.replaceChildren(...items.map((it) => card(itemCardModel(it))));
