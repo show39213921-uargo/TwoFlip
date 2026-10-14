@@ -41,7 +41,9 @@ docs/deploy.md             도메인·DNS·Pages 현재 설정
 docs/design-guide.md       디자인 가이드 — 원칙 · 브랜드 · 색 · 글자 · 부품 · 문구 · 정리 계획(QA 디자인 제안의 판단 기준)
 docs/qa-prompt.md          화면 QA · UI/UX 제안 지시서 — 다른 세션·사람에게 그대로 넘긴다(계정 비밀번호는 별도 전달)
 docs/ux-review-mobile-prompt.md  2차 UI/UX · 소비자 편의 디자인 제안 지시서(모바일 우선, 10-14 반영분 기준) — Claude in Chrome 용
-assets/img/                워드마크(twoflip-logo-white.svg) · 스플래시(twoflip-splash.svg)
+assets/img/                워드마크(twoflip-logo-white.svg) · 스플래시(twoflip-splash.svg) · 공유 미리보기(og-home.png · og-shop.png, 1200×630)
+dev/stamp.js               배포 때 CSS·JS 주소와 모듈 import 에 ?v=커밋 을 붙인다(Pages 10분 캐시로 새 HTML·옛 CSS 가 섞이지 않게) — pages.yml 에서 실행
+404.html                   없는 주소 화면(GitHub Pages 가 어느 주소에서나 보여 줌 — 경로는 전부 / 로 시작)
 shop.html                  바로 구매 페이지(신청 index.html 과 따로 — 헤더 「바로 구매 | 신청하기」로 오간다)
 assets/js/shop.js          바로 구매 — 확보 상품 목록 · 구매 요청 시트(목록을 못 받으면 이유와 「신청하기」 안내)
 assets/js/admin-items.js   관리자 「확보 상품」 — 등록 · 공개 상태 · 판매가 · 구매 요청 중 하나를 골라 예약

@@ -14,8 +14,13 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.PORT) || 4400;
 
 // 배포되는 것과 같은 범위만 서빙한다(.github/workflows/pages.yml 의 복사 목록과 맞춘다).
-const PUBLIC = [/^\/(index|shop|admin)\.html$/, /^\/assets\/[\w./-]+$/];
+const PUBLIC = [/^\/(index|shop|admin|404)\.html$/, /^\/assets\/[\w./-]+$/];
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
+
+// 없는 주소 — GitHub Pages 처럼 404.html 을 보여 준다
+async function notFound(res) {
+  try { send(res, 404, await readFile(path.join(ROOT, '404.html')), TYPES['.html']); } catch { send(res, 404, 'Not found', 'text/plain; charset=utf-8'); }
+}
 
 function send(res, status, body, type) {
   res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store' });
@@ -26,11 +31,11 @@ const server = http.createServer(async (req, res) => {
   let p;
   try { p = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); } catch { return send(res, 400, 'Bad request', 'text/plain'); }
   if (p === '/') p = '/index.html';
-  if (p.includes('..') || !PUBLIC.some((re) => re.test(p))) return send(res, 404, 'Not found', 'text/plain; charset=utf-8');
+  if (p.includes('..') || !PUBLIC.some((re) => re.test(p))) return notFound(res);
   try {
     send(res, 200, await readFile(path.join(ROOT, p)), TYPES[path.extname(p)] || 'application/octet-stream');
   } catch {
-    send(res, 404, 'Not found', 'text/plain; charset=utf-8');
+    notFound(res);
   }
 });
 
