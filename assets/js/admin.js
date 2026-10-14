@@ -17,6 +17,7 @@ import { brandLinks } from './brands.js';
 import { CANDIDATE_TYPES, CURRENCIES, checkRate, compareToKream, parseRates, toKrw } from './sourcing.js';
 import { STOCK_STATES, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from './stock.js';
 import { formatWon } from './preview-view.js';
+import { createItemsView } from './admin-items.js';
 
 const store = createLocalStore(browserStorage());
 const SETTINGS_KEY = 'twoflip.admin.settings.v1';
@@ -33,6 +34,7 @@ const state = {
   reveal: new Set(),
   history: new Map(), // 신청 id → 서버에서 받은 상태 이력
   checkForm: new Map(), // 신청 id → 05 재고 기록 칸의 직전 종류·통화·사이즈
+  view: 'apps', // 신청 | items(확보 상품)
   jumpToRecord: null, // 접힌 카드의 「재고 기록」 — 다음 그리기 때 그 카드 05 기록 칸으로
   localSettings: loadSettings(),
   settings: null,
@@ -281,6 +283,7 @@ function logout(clearMsg = true) {
   state.checkForm.clear();
   state.msg = null;
   useSettings();
+  itemsView.reset();
   render(); // 감춘 화면에도 신청자 정보가 남지 않게 비운다
   showGate(clearMsg ? '로그아웃했습니다.' : '', 'info');
 }
@@ -404,6 +407,7 @@ function renderCard(r) {
     h('div', { class: 'thumb' }, img ? h('img', { src: img, alt: '', referrerpolicy: 'no-referrer', loading: 'lazy' }) : '이미지 없음'),
     h('div', { class: 'sum-prod' },
       h('div', { class: 'cell-k clip' }, brand || '브랜드 미상', r.source === 'sample' ? h('span', { class: 'tag', text: '샘플' }) : null, r.source === 'demo' ? h('span', { class: 'tag', text: '테스트' }) : null,
+        r.itemId ? h('span', { class: 'tag buy-tag', text: '바로 구매' }) : null,
         assignee ? h('span', { class: 'tag', text: `담당 ${assignee.name}` }) : null),
       h('div', { class: 'cell-v clip', text: title }),
       h('div', { class: 'cell-s mono clip', text: modelNo || '모델번호 없음' }),
@@ -627,6 +631,25 @@ function render() {
   const all = records();
   renderKpis(all);
   renderList(all);
+  renderView();
+}
+
+// ── 화면 전환: 신청 | 확보 상품(바로 구매) ─────────────────
+// 확보 상품은 서버(DB)에서만 — 로그인한 세션 키로 부른다(신청 탭의 데이터 출처와 상관없이)
+const itemsView = createItemsView({ root: $('items-view'), h, ext, getApi: adminApi, onFail: serverFail, onRender: () => renderView() });
+function renderView() {
+  const items = state.view === 'items';
+  $('view-apps').setAttribute('aria-selected', String(!items));
+  $('view-items').setAttribute('aria-selected', String(items));
+  $('apps-view').hidden = items;
+  $('items-view').hidden = !items;
+  const c = itemsView.count();
+  $('count-items').textContent = c == null ? '—' : String(c);
+}
+function setView(v) {
+  state.view = v;
+  renderView();
+  if (v === 'items') itemsView.show();
 }
 
 // ── 설정 · 이벤트 ────────────────────────────────────
@@ -769,6 +792,8 @@ function initToolbar() {
   });
 }
 
+$('view-apps').addEventListener('click', () => setView('apps'));
+$('view-items').addEventListener('click', () => setView('items'));
 initSettings();
 initFilters();
 initToolbar();

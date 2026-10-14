@@ -42,5 +42,10 @@ export function createAdminClient({ baseUrl, key, fetchImpl = globalThis.fetch, 
     deleteCheck: (checkId) => call('DELETE', `/admin/stock-checks/${enc(checkId)}`),
     getSettings: () => call('GET', '/admin/settings'),
     putSettings: (s) => call('PUT', '/admin/settings', s),
+    // 바로 구매(확보 상품)
+    listItems: () => call('GET', '/admin/items'),
+    createItem: (v) => call('POST', '/admin/items', v),
+    patchItem: (id, patch) => call('PATCH', `/admin/items/${enc(id)}`, patch),
+    deleteItem: (id) => call('DELETE', `/admin/items/${enc(id)}`),
   };
 }

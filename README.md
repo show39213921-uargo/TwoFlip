@@ -41,6 +41,10 @@ docs/deploy.md             도메인·DNS·Pages 현재 설정
 docs/qa-prompt.md          화면 QA · UI/UX 제안 지시서 — 다른 세션·사람에게 그대로 넘긴다(계정 비밀번호는 별도 전달)
 docs/ux-review-mobile-prompt.md  2차 UI/UX · 소비자 편의 디자인 제안 지시서(모바일 우선, 10-14 반영분 기준) — Claude in Chrome 용
 assets/img/                워드마크(twoflip-logo-white.svg) · 스플래시(twoflip-splash.svg)
+assets/js/shop.js          바로 구매 — 확보 상품 목록 · 구매 요청 시트(목록을 못 받으면 메뉴째 숨김)
+assets/js/admin-items.js   관리자 「확보 상품」 — 등록 · 공개 상태 · 판매가 · 구매 요청 중 하나를 골라 예약
+assets/js/items-view.js    바로 구매 화면 값 · 입력 검증(순수, 백엔드 validateItem 과 같은 규칙)
+assets/demo/sample-items.json  테스트 모드(?demo=1) 바로 구매 샘플 3개(판매 중 · 가격 문의 · 예약 중)
 assets/js/splash.js        처음 진입 스플래시 → 헤더 로고로 이동(이 탭 첫 진입만 · 움직임 줄이기면 건너뜀)
 ```
 

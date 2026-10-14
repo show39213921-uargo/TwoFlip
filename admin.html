@@ -50,6 +50,13 @@
       <strong>이 브라우저</strong>·<strong>JSON 파일</strong>은 서버에 아무것도 보내지 않는 테스트·백업용입니다.
     </p>
 
+    <!-- 화면: 신청(고객이 보낸 KREAM 링크) | 확보 상품(바로 구매 — 먼저 사 둔 상품) -->
+    <div class="seg view-tabs" role="tablist" aria-label="화면">
+      <button type="button" role="tab" id="view-apps" aria-selected="true">신청</button>
+      <button type="button" role="tab" id="view-items" aria-selected="false">확보 상품 <span class="count" id="count-items">—</span></button>
+    </div>
+
+    <div id="apps-view">
     <section class="toolbar" aria-label="데이터">
       <div class="seg" role="tablist" aria-label="데이터 출처">
         <button type="button" role="tab" id="src-server" aria-selected="false">서버 <span class="count" id="count-server">—</span></button>
@@ -98,6 +105,10 @@
     </section>
 
     <section id="list" class="app-list" aria-live="polite"></section>
+    </div>
+
+    <!-- 확보 상품(admin-items.js) — 서버에서만 -->
+    <section id="items-view" aria-live="polite" hidden></section>
   </main>
 </body>
 </html>
