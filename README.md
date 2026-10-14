@@ -38,6 +38,7 @@ assets/js/preview-view.js  미리보기 응답 → 화면 값(외부 문자열�
 dev/server.js              로컬 정적 서버 (배포 안 됨)
 docs/api-contract.md       API 요청·응답 계약 — 두 레포의 정본
 docs/deploy.md             도메인·DNS·Pages 현재 설정
+docs/design-guide.md       디자인 가이드 — 원칙 · 브랜드 · 색 · 글자 · 부품 · 문구 · 정리 계획(QA 디자인 제안의 판단 기준)
 docs/qa-prompt.md          화면 QA · UI/UX 제안 지시서 — 다른 세션·사람에게 그대로 넘긴다(계정 비밀번호는 별도 전달)
 docs/ux-review-mobile-prompt.md  2차 UI/UX · 소비자 편의 디자인 제안 지시서(모바일 우선, 10-14 반영분 기준) — Claude in Chrome 용
 assets/img/                워드마크(twoflip-logo-white.svg) · 스플래시(twoflip-splash.svg)
