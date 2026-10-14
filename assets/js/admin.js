@@ -445,7 +445,7 @@ function renderDetail(r, { k, brand, modelNo, revealed, stock }) {
   // 2~4. 공식 홈페이지 · 오프라인 · 해외
   const officialPanel = h('div', { class: 'panel' }, h('h3', {}, h('span', { class: 'n', text: '02' }), '공식 홈페이지'),
     linkList(links.official, '브랜드를 알 수 없어 링크를 만들지 못했습니다.'),
-    links.known ? null : h('p', { class: 'muted', style: 'margin-top:8px', text: '등록되지 않은 브랜드 — 일반 검색으로 연결합니다(assets/js/brands.js 에 추가 가능).' }));
+    links.known ? null : h('p', { class: 'muted', style: 'margin-top:8px', text: '등록되지 않은 브랜드 — 일반 검색으로 연결합니다.' }));
   const offlinePanel = h('div', { class: 'panel' }, h('h3', {}, h('span', { class: 'n', text: '03' }), '근처 오프라인 판매처'),
     linkList(links.offline, '브랜드를 알 수 없어 지도 검색을 만들지 못했습니다.'),
     h('p', { class: 'muted', style: 'margin-top:8px', text: `기준 지역: ${state.settings.area || '없음(지도에서 현재 위치 기준)'} — 위 「설정」에서 바꿉니다. 매장 재고는 전화·방문으로 확인합니다.` }));
