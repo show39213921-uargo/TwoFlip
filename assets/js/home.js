@@ -1,6 +1,6 @@
-// 첫 페이지(신청)에서 바로 구매로 가는 길 — 히어로 두 갈래의 「지금 N개 있어요」와 그 바로 아래 상품 사진 줄.
-// 결정 ②(4차 QA R-1 · U-1): 공개 상품이 있을 때만 보인다. N 은 실제 공개 수(판매 중 · 예약 중) — 지어낸 숫자를 쓰지 않는다.
-// 사진 줄(분위기 개선 1단계 · 가이드 §6): 진행 순서 아래 있던 미리보기 한 줄을 히어로로 올려 합쳤다 — 신청 칸이 더 밀리지 않게.
+// 첫 페이지(신청)에서 바로 구매로 가는 길 — 신청서 아래 상품 사진 줄(가이드 §6).
+// 결정 ②(4차 QA R-1 · U-1): 공개 상품이 있을 때만 보인다.
+// 개편 A-1: 히어로가 신청서가 되면서 두 갈래 카드(「지금 N개 있어요」)는 없앴다 — 바로 구매로 가는 길은 헤더 메뉴와 이 줄.
 // 목록을 못 받으면(준비 전 · 오류 · 접수 준비 중) 아무것도 보이지 않는다 — 신청 흐름을 막지 않는다.
 
 import { CONFIG } from './config.js';
@@ -21,10 +21,6 @@ async function load() {
   const r = await api.items();
   const items = r.ok && Array.isArray(r.data.items) ? r.data.items : [];
   if (!items.length) return;
-
-  const onSale = items.filter((i) => i.status === 'on_sale').length;
-  $('path-shop-label').textContent = `지금 ${items.length}개 있어요` + (onSale < items.length ? ` · 요청 가능 ${onSale}개` : '');
-  $('path-shop').hidden = false;
 
   // 요청할 수 있는 것부터 — 사진 줄이 「예약 중」으로만 차지 않게
   const shown = [...items].sort((a, b) => (a.status === 'on_sale' ? 0 : 1) - (b.status === 'on_sale' ? 0 : 1)).slice(0, STRIP_MAX);

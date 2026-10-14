@@ -14,7 +14,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.PORT) || 4400;
 
 // 배포되는 것과 같은 범위만 서빙한다(.github/workflows/pages.yml 의 복사 목록과 맞춘다).
-const PUBLIC = [/^\/(index|shop|admin|404)\.html$/, /^\/assets\/[\w./-]+$/];
+const PUBLIC = [/^\/(index|about|shop|admin|404)\.html$/, /^\/assets\/[\w./-]+$/];
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
 
 // 없는 주소 — GitHub Pages 처럼 404.html 을 보여 준다

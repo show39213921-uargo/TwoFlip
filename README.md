@@ -44,7 +44,9 @@ docs/ux-review-mobile-prompt.md  2차 UI/UX · 소비자 편의 디자인 제안
 assets/img/                워드마크(twoflip-logo-white.svg) · 스플래시(twoflip-splash.svg) · 공유 미리보기(og-home.png · og-shop.png, 1200×630)
 dev/stamp.js               배포 때 CSS·JS 주소와 모듈 import 에 ?v=커밋 을 붙인다(Pages 10분 캐시로 새 HTML·옛 CSS 가 섞이지 않게) — pages.yml 에서 실행
 404.html                   없는 주소 화면(GitHub Pages 가 어느 주소에서나 보여 줌 — 경로는 전부 / 로 시작)
-shop.html                  바로 구매 페이지(신청 index.html 과 따로 — 헤더 「바로 구매 | 신청하기」로 오간다)
+about.html                 소개 페이지 — 진행 순서 그림 3컷 · 누가 하나요 · 자주 묻는 질문(첫 페이지는 신청서만, 개편 A-2)
+shop.html                  바로 구매 페이지(신청 index.html 과 따로 — 헤더 「소개 · 바로 구매 · 신청하기」로 오간다)
+test/site-files.test.js    맨 위 페이지가 배포 복사 목록(pages.yml)과 로컬 서버 공개 목록에 모두 있는지
 assets/js/shop.js          바로 구매 — 확보 상품 목록 · 구매 요청 시트(목록을 못 받으면 이유와 「신청하기」 안내)
 assets/js/admin-items.js   관리자 「확보 상품」 — 등록 · 공개 상태 · 판매가 · 구매 요청 중 하나를 골라 예약
 assets/js/items-view.js    바로 구매 화면 값 · 입력 검증(순수, 백엔드 validateItem 과 같은 규칙)
