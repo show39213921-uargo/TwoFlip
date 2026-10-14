@@ -126,8 +126,9 @@ a { color: inherit; }
 .strip-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .strip-title { margin: 0; font-size: .84rem; font-weight: 600; color: var(--hero-ink-2); letter-spacing: 0; }
 .strip-all { color: var(--hero-ink); font-size: .84rem; white-space: nowrap; min-height: 44px; display: inline-flex; align-items: center; }
-.strip-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.strip-item { display: grid; gap: 6px; align-content: start; min-width: 0; text-decoration: none; color: var(--hero-ink); }
+/* 평소엔 한 줄에 꽉 차게(넓은 화면 4장 · 좁은 화면 3장). 글자를 키우면 칸이 6rem 아래로 줄지 않고 줄 안에서 옆으로 밀린다 — 캡션이 글자 단위로 쪼개지지 않게 */
+.strip-row { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
+.strip-item { flex: 0 0 max(6rem, calc((100% - 24px) / 4)); scroll-snap-align: start; display: grid; gap: 6px; align-content: start; min-width: 0; text-decoration: none; color: var(--hero-ink); }
 /* 사진 칸은 상품 카드처럼 늘 흰 바탕 — 그 위 대체 그림 색도 고정(흰 바탕 대비 4.5 이상) */
 .strip-img { position: relative; aspect-ratio: 1; background: #fff; border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 .strip-img img { width: 100%; height: 100%; object-fit: contain; }
@@ -379,7 +380,7 @@ textarea { resize: vertical; min-height: 88px; }
   .sheet { width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 20px 20px 0 0; padding: 16px 16px 0; }
   .paths { grid-template-columns: minmax(0, 1fr); max-width: none; }
   .strip { max-width: none; }
-  .strip-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .strip-item { flex-basis: max(6rem, calc((100% - 16px) / 3)); }
   .strip-item:nth-child(n+4) { display: none; } /* 좁은 화면은 3장까지 */
 }
 
