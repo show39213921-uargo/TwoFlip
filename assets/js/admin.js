@@ -217,6 +217,7 @@ function showApp() {
   $('admin-app').hidden = false;
   $('server-session').hidden = false;
   $('server-who').textContent = `${state.server.member.name} 님`;
+  $('server-logout').title = `${state.server.member.name} 님 로그아웃`; // 좁은 화면에선 이름을 숨긴다
 }
 
 // 아이디·비밀번호 → 세션 키 → 그 키로 시작
@@ -400,22 +401,24 @@ function renderCard(r) {
 
   const summary = h('summary', {},
     h('div', { class: 'thumb' }, img ? h('img', { src: img, alt: '', referrerpolicy: 'no-referrer', loading: 'lazy' }) : '이미지 없음'),
-    h('div', {},
+    h('div', { class: 'sum-prod' },
       h('div', { class: 'cell-k clip' }, brand || '브랜드 미상', r.source === 'sample' ? h('span', { class: 'tag', text: '샘플' }) : null, r.source === 'demo' ? h('span', { class: 'tag', text: '테스트' }) : null,
         assignee ? h('span', { class: 'tag', text: `담당 ${assignee.name}` }) : null),
       h('div', { class: 'cell-v clip', text: title }),
-      h('div', { class: 'cell-s mono clip', text: modelNo || '모델번호 없음' })),
+      h('div', { class: 'cell-s mono clip', text: modelNo || '모델번호 없음' }),
+      // 좁은 화면(사이즈·신청자 칸이 숨을 때)만 — 사이즈 · 이름 · 접수 시각 · 접수번호
+      h('div', { class: 'cell-s clip sum-meta' }, `${r.size || '—'} · ${r.name || '—'} · ${formatKst(r.receivedAt)} `, h('span', { class: 'mono rid', text: r.id }))),
     h('div', { class: 'hide-md' },
       h('div', { class: 'cell-k', text: '사이즈' }),
       h('div', { class: 'cell-v', text: r.size || '—' }),
       h('div', { class: 'cell-s', text: quote ? `${quote.price} · ${quote.basis}` : 'KREAM 시세 없음' })),
     h('div', { class: 'hide-md' },
-      h('div', { class: 'cell-k', text: formatKst(r.receivedAt) }),
+      h('div', { class: 'cell-k clip' }, formatKst(r.receivedAt), ' ', h('span', { class: 'mono rid', text: r.id })),
       h('div', { class: 'cell-v clip', text: r.name || '—' }),
       h('div', { class: 'cell-s mono', text: revealed ? formatPhone(r.phone) : maskPhone(r.phone) })),
-    h('div', {},
+    h('div', { class: 'sum-stock' },
       h('div', { class: 'cell-k', text: '재고' }),
-      h('div', { class: `stock-badge ${stockTone}`, text: stock.label })),
+      h('div', { class: `stock-badge ${stockTone}`, text: stock.label, title: stock.label })),
     statusSel);
 
   const det = h('details', { class: 'app-card', 'data-id': r.id, open: state.open.has(r.id) }, summary, renderDetail(r, { k, brand, modelNo, revealed, stock }));
