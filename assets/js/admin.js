@@ -1,7 +1,13 @@
-// 관리자(임시) — 서버 없이 「이 브라우저에 저장된 테스트 신청」과 「직접 연 JSON 파일」만 읽는다. 밖으로 보내는 요청 없음.
-// 계산·표시 값은 순수 모듈(admin-view · brands · sourcing)에서 오고, 여기는 DOM 만 다룬다.
+// 관리자(임시) — 데이터 출처 세 가지:
+//   서버       : 백엔드 DB(twoflip_backend 관리자 API). 운영자 개인 접속 키로 로그인 — 3명이 같은 데이터를 본다
+//   이 브라우저: 테스트 모드(?demo=1) 신청 · 샘플 — 이 브라우저에만
+//   JSON 파일  : 직접 연 파일(예전 서버 JSON 저장분 등) — 바꾸면 「JSON 내보내기」로 저장
+// 모든 변경은 ops 를 거친다 — 브라우저·파일은 그 자리에서, 서버는 API 로 보내고 돌아온 신청으로 바꿔 끼운다.
+// 계산·표시 값은 순수 모듈(admin-view · brands · sourcing · stock)에서 오고, 여기는 DOM 만 다룬다.
 // 신청자·KREAM·판매처 문자열은 전부 textContent 로 넣는다(HTML 로 해석하지 않는다).
 
+import { CONFIG } from './config.js';
+import { createAdminClient, looksLikeKey } from './admin-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
 import {
   STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest,
@@ -9,22 +15,27 @@ import {
 } from './admin-view.js';
 import { brandLinks } from './brands.js';
 import { CANDIDATE_TYPES, CURRENCIES, compareToKream, parseRates, toKrw } from './sourcing.js';
-import { STOCK_STATES, DEFAULT_STALE_HOURS, METHOD_LABELS, stockLabel, validateCheck, stockSummary, matchesStockFilter } from './stock.js';
+import { STOCK_STATES, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter } from './stock.js';
 import { formatWon } from './preview-view.js';
 
 const store = createLocalStore(browserStorage());
 const SETTINGS_KEY = 'twoflip.admin.settings.v1';
+const KEY_STORAGE = 'twoflip.admin.key';
 const $ = (id) => document.getElementById(id);
 
 const state = {
   source: 'browser',
   file: null, // { name, records, dirty }
+  server: { key: '', member: null, members: [], records: [], loading: false, loaded: false },
   filter: { status: '', q: '', stock: '' },
   msg: null, // 방금 한 동작의 결과 한 줄 { kind, text }
   open: new Set(),
   reveal: new Set(),
-  settings: loadSettings(),
+  history: new Map(), // 신청 id → 서버에서 받은 상태 이력
+  localSettings: loadSettings(),
+  settings: null,
 };
+state.settings = state.localSettings;
 
 // ── 작은 도구 ─────────────────────────────────────────
 function h(tag, props, ...kids) {
@@ -46,6 +57,8 @@ const httpUrl = (u) => (typeof u === 'string' && /^https?:\/\/[^\s]+$/i.test(u) 
 const kreamUrl = (u) => (typeof u === 'string' && /^https:\/\/kream\.co\.kr\/products\/\d+$/.test(u) ? u : null);
 const ext = (url, ...kids) => h('a', { href: url, target: '_blank', rel: 'noopener noreferrer' }, ...kids);
 const newId = () => Math.random().toString(36).slice(2, 10);
+const nowIso = () => new Date().toISOString();
+const isServer = () => state.source === 'server';
 
 function loadSettings() {
   try {
@@ -69,9 +82,6 @@ function ago(iso) {
   if (m < 48 * 60) return `${Math.round(m / 60)}시간 전`;
   return `${Math.round(m / 1440)}일 전`;
 }
-function saveSettings() {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings)); } catch { /* 이번 화면에서만 */ }
-}
 
 function note(kind, text) {
   const el = $('src-note');
@@ -89,12 +99,29 @@ function download(name, text, type) {
 }
 const stamp = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace(/[-:T]/g, '');
 
+// ── 접속 키 보관 — 기본은 이 탭(sessionStorage), 「이 기기에서 기억」이면 localStorage ──
+function readKey() {
+  try { return sessionStorage.getItem(KEY_STORAGE) || localStorage.getItem(KEY_STORAGE) || ''; } catch { return ''; }
+}
+function writeKey(key, remember) {
+  try {
+    sessionStorage.setItem(KEY_STORAGE, key);
+    if (remember) localStorage.setItem(KEY_STORAGE, key); else localStorage.removeItem(KEY_STORAGE);
+  } catch { /* 저장 못 하면 이번 화면에서만 */ }
+}
+function forgetKey() {
+  try { sessionStorage.removeItem(KEY_STORAGE); localStorage.removeItem(KEY_STORAGE); } catch { /* 없음 */ }
+}
+const adminApi = () => createAdminClient({ baseUrl: CONFIG.apiBaseUrl, key: state.server.key });
+
 // ── 데이터 출처 ───────────────────────────────────────
 function records() {
+  if (state.source === 'server') return state.server.records;
   return state.source === 'browser' ? store.list() : (state.file ? state.file.records : []);
 }
 
-function save(id, patch) {
+// 브라우저·파일 출처의 변경
+function saveLocal(id, patch) {
   try {
     if (state.source === 'browser') store.update(id, patch);
     else if (state.file) {
@@ -106,40 +133,164 @@ function save(id, patch) {
   render();
 }
 
-function removeRecord(id) {
-  if (!confirm(`접수번호 ${id} 신청을 지울까요?`)) return;
-  try {
-    if (state.source === 'browser') store.remove(id);
-    else if (state.file) {
-      state.file.records = state.file.records.filter((r) => r.id !== id);
-      state.file.dirty = true;
+function serverFail(res) {
+  if (res.error.kind === 'auth') {
+    logout(false);
+    flash('error', '접속 키가 맞지 않거나 막혔습니다. 다시 로그인해 주세요.');
+  } else {
+    const fields = res.error.fields ? Object.values(res.error.fields).join(' ') : '';
+    flash('error', `서버에 저장하지 못했습니다: ${fields || res.error.message}`);
+  }
+  render();
+}
+
+function replaceServerRecord(app) {
+  if (!app) return;
+  state.server.records = state.server.records.map((r) => (r.id === app.id ? app : r));
+  state.history.delete(app.id); // 이력은 다음에 열 때 다시 받는다
+}
+
+// 같은 동작을 출처에 맞게 — local: 바꿀 칸 / remote: 서버 호출
+async function apply(r, local, remote) {
+  if (!isServer()) { saveLocal(r.id, local()); return; }
+  const res = await remote(adminApi());
+  if (!res.ok) { serverFail(res); return; }
+  replaceServerRecord(res.data.application);
+  state.msg = null;
+  render();
+}
+
+const cands = (r) => (Array.isArray(r.sourcing) ? r.sourcing : []);
+const ops = {
+  setStatus: (r, status) => apply(r, () => ({ status }), (api) => api.patchApplication(r.id, { status })),
+  setManual: (r, manual) => apply(r, () => ({ manual }), (api) => api.patchApplication(r.id, { manual })),
+  setAssignee: (r, assigneeId) => apply(r, () => ({ assigneeId }), (api) => api.patchApplication(r.id, { assigneeId })),
+  addCheck: (r, v) => apply(r,
+    () => ({ sourcing: [...cands(r), { id: newId(), ...v, at: nowIso() }] }),
+    (api) => api.addCheck(r.id, { type: v.type, name: v.name, size: v.size, stock: v.stock, price: v.price ?? '', currency: v.currency, url: v.url, note: v.note })),
+  // patch = { stock } 이면 재고 상태 변경, {} 이면 「지금 다시 확인함」 — 둘 다 확인 시각 갱신
+  updateCheck: (r, checkId, patch) => apply(r,
+    () => ({ sourcing: cands(r).map((c) => (c.id === checkId ? { ...c, ...patch, at: nowIso(), method: 'manual' } : c)) }),
+    (api) => (patch.stock ? api.patchCheck(checkId, { stock: patch.stock }) : api.touchCheck(checkId))),
+  removeCheck: (r, checkId) => apply(r, () => ({ sourcing: cands(r).filter((c) => c.id !== checkId) }), (api) => api.deleteCheck(checkId)),
+  async removeApp(r) {
+    if (!confirm(`접수번호 ${r.id} 신청을 지울까요?` + (isServer() ? ' 서버 DB 에서 지워지고 되돌릴 수 없습니다.' : ''))) return;
+    if (isServer()) {
+      const res = await adminApi().deleteApplication(r.id);
+      if (!res.ok) { serverFail(res); return; }
+      state.server.records = state.server.records.filter((x) => x.id !== r.id);
+      flash('', `접수번호 ${r.id} 를 지웠습니다.`);
+      render();
+      return;
     }
-  } catch (e) { flash('error', e.message); }
+    try {
+      if (state.source === 'browser') store.remove(r.id);
+      else if (state.file) {
+        state.file.records = state.file.records.filter((x) => x.id !== r.id);
+        state.file.dirty = true;
+      }
+    } catch (e) { flash('error', e.message); }
+    render();
+  },
+};
+
+// ── 서버 로그인 · 불러오기 ─────────────────────────────
+async function login(key, remember) {
+  state.server.key = key.trim();
+  state.server.loading = true;
+  render();
+  const me = await adminApi().me();
+  state.server.loading = false;
+  if (!me.ok) {
+    state.server.key = '';
+    flash('error', me.error.kind === 'auth' ? '접속 키가 맞지 않습니다(또는 막힌 키).' : `서버에 연결하지 못했습니다: ${me.error.message}`);
+    render();
+    return false;
+  }
+  state.server.member = me.data.member;
+  writeKey(state.server.key, remember);
+  await loadServer();
+  return true;
+}
+
+async function loadServer() {
+  state.server.loading = true;
+  render();
+  const [list, settings] = await Promise.all([adminApi().list(), adminApi().getSettings()]);
+  state.server.loading = false;
+  if (!list.ok) { serverFail(list); return; }
+  state.server.records = list.data.applications || [];
+  state.server.members = list.data.members || [];
+  state.server.loaded = true;
+  if (settings.ok) {
+    const s = settings.data.settings;
+    state.server.settings = { area: s.area || '', rates: parseRates(s.fxRates || {}), staleHours: Number(s.staleHours) || DEFAULT_STALE_HOURS };
+  }
+  if (isServer()) useSettings();
+  flash('', `서버에서 신청 ${state.server.records.length}건을 불러왔습니다(최신 500건까지).`);
+  render();
+}
+
+function logout(clearMsg = true) {
+  forgetKey();
+  state.server = { key: '', member: null, members: [], records: [], loading: false, loaded: false };
+  state.history.clear();
+  if (isServer()) useSettings();
+  if (clearMsg) flash('', '로그아웃했습니다. 이 브라우저에 저장된 접속 키도 지웠습니다.');
+}
+
+// 출처에 맞는 설정 — 서버면 3명이 같이 쓰는 공용 설정, 아니면 이 브라우저 설정
+function useSettings() {
+  state.settings = isServer() && state.server.settings ? state.server.settings : state.localSettings;
+  fillSettingsInputs();
+}
+
+async function persistSettings() {
+  if (isServer() && state.server.member) {
+    const res = await adminApi().putSettings({ area: state.settings.area, fxRates: state.settings.rates, staleHours: state.settings.staleHours });
+    if (!res.ok) { serverFail(res); return; }
+    flash('', '공용 설정을 저장했습니다(3명 모두에게 적용).');
+  } else {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.localSettings)); } catch { /* 이번 화면에서만 */ }
+  }
   render();
 }
 
 function setSource(src) {
   state.source = src;
   state.msg = null;
+  useSettings();
   render();
+  if (src === 'server' && state.server.member && !state.server.loaded && !state.server.loading) loadServer();
 }
 
 // ── 화면 ──────────────────────────────────────────────
 function renderToolbar() {
-  const browserCount = store.list().length;
-  $('count-browser').textContent = String(browserCount);
+  $('count-browser').textContent = String(store.list().length);
   $('count-file').textContent = state.file ? String(state.file.records.length) : '—';
-  $('src-browser').setAttribute('aria-selected', String(state.source === 'browser'));
-  $('src-file').setAttribute('aria-selected', String(state.source === 'file'));
+  $('count-server').textContent = state.server.loaded ? String(state.server.records.length) : '—';
+  for (const s of ['server', 'browser', 'file']) $(`src-${s}`).setAttribute('aria-selected', String(state.source === s));
   $('src-file').disabled = !state.file;
+  $('src-server').disabled = !CONFIG.apiBaseUrl;
   $('btn-clear').hidden = state.source !== 'browser';
   $('btn-sample').hidden = state.source !== 'browser';
 
-  // 우선순위: 깨진 데이터 > 방금 한 동작의 결과 > 파일 상태 > 기본 안내
+  const bar = $('server-bar');
+  bar.hidden = !isServer();
+  $('server-login').hidden = !!state.server.member;
+  $('server-session').hidden = !state.server.member;
+  $('server-who').textContent = state.server.member ? `${state.server.member.name} 님 · 서버 DB` : '';
+  $('server-refresh').disabled = state.server.loading;
+
+  // 우선순위: 깨진 데이터 > 방금 한 동작의 결과 > 출처별 기본 안내
   if (state.source === 'browser' && store.isCorrupt()) {
     note('error', '이 브라우저에 저장된 테스트 데이터가 깨져 있습니다. 「이 브라우저 데이터 비우기」로 초기화해 주세요.');
+  } else if (state.server.loading && isServer()) {
+    note('', '서버에서 불러오는 중…');
   } else if (state.msg) {
     note(state.msg.kind, state.msg.text);
+  } else if (isServer()) {
+    note('', state.server.member ? '서버 DB 의 신청입니다. 상태·재고 확인·설정을 바꾸면 3명 모두에게 바로 반영됩니다.' : '운영자 접속 키로 로그인하면 서버 DB 의 신청을 보고 고칠 수 있습니다.');
   } else if (state.source === 'file' && state.file) {
     note(state.file.dirty ? 'warn' : '', `파일: ${state.file.name}` + (state.file.dirty ? ' — 바꾼 내용은 파일에 저장되지 않았습니다. 「JSON 내보내기」로 받아 두세요.' : ' — 바꾼 내용은 「JSON 내보내기」로 저장합니다.'));
   } else {
@@ -159,13 +310,18 @@ function renderKpis(all) {
   }, h('div', { class: 'k', text: it.label }), h('div', { class: 'v', text: String(it.v) }))));
 }
 
+function emptyText() {
+  if (isServer()) return state.server.member ? '서버 DB 에 신청이 없습니다.' : '로그인하면 서버 DB 의 신청이 여기에 보입니다.';
+  return state.source === 'browser' ? '이 브라우저에 저장된 신청이 없습니다.' : '파일에 신청이 없습니다.';
+}
+
 function renderList(all) {
   const opts = stockOpts();
   const rows = sortNewest(filterRecords(all, state.filter).filter((r) => matchesStockFilter(r, state.filter.stock, opts)));
   const list = $('list');
   if (!all.length) {
     list.replaceChildren(h('div', { class: 'empty' },
-      h('p', { text: state.source === 'browser' ? '이 브라우저에 저장된 신청이 없습니다.' : '파일에 신청이 없습니다.' }),
+      h('p', { text: emptyText() }),
       state.source === 'browser' ? h('p', {}, '신청 화면을 ', ext('./?demo=1', '테스트 모드'), '로 열어 신청하거나, 위의 「샘플 넣기」·「JSON 열기」를 써 보세요.') : null));
     return;
   }
@@ -187,18 +343,20 @@ function renderCard(r) {
   const revealed = state.reveal.has(r.id);
   const stock = stockSummary(r, stockOpts());
   const stockTone = stock.buyable ? 'ok' : (stock.needsCheck ? 'warn' : 'none');
+  const assignee = r.assigneeId ? state.server.members.find((m) => m.id === r.assigneeId) : null;
 
   const statusSel = h('select', {
     class: 'status-sel', 'data-status': r.status, 'aria-label': '상태',
     onclick: (e) => e.stopPropagation(),
-    onchange: (e) => save(r.id, { status: e.target.value }),
+    onchange: (e) => ops.setStatus(r, e.target.value),
   }, ...STATUSES.map((s) => h('option', { value: s.key, selected: s.key === r.status }, s.label)),
   STATUSES.some((s) => s.key === r.status) ? null : h('option', { value: r.status, selected: true }, statusLabel(r.status)));
 
   const summary = h('summary', {},
     h('div', { class: 'thumb' }, img ? h('img', { src: img, alt: '', referrerpolicy: 'no-referrer', loading: 'lazy' }) : '이미지 없음'),
     h('div', {},
-      h('div', { class: 'cell-k clip' }, brand || '브랜드 미상', r.source === 'sample' ? h('span', { class: 'tag', text: '샘플' }) : null, r.source === 'demo' ? h('span', { class: 'tag', text: '테스트' }) : null),
+      h('div', { class: 'cell-k clip' }, brand || '브랜드 미상', r.source === 'sample' ? h('span', { class: 'tag', text: '샘플' }) : null, r.source === 'demo' ? h('span', { class: 'tag', text: '테스트' }) : null,
+        assignee ? h('span', { class: 'tag', text: `담당 ${assignee.name}` }) : null),
       h('div', { class: 'cell-v clip', text: title }),
       h('div', { class: 'cell-s mono clip', text: modelNo || '모델번호 없음' })),
     h('div', { class: 'hide-md' },
@@ -268,16 +426,14 @@ function manualForm(r) {
   const mo = h('input', { type: 'text', placeholder: '모델번호 (예: DD1391-100)', value: m.modelNo || '', maxlength: '30', 'aria-label': '모델번호' });
   return h('div', { class: 'manual' }, b, mo, h('button', {
     type: 'button', class: 'btn-sm', text: '적용',
-    onclick: () => save(r.id, { manual: { brand: b.value.trim(), modelNo: mo.value.trim().toUpperCase() } }),
+    onclick: () => ops.setManual(r, { brand: b.value.trim(), modelNo: mo.value.trim().toUpperCase() }),
   }));
 }
 
 // 05. 재고 확인 — 고객이 보낸 상품·사이즈를 어디서, 언제 확인했나(지금은 전부 수동 기록)
 function stockPanel(r, kPrice, stock) {
-  const cands = Array.isArray(r.sourcing) ? r.sourcing : [];
   const typeLabel = (t) => (CANDIDATE_TYPES.find((x) => x.key === t) || { label: t }).label;
   const want = String(r.size || '').trim().toUpperCase();
-  const touch = (id, patch) => save(r.id, { sourcing: cands.map((c) => (c.id === id ? { ...c, ...patch, at: new Date().toISOString(), method: 'manual' } : c)) });
 
   // 신청 사이즈 → 최근 확인 → 살 수 있는 곳 순, 그 안에서는 원화 싼 순
   const rows = stock.checks.slice().sort((a, b) =>
@@ -296,13 +452,13 @@ function stockPanel(r, kPrice, stock) {
         const url = httpUrl(c.url);
         const stockSel = h('select', {
           class: `stock-sel s-${c.stock}`, 'aria-label': `${c.name} 재고 상태`,
-          onchange: (e) => touch(c.id, { stock: e.target.value }),
+          onchange: (e) => ops.updateCheck(r, c.id, { stock: e.target.value }),
         }, ...STOCK_STATES.map((s) => h('option', { value: s.key, selected: s.key === c.stock }, s.label)));
         return h('tr', { class: [isBest ? 'hl' : '', c.stale ? 'stale' : '', c.sameSize ? '' : 'other'].filter(Boolean).join(' ') || null },
           h('td', { class: 'left' },
             h('div', { text: ago(c.at) }),
-            h('div', { class: 'sub' }, formatKst(c.at), ' · ', METHOD_LABELS[c.method] || '수동', c.stale ? h('span', { class: 'tag warn', text: '오래됨' }) : null),
-            h('button', { type: 'button', class: 'link-btn', text: '지금 다시 확인함', onclick: () => touch(c.id, {}) })),
+            h('div', { class: 'sub' }, formatKst(c.at), ' · ', METHOD_LABELS[c.method] || '수동', c.checkedBy ? ` · ${c.checkedBy}` : '', c.stale ? h('span', { class: 'tag warn', text: '오래됨' }) : null),
+            h('button', { type: 'button', class: 'link-btn', text: '지금 다시 확인함', onclick: () => ops.updateCheck(r, c.id, {}) })),
           h('td', { class: 'left' }, url ? ext(url, c.name) : c.name, isBest ? h('span', { class: 'cheapest', text: stock.cheapestStale ? '최저(오래됨)' : '최저' }) : null),
           h('td', { text: typeLabel(c.type) }),
           h('td', {}, c.size || '—', c.sameSize ? null : h('span', { class: 'tag', text: '다른 사이즈' })),
@@ -313,7 +469,7 @@ function stockPanel(r, kPrice, stock) {
           h('td', { class: 'left', text: c.note || '' }),
           h('td', {}, h('button', {
             type: 'button', class: 'x-btn', 'aria-label': `${c.name} 확인 기록 삭제`, text: '✕',
-            onclick: () => save(r.id, { sourcing: cands.filter((x) => x.id !== c.id) }),
+            onclick: () => ops.removeCheck(r, c.id),
           })));
       })))
     : h('p', { class: 'muted', text: '아직 확인한 곳이 없습니다. 위 02~04 링크로 공식몰·매장·해외를 확인하고 결과를 아래에 기록하세요.' });
@@ -335,7 +491,7 @@ function stockPanel(r, kPrice, stock) {
     onclick: () => {
       const v = validateCheck({ type: f.type.value, name: f.name.value, size: f.size.value, stock: f.stock.value, price: f.price.value, currency: f.currency.value, url: f.url.value, note: f.note.value });
       if (!v.ok) { err.textContent = Object.values(v.errors).join(' '); return; }
-      save(r.id, { sourcing: [...cands, { id: newId(), ...v.value, at: new Date().toISOString() }] });
+      ops.addCheck(r, v.value);
     },
   });
 
@@ -351,6 +507,34 @@ function stockPanel(r, kPrice, stock) {
     h('p', { class: 'muted', style: 'margin-top:6px', text: '재고 확인은 구매가 아닙니다 — 실제로 사면 위 상태를 「확보」로 바꾸세요. 지금 기록은 전부 사람이 확인한 수동 기록입니다. 해외 원화 = 물품가 × 환율(카드 수수료·관세·부가세·배송비 별도).' }));
 }
 
+// 서버 출처에서만 — 담당자 · 상태 변경 이력
+function serverExtras(r) {
+  if (!isServer()) return [];
+  const assignee = h('select', {
+    'aria-label': '담당자', class: 'assignee-sel',
+    onchange: (e) => ops.setAssignee(r, e.target.value ? Number(e.target.value) : null),
+  }, h('option', { value: '' }, '담당자 없음'), ...state.server.members.map((m) => h('option', { value: String(m.id), selected: m.id === r.assigneeId }, m.name)));
+
+  const hist = state.history.get(r.id);
+  const histBox = hist
+    ? (hist.length
+      ? h('ol', { class: 'history' }, ...hist.map((x) => h('li', {},
+        h('span', { class: 'mono', text: formatKst(x.changedAt) }), ' ',
+        `${x.fromStatus ? statusLabel(x.fromStatus) : '—'} → ${statusLabel(x.toStatus)}`,
+        h('span', { class: 'sub', text: x.changedBy ? ` · ${x.changedBy.name}` : '' }))))
+      : h('p', { class: 'muted', text: '아직 상태를 바꾼 적이 없습니다.' }))
+    : h('button', {
+      type: 'button', class: 'btn-sm', text: '상태 변경 이력 보기',
+      onclick: async () => {
+        const res = await adminApi().history(r.id);
+        if (!res.ok) { serverFail(res); return; }
+        state.history.set(r.id, res.data.history || []);
+        render();
+      },
+    });
+  return [h('dt', { text: '담당자' }), h('dd', {}, assignee), h('dt', { text: '상태 이력' }), h('dd', {}, histBox)];
+}
+
 function customerPanel(r, revealed) {
   return h('div', { class: 'panel full' },
     h('h3', {}, h('span', { class: 'n', text: '06' }), '신청자'),
@@ -361,8 +545,9 @@ function customerPanel(r, revealed) {
       h('dt', { text: '휴대폰' }), h('dd', {},
         h('span', { class: 'mono', text: revealed ? formatPhone(r.phone) : maskPhone(r.phone) }), ' ',
         h('button', { type: 'button', class: 'btn-sm', text: revealed ? '가리기' : '보기', onclick: () => { if (revealed) state.reveal.delete(r.id); else state.reveal.add(r.id); render(); } })),
-      h('dt', { text: '요청사항' }), h('dd', { text: r.memo || '—' })),
-    h('div', { class: 'row-actions' }, h('button', { type: 'button', class: 'btn-sm danger', text: '이 신청 삭제', onclick: () => removeRecord(r.id) })));
+      h('dt', { text: '요청사항' }), h('dd', { text: r.memo || '—' }),
+      ...serverExtras(r)),
+    h('div', { class: 'row-actions' }, h('button', { type: 'button', class: 'btn-sm danger', text: '이 신청 삭제', onclick: () => ops.removeApp(r) })));
 }
 
 function render() {
@@ -373,32 +558,37 @@ function render() {
 }
 
 // ── 설정 · 이벤트 ────────────────────────────────────
+const rateInputs = {};
+
+function fillSettingsInputs() {
+  $('set-area').value = state.settings.area;
+  $('set-stale').value = String(state.settings.staleHours);
+  for (const [c, el] of Object.entries(rateInputs)) el.value = state.settings.rates[c] ?? '';
+  $('settings-scope').textContent = isServer() && state.server.settings ? '(서버 공용 — 3명 모두에게 적용)' : '(이 브라우저에만)';
+}
+
 function initSettings() {
   const area = $('set-area');
-  area.value = state.settings.area;
-  area.addEventListener('change', () => { state.settings.area = area.value.trim(); saveSettings(); render(); });
+  area.addEventListener('change', () => { state.settings.area = area.value.trim(); persistSettings(); });
 
   const stale = $('set-stale');
-  stale.value = String(state.settings.staleHours);
   stale.addEventListener('change', () => {
     const n = Number(stale.value.trim());
     state.settings.staleHours = Number.isFinite(n) && n > 0 ? n : DEFAULT_STALE_HOURS;
     stale.value = String(state.settings.staleHours);
-    saveSettings();
-    render();
+    persistSettings();
   });
 
   const box = $('set-rates');
-  const inputs = {};
   for (const c of CURRENCIES.filter((x) => x !== 'KRW')) {
-    inputs[c] = h('input', { type: 'text', inputmode: 'decimal', value: state.settings.rates[c] ?? '', placeholder: c === 'JPY' ? '예: 9.3' : '예: 1400' });
-    inputs[c].addEventListener('change', () => {
-      state.settings.rates = parseRates(Object.fromEntries(Object.entries(inputs).map(([kk, el]) => [kk, el.value])));
-      saveSettings();
-      render();
+    rateInputs[c] = h('input', { type: 'text', inputmode: 'decimal', placeholder: c === 'JPY' ? '예: 9.3' : '예: 1400' });
+    rateInputs[c].addEventListener('change', () => {
+      state.settings.rates = parseRates(Object.fromEntries(Object.entries(rateInputs).map(([kk, el]) => [kk, el.value])));
+      persistSettings();
     });
-    box.append(h('label', {}, c === 'JPY' ? 'JPY (1엔당 원)' : `${c} (원)`, inputs[c]));
+    box.append(h('label', {}, c === 'JPY' ? 'JPY (1엔당 원)' : `${c} (원)`, rateInputs[c]));
   }
+  fillSettingsInputs();
 }
 
 function initFilters() {
@@ -407,6 +597,28 @@ function initFilters() {
   sel.addEventListener('change', () => { state.filter.status = sel.value; render(); });
   $('f-q').addEventListener('input', (e) => { state.filter.q = e.target.value; render(); });
   $('f-stock').addEventListener('change', (e) => { state.filter.stock = e.target.value; render(); });
+}
+
+function initServer() {
+  $('src-server').addEventListener('click', () => { if (CONFIG.apiBaseUrl) setSource('server'); });
+  if (!CONFIG.apiBaseUrl) $('src-server').title = '신청 API 주소(config.js)가 없어 서버에 연결할 수 없습니다.';
+
+  $('server-login').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const key = $('server-key').value.trim();
+    if (!looksLikeKey(key)) { flash('error', '접속 키 모양이 아닙니다 — tf_ 로 시작하는 35자를 붙여 넣어 주세요.'); render(); return; }
+    const ok = await login(key, $('server-remember').checked);
+    if (ok) $('server-key').value = '';
+  });
+  $('server-refresh').addEventListener('click', () => loadServer());
+  $('server-logout').addEventListener('click', () => { logout(); render(); });
+
+  // 기억해 둔 키가 있으면 서버 출처로 바로 연다
+  const saved = readKey();
+  if (CONFIG.apiBaseUrl && looksLikeKey(saved)) {
+    state.source = 'server';
+    login(saved, (() => { try { return localStorage.getItem(KEY_STORAGE) === saved; } catch { return false; } })());
+  }
 }
 
 function initToolbar() {
@@ -420,7 +632,7 @@ function initToolbar() {
     try {
       const { records: recs, skipped } = normalizeImported(JSON.parse(await file.text()));
       state.file = { name: file.name, records: recs, dirty: false };
-      state.source = 'file';
+      setSource('file');
       state.msg = skipped ? { kind: 'warn', text: `파일: ${file.name} — 접수번호가 없는 ${skipped}건은 건너뛰었습니다.` } : null;
       render();
     } catch (err) {
@@ -437,7 +649,7 @@ function initToolbar() {
       const have = new Set(store.list().map((r) => r.id));
       const add = sample.filter((r) => !have.has(r.id));
       store.replaceAll([...store.list(), ...add]);
-      state.source = 'browser';
+      setSource('browser');
       flash('', add.length ? `샘플 ${add.length}건을 넣었습니다(실제 KREAM 스냅샷 + 가상 고객·후보 가격).` : '샘플이 이미 들어 있습니다.');
       render();
     } catch (err) {
@@ -448,7 +660,7 @@ function initToolbar() {
 
   $('btn-export-json').addEventListener('click', () => {
     download(`twoflip-applications-${stamp()}.json`, JSON.stringify(records(), null, 2) + '\n', 'application/json');
-    if (state.file) state.file.dirty = false;
+    if (state.file && state.source === 'file') state.file.dirty = false;
     render();
   });
   $('btn-export-csv').addEventListener('click', () => download(`twoflip-applications-${stamp()}.csv`, toCsv(sortNewest(records()), (r) => stockSummary(r, stockOpts()).label), 'text/csv;charset=utf-8'));
@@ -464,4 +676,5 @@ function initToolbar() {
 initSettings();
 initFilters();
 initToolbar();
+initServer();
 render();
