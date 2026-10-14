@@ -86,9 +86,11 @@ export function stockSummary(record, { rates = {}, now = Date.now(), staleHours 
     cheapestStale = !!cheapest;
   }
 
+  // 최저가를 못 냈을 때 이유 — 가격을 적었는데 원화로 못 바꿨으면(그 통화 환율이 비어 있음) 「환율 필요」, 가격 칸이 비었으면 「가격 미기록」
+  const noPriceReason = (list) => (list.some((c) => c.price != null) ? '환율 필요' : '가격 미기록');
   let label;
   if (!mine.length) label = '재고 미확인';
-  else if (freshBuyable.length) label = `재고 있음 ${freshBuyable.length}곳 · ` + (cheapest ? `최저 ${formatWon(cheapest.krw)}` : '가격 미기록');
+  else if (freshBuyable.length) label = `재고 있음 ${freshBuyable.length}곳 · ` + (cheapest ? `최저 ${formatWon(cheapest.krw)}` : noPriceReason(freshBuyable));
   else if (staleBuyable.length) label = '오래된 확인만' + (cheapest ? ` · 최저 ${formatWon(cheapest.krw)}(다시 확인)` : ' · 다시 확인');
   else if (fresh.length) label = `재고 없음(${fresh.length}곳 확인)`;
   else label = '오래된 확인만 · 다시 확인';
