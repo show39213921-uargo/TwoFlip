@@ -182,8 +182,8 @@
   .server-session { flex-wrap: nowrap; gap: 4px; }
   .server-session #server-who { display: none; }
   .site-header .server-session .btn-sm { padding: 6px 9px; }
-  .logo { gap: 6px; font-size: 1rem; }
-  .logo-mark { width: 24px; height: 24px; }
+  .logo { gap: 6px; }
+  .logo-word { --logo-h: 24px; }
   .admin-badge { font-size: .66rem; padding: 2px 6px; }
 
   /* U-8 터치 영역 — 버튼·셀렉트 최소 40px */
