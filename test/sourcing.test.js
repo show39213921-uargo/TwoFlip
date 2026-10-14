@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { toKrw, rankCandidates, compareToKream, validateCandidate, parseRates } from '../assets/js/sourcing.js';
+import { toKrw, rankCandidates, compareToKream, validateCandidate, parseRates, checkRate } from '../assets/js/sourcing.js';
 
 const rates = { USD: 1400, JPY: 9.3 };
 
@@ -46,4 +46,11 @@ test('후보 입력 검증', () => {
 
 test('환율 입력 정리 — 양수만, 소수 허용', () => {
   assert.deepEqual(parseRates({ USD: '1,400', JPY: '9.3', EUR: '', GBP: '-1', XXX: '1' }), { USD: 1400, JPY: 9.3 });
+});
+
+test('설정 환율 한 칸 — 비우면 없음, 0 이하·숫자 아님은 거절(B-3)', () => {
+  assert.deepEqual(checkRate(''), { ok: true, value: null });
+  assert.deepEqual(checkRate('1,400'), { ok: true, value: 1400 });
+  assert.deepEqual(checkRate('9.3'), { ok: true, value: 9.3 });
+  for (const bad of ['0', '-5', 'abc', '1,4a']) assert.equal(checkRate(bad).ok, false, bad);
 });

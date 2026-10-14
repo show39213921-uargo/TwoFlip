@@ -15,6 +15,13 @@ export function sizeChip(s) {
   return { size: s.size, price: null, basis: null };
 }
 
+// 미리보기 실패 문구 — 서버 문구 끝의 「신청은 그대로 …」를 떼고 한 번만 붙인다(서버·테스트 모드 문구가 달라도 한 문장)
+export const STILL_APPLY = '신청은 그대로 진행할 수 있어요.';
+export function previewFailText(message) {
+  const base = String(message || '').replace(/\s*신청은 그대로 (?:진행)?할 수 있(?:습니다|어요)\.?\s*$/, '').trim() || '상품 정보를 읽지 못했습니다.';
+  return `${base} ${STILL_APPLY}`;
+}
+
 function checkedNote(d) {
   const when = !d.cached || !d.ageMin ? '방금 확인' : `${d.ageMin}분 전 확인`;
   return 'KREAM 기준 · ' + when + (d.stale ? '(지금은 새로 못 불러옴)' : '');

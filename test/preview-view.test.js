@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPreviewModel, formatWon } from '../assets/js/preview-view.js';
+import { buildPreviewModel, formatWon, previewFailText } from '../assets/js/preview-view.js';
 
 const data = {
   productId: '1068133',
@@ -59,4 +59,11 @@ test('한글 이름이 없으면 영문이 제목, 부제 없음 · https 아닌
 test('product 가 없으면 null', () => {
   assert.equal(buildPreviewModel({}), null);
   assert.equal(buildPreviewModel(null), null);
+});
+
+test('미리보기 실패 문구 — 「신청은 그대로…」는 한 번만(B-4)', () => {
+  assert.equal(previewFailText('지금은 KREAM 정보를 불러올 수 없습니다. 신청은 그대로 할 수 있습니다.'), '지금은 KREAM 정보를 불러올 수 없습니다. 신청은 그대로 진행할 수 있어요.');
+  assert.equal(previewFailText('KREAM 상품 정보를 읽지 못했습니다. 신청은 그대로 할 수 있습니다.'), 'KREAM 상품 정보를 읽지 못했습니다. 신청은 그대로 진행할 수 있어요.');
+  assert.equal(previewFailText('테스트 모드에서는 KREAM 상품 정보를 불러오지 않습니다(서버 연결 후 표시).'), '테스트 모드에서는 KREAM 상품 정보를 불러오지 않습니다(서버 연결 후 표시). 신청은 그대로 진행할 수 있어요.');
+  assert.equal(previewFailText(''), '상품 정보를 읽지 못했습니다. 신청은 그대로 진행할 수 있어요.');
 });

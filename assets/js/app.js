@@ -6,8 +6,8 @@ import { createApiClient } from './api.js';
 import { createLocalApi } from './local-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
 import { validateApplication } from './validate.js';
-import { parseKreamUrl } from './kream-url.js';
-import { buildPreviewModel } from './preview-view.js';
+import { parseKreamUrl, extractKreamUrl } from './kream-url.js';
+import { buildPreviewModel, previewFailText } from './preview-view.js';
 
 // demo: 서버 대신 이 브라우저에 저장(?demo=1 로만 켜진다) · api: 백엔드 · closed: 「준비 중」
 const api = CONFIG.mode === 'demo'
@@ -51,6 +51,24 @@ function showErrors(errors) {
   if (el && el.focus) el.focus();
 }
 
+// 칸마다 오류 문구 연결(aria-describedby) · 오류가 떠 있는 칸은 고칠 때마다 다시 검사해 바꾸거나 지운다(U-10)
+for (const el of form.querySelectorAll('[data-error-for]')) {
+  const key = el.dataset.errorFor;
+  const input = form.elements[key];
+  if (!input || !input.setAttribute) continue;
+  if (!el.id) el.id = `err-${key}`;
+  const ids = new Set((input.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+  ids.add(el.id);
+  input.setAttribute('aria-describedby', [...ids].join(' '));
+  const recheck = () => {
+    if (!el.textContent) return; // 아직 오류가 없는 칸은 입력 중에 다그치지 않는다
+    const msg = validateApplication(readForm()).errors[key] || '';
+    el.textContent = msg;
+    input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+  };
+  for (const ev of ['input', 'change', 'blur']) input.addEventListener(ev, recheck);
+}
+
 function setStatus(kind, parts) {
   statusBox.replaceChildren();
   statusBox.hidden = !parts;
@@ -70,6 +88,7 @@ if (CONFIG.mode === 'demo') $('demo-banner').hidden = false;
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   setStatus('', null);
+  tidyUrlInput(); // 붙여 넣고 바로 누른 경우
 
   const v = validateApplication(readForm());
   if (v.spam) { setStatus('ok', '신청이 접수되었습니다.'); form.reset(); return; } // 봇에게 거절 사유를 알려주지 않는다
@@ -104,7 +123,7 @@ function resetPreview() {
   preview.hidden = true;
   chips.hidden = true;
   chips.replaceChildren();
-  sizeHint.hidden = true;
+  sizeHint.hidden = !previewDisabled; // 미리보기를 끈 서버면 안내 한 줄은 남긴다
 }
 
 function setPreviewState(state) {
@@ -167,7 +186,17 @@ function renderPreview(model) {
   renderChips(model);
 }
 
+// 서버가 KREAM 을 읽지 않는 설정(KREAM_SERVER=off) — 미리보기 자리를 접고 안내 한 줄만. 이 화면에서는 다시 묻지 않는다.
+let previewDisabled = false;
+function previewOff() {
+  previewDisabled = true;
+  resetPreview();
+  sizeHint.hidden = false;
+  sizeHint.textContent = '상품 정보는 접수 후 저희가 확인해요. 사이즈는 KREAM 상품 페이지에서 보고 적어 주세요.';
+}
+
 async function loadPreview() {
+  if (previewDisabled) return;
   const k = parseKreamUrl(urlInput.value);
   if (!k.ok) { resetPreview(); return; }
   if (k.productId === lastPreviewId) return;
@@ -180,24 +209,39 @@ async function loadPreview() {
 
   const r = await api.preview(k.url);
   if (seq !== previewSeq) return; // 그 사이 주소가 바뀌었다
+  if (!r.ok && r.error.code === 'kream_off') { previewOff(); return; }
   const model = r.ok ? buildPreviewModel(r.data) : null;
   if (model) {
     renderPreview(model);
   } else {
     lastPreviewId = null; // 다음에 다시 시도할 수 있게
-    $('pv-error').textContent = (r.ok ? '상품 정보를 읽지 못했습니다.' : r.error.message) + ' 신청은 그대로 진행할 수 있어요.';
+    $('pv-error').textContent = previewFailText(r.ok ? '' : r.error.message);
     setPreviewState('error');
     chips.hidden = true;
     sizeHint.hidden = true;
   }
 }
 
+// 붙여 넣은 글에 KREAM 주소가 하나 있으면 그 주소만 남긴다(U-1) · 주소의 ?size= 는 사이즈 칸이 비었을 때만 채운다(U-2)
+function tidyUrlInput() {
+  const ex = extractKreamUrl(urlInput.value);
+  if (!ex) return;
+  if (!parseKreamUrl(urlInput.value).ok) {
+    urlInput.value = ex.url;
+    urlInput.dispatchEvent(new Event('change')); // 떠 있던 주소 오류를 다시 검사
+  }
+  if (ex.size && !sizeInput.value.trim()) {
+    sizeInput.value = ex.size;
+    sizeInput.dispatchEvent(new Event('input'));
+  }
+}
+
 urlInput.addEventListener('input', () => {
   clearTimeout(debounce);
-  debounce = setTimeout(loadPreview, 450);
+  debounce = setTimeout(() => { tidyUrlInput(); loadPreview(); }, 450);
 });
 urlInput.addEventListener('paste', () => {
   clearTimeout(debounce);
-  debounce = setTimeout(loadPreview, 0);
+  debounce = setTimeout(() => { tidyUrlInput(); loadPreview(); }, 0);
 });
 sizeInput.addEventListener('input', syncChips);

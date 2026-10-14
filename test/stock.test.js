@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { STOCK_STATES, isStale, normalizeCheck, validateCheck, stockSummary, matchesStockFilter } from '../assets/js/stock.js';
+import { STOCK_STATES, isStale, normalizeCheck, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from '../assets/js/stock.js';
 
 const NOW = Date.parse('2026-10-13T10:00:00Z');
 const H = 3600000;
@@ -90,6 +90,17 @@ test('살 수 있지만 가격을 안 적었으면 최저가 없이 곳 수만',
   assert.equal(s.label, '재고 있음 1곳 · 가격 미기록');
 });
 
+test('가격은 적었는데 그 통화 환율이 비어 원화로 못 바꾸면 「환율 필요」(가격 미기록 아님)', () => {
+  const s = stockSummary(app([{ id: '1', name: 'EU', size: 'L', stock: 'in', price: 100, currency: 'EUR', at: iso(H) }]), { rates, now: NOW, staleHours: 24 });
+  assert.equal(s.label, '재고 있음 1곳 · 환율 필요');
+  assert.equal(s.cheapest, null);
+  const mixed = stockSummary(app([
+    { id: '1', name: 'EU', size: 'L', stock: 'in', price: 100, currency: 'EUR', at: iso(H) },
+    { id: '2', name: '강남점', size: 'L', stock: 'in', price: null, currency: 'KRW', at: iso(H) },
+  ]), { rates, now: NOW, staleHours: 24 });
+  assert.equal(mixed.label, '재고 있음 2곳 · 환율 필요');
+});
+
 test('목록 필터 — 확인 필요 / 재고 있음 / 재고 없음', () => {
   const opts = { rates, now: NOW, staleHours: 24 };
   const none = app([]);
@@ -99,4 +110,10 @@ test('목록 필터 — 확인 필요 / 재고 있음 / 재고 없음', () => {
   assert.deepEqual([none, yes, no].map((r) => matchesStockFilter(r, 'available', opts)), [false, true, false]);
   assert.deepEqual([none, yes, no].map((r) => matchesStockFilter(r, 'none', opts)), [false, false, true]);
   assert.deepEqual([none, yes, no].map((r) => matchesStockFilter(r, '', opts)), [true, true, true]);
+});
+
+test('설정 유효 시간 — 1~168 정수만(B-3)', () => {
+  assert.deepEqual(parseStaleHours(' 24 '), { ok: true, value: 24 });
+  assert.deepEqual(parseStaleHours('168'), { ok: true, value: 168 });
+  for (const bad of ['0', '169', '1400', '-1', '2.5', 'abc', '']) assert.equal(parseStaleHours(bad).ok, false, bad);
 });

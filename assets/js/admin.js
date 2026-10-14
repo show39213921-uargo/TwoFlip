@@ -14,8 +14,8 @@ import {
   sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes,
 } from './admin-view.js';
 import { brandLinks } from './brands.js';
-import { CANDIDATE_TYPES, CURRENCIES, compareToKream, parseRates, toKrw } from './sourcing.js';
-import { STOCK_STATES, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter } from './stock.js';
+import { CANDIDATE_TYPES, CURRENCIES, checkRate, compareToKream, parseRates, toKrw } from './sourcing.js';
+import { STOCK_STATES, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from './stock.js';
 import { formatWon } from './preview-view.js';
 
 const store = createLocalStore(browserStorage());
@@ -32,6 +32,7 @@ const state = {
   open: new Set(),
   reveal: new Set(),
   history: new Map(), // 신청 id → 서버에서 받은 상태 이력
+  checkForm: new Map(), // 신청 id → 05 재고 기록 칸의 직전 종류·통화·사이즈
   localSettings: loadSettings(),
   settings: null,
 };
@@ -216,6 +217,7 @@ function showApp() {
   $('admin-app').hidden = false;
   $('server-session').hidden = false;
   $('server-who').textContent = `${state.server.member.name} 님`;
+  $('server-logout').title = `${state.server.member.name} 님 로그아웃`; // 좁은 화면에선 이름을 숨긴다
 }
 
 // 아이디·비밀번호 → 세션 키 → 그 키로 시작
@@ -275,6 +277,7 @@ function logout(clearMsg = true) {
   state.history.clear();
   state.open.clear();
   state.reveal.clear();
+  state.checkForm.clear();
   state.msg = null;
   useSettings();
   render(); // 감춘 화면에도 신청자 정보가 남지 않게 비운다
@@ -287,13 +290,22 @@ function useSettings() {
   fillSettingsInputs();
 }
 
-async function persistSettings() {
+// 설정 칸 옆 한 줄 — 저장되면 잠깐 「저장됨」, 거절·실패는 고칠 때까지
+function fieldMsg(el, kind, text) {
+  clearTimeout(el._timer);
+  el.dataset.kind = kind;
+  el.textContent = text;
+  if (kind === 'ok') el._timer = setTimeout(() => { el.textContent = ''; }, 2500);
+}
+
+async function persistSettings(msgEl) {
   if (isServer() && state.server.member) {
     const res = await adminApi().putSettings({ area: state.settings.area, fxRates: state.settings.rates, staleHours: state.settings.staleHours });
-    if (!res.ok) { serverFail(res); return; }
-    flash('', '공용 설정을 저장했습니다(3명 모두에게 적용).');
+    if (!res.ok) { fieldMsg(msgEl, 'error', '저장하지 못했습니다.'); serverFail(res); return; }
+    fieldMsg(msgEl, 'ok', '저장됨 · 3명에게 적용');
   } else {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.localSettings)); } catch { /* 이번 화면에서만 */ }
+    fieldMsg(msgEl, 'ok', '저장됨 · 이 브라우저');
   }
   render();
 }
@@ -389,22 +401,24 @@ function renderCard(r) {
 
   const summary = h('summary', {},
     h('div', { class: 'thumb' }, img ? h('img', { src: img, alt: '', referrerpolicy: 'no-referrer', loading: 'lazy' }) : '이미지 없음'),
-    h('div', {},
+    h('div', { class: 'sum-prod' },
       h('div', { class: 'cell-k clip' }, brand || '브랜드 미상', r.source === 'sample' ? h('span', { class: 'tag', text: '샘플' }) : null, r.source === 'demo' ? h('span', { class: 'tag', text: '테스트' }) : null,
         assignee ? h('span', { class: 'tag', text: `담당 ${assignee.name}` }) : null),
       h('div', { class: 'cell-v clip', text: title }),
-      h('div', { class: 'cell-s mono clip', text: modelNo || '모델번호 없음' })),
+      h('div', { class: 'cell-s mono clip', text: modelNo || '모델번호 없음' }),
+      // 좁은 화면(사이즈·신청자 칸이 숨을 때)만 — 사이즈 · 이름 · 접수 시각 · 접수번호
+      h('div', { class: 'cell-s clip sum-meta' }, `${r.size || '—'} · ${r.name || '—'} · ${formatKst(r.receivedAt)} `, h('span', { class: 'mono rid', text: r.id }))),
     h('div', { class: 'hide-md' },
       h('div', { class: 'cell-k', text: '사이즈' }),
       h('div', { class: 'cell-v', text: r.size || '—' }),
       h('div', { class: 'cell-s', text: quote ? `${quote.price} · ${quote.basis}` : 'KREAM 시세 없음' })),
     h('div', { class: 'hide-md' },
-      h('div', { class: 'cell-k', text: formatKst(r.receivedAt) }),
+      h('div', { class: 'cell-k clip' }, formatKst(r.receivedAt), ' ', h('span', { class: 'mono rid', text: r.id })),
       h('div', { class: 'cell-v clip', text: r.name || '—' }),
       h('div', { class: 'cell-s mono', text: revealed ? formatPhone(r.phone) : maskPhone(r.phone) })),
-    h('div', {},
+    h('div', { class: 'sum-stock' },
       h('div', { class: 'cell-k', text: '재고' }),
-      h('div', { class: `stock-badge ${stockTone}`, text: stock.label })),
+      h('div', { class: `stock-badge ${stockTone}`, text: stock.label, title: stock.label })),
     statusSel);
 
   const det = h('details', { class: 'app-card', 'data-id': r.id, open: state.open.has(r.id) }, summary, renderDetail(r, { k, brand, modelNo, revealed, stock }));
@@ -445,7 +459,7 @@ function renderDetail(r, { k, brand, modelNo, revealed, stock }) {
   // 2~4. 공식 홈페이지 · 오프라인 · 해외
   const officialPanel = h('div', { class: 'panel' }, h('h3', {}, h('span', { class: 'n', text: '02' }), '공식 홈페이지'),
     linkList(links.official, '브랜드를 알 수 없어 링크를 만들지 못했습니다.'),
-    links.known ? null : h('p', { class: 'muted', style: 'margin-top:8px', text: '등록되지 않은 브랜드 — 일반 검색으로 연결합니다(assets/js/brands.js 에 추가 가능).' }));
+    links.known ? null : h('p', { class: 'muted', style: 'margin-top:8px', text: '등록되지 않은 브랜드 — 일반 검색으로 연결합니다.' }));
   const offlinePanel = h('div', { class: 'panel' }, h('h3', {}, h('span', { class: 'n', text: '03' }), '근처 오프라인 판매처'),
     linkList(links.offline, '브랜드를 알 수 없어 지도 검색을 만들지 못했습니다.'),
     h('p', { class: 'muted', style: 'margin-top:8px', text: `기준 지역: ${state.settings.area || '없음(지도에서 현재 위치 기준)'} — 위 「설정」에서 바꿉니다. 매장 재고는 전화·방문으로 확인합니다.` }));
@@ -519,6 +533,14 @@ function stockPanel(r, kPrice, stock) {
     url: h('input', { type: 'url', placeholder: 'https://… (선택)', 'aria-label': '주소' }),
     note: h('input', { type: 'text', placeholder: '메모 (수량·통화한 직원 등)', maxlength: '200', 'aria-label': '메모' }),
   };
+  // 같은 신청에서 이어 기록할 때 종류·통화·사이즈는 직전 값 유지(U-3) — 판매처·가격·주소·메모만 비우고 커서는 판매처로
+  const last = state.checkForm.get(r.id);
+  if (last) {
+    f.type.value = last.type;
+    f.currency.value = last.currency;
+    f.size.value = last.size;
+    if (last.focus) { last.focus = false; setTimeout(() => f.name.focus(), 0); }
+  }
   const err = h('p', { class: 'form-err', 'aria-live': 'polite' });
   f.type.addEventListener('change', () => { if (f.type.value !== 'overseas') f.currency.value = 'KRW'; });
   const add = h('button', {
@@ -526,6 +548,7 @@ function stockPanel(r, kPrice, stock) {
     onclick: () => {
       const v = validateCheck({ type: f.type.value, name: f.name.value, size: f.size.value, stock: f.stock.value, price: f.price.value, currency: f.currency.value, url: f.url.value, note: f.note.value });
       if (!v.ok) { err.textContent = Object.values(v.errors).join(' '); return; }
+      state.checkForm.set(r.id, { type: v.value.type, currency: v.value.currency, size: v.value.size, focus: true });
       ops.addCheck(r, v.value);
     },
   });
@@ -594,34 +617,49 @@ function render() {
 
 // ── 설정 · 이벤트 ────────────────────────────────────
 const rateInputs = {};
+const rateMsgs = {};
 
 function fillSettingsInputs() {
   $('set-area').value = state.settings.area;
   $('set-stale').value = String(state.settings.staleHours);
   for (const [c, el] of Object.entries(rateInputs)) el.value = state.settings.rates[c] ?? '';
+  // 출처를 바꾸면 이전 출처의 안내·오류 표시는 지운다
+  for (const el of [$('set-area'), $('set-stale'), ...Object.values(rateInputs)]) el.removeAttribute('aria-invalid');
+  for (const el of [$('msg-area'), $('msg-stale'), ...Object.values(rateMsgs)]) fieldMsg(el, '', '');
   $('settings-scope').textContent = isServer() && state.server.settings ? '(서버 공용 — 3명 모두에게 적용)' : '(이 브라우저에만)';
 }
 
+// 잘못된 값은 저장하지 않고 칸 아래에 이유를 남긴다(B-3) — 3명 공용 설정이 한 번의 오타로 바뀌지 않게
 function initSettings() {
   const area = $('set-area');
-  area.addEventListener('change', () => { state.settings.area = area.value.trim(); persistSettings(); });
+  area.addEventListener('change', () => { state.settings.area = area.value.trim(); persistSettings($('msg-area')); });
 
   const stale = $('set-stale');
   stale.addEventListener('change', () => {
-    const n = Number(stale.value.trim());
-    state.settings.staleHours = Number.isFinite(n) && n > 0 ? n : DEFAULT_STALE_HOURS;
-    stale.value = String(state.settings.staleHours);
-    persistSettings();
+    const v = parseStaleHours(stale.value);
+    if (!v.ok) { stale.setAttribute('aria-invalid', 'true'); fieldMsg($('msg-stale'), 'error', v.error); return; }
+    stale.removeAttribute('aria-invalid');
+    stale.value = String(v.value);
+    state.settings.staleHours = v.value;
+    persistSettings($('msg-stale'));
   });
 
   const box = $('set-rates');
   for (const c of CURRENCIES.filter((x) => x !== 'KRW')) {
-    rateInputs[c] = h('input', { type: 'text', inputmode: 'decimal', placeholder: c === 'JPY' ? '예: 9.3' : '예: 1400' });
-    rateInputs[c].addEventListener('change', () => {
-      state.settings.rates = parseRates(Object.fromEntries(Object.entries(rateInputs).map(([kk, el]) => [kk, el.value])));
-      persistSettings();
+    const msg = h('span', { class: 'field-msg', id: `msg-rate-${c}`, role: 'status' });
+    const input = h('input', { type: 'text', inputmode: 'decimal', placeholder: c === 'JPY' ? '예: 9.3' : '예: 1400', 'aria-describedby': msg.id });
+    input.addEventListener('change', () => {
+      const v = checkRate(input.value);
+      if (!v.ok) { input.setAttribute('aria-invalid', 'true'); fieldMsg(msg, 'error', v.error); return; }
+      input.removeAttribute('aria-invalid');
+      const rates = { ...state.settings.rates };
+      if (v.value == null) delete rates[c]; else rates[c] = v.value;
+      state.settings.rates = rates;
+      persistSettings(msg);
     });
-    box.append(h('label', {}, c === 'JPY' ? 'JPY (1엔당 원)' : `${c} (원)`, rateInputs[c]));
+    rateInputs[c] = input;
+    rateMsgs[c] = msg;
+    box.append(h('label', {}, c === 'JPY' ? 'JPY (1엔당 원)' : `${c} (원)`, input, msg));
   }
   fillSettingsInputs();
 }
