@@ -7,7 +7,7 @@ import { createLocalApi } from './local-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
 import { validateApplication } from './validate.js';
 import { parseKreamUrl } from './kream-url.js';
-import { buildPreviewModel } from './preview-view.js';
+import { buildPreviewModel, previewFailText } from './preview-view.js';
 
 // demo: 서버 대신 이 브라우저에 저장(?demo=1 로만 켜진다) · api: 백엔드 · closed: 「준비 중」
 const api = CONFIG.mode === 'demo'
@@ -104,7 +104,7 @@ function resetPreview() {
   preview.hidden = true;
   chips.hidden = true;
   chips.replaceChildren();
-  sizeHint.hidden = true;
+  sizeHint.hidden = !previewDisabled; // 미리보기를 끈 서버면 안내 한 줄은 남긴다
 }
 
 function setPreviewState(state) {
@@ -167,7 +167,17 @@ function renderPreview(model) {
   renderChips(model);
 }
 
+// 서버가 KREAM 을 읽지 않는 설정(KREAM_SERVER=off) — 미리보기 자리를 접고 안내 한 줄만. 이 화면에서는 다시 묻지 않는다.
+let previewDisabled = false;
+function previewOff() {
+  previewDisabled = true;
+  resetPreview();
+  sizeHint.hidden = false;
+  sizeHint.textContent = '상품 정보는 접수 후 저희가 확인해요. 사이즈는 KREAM 상품 페이지에서 보고 적어 주세요.';
+}
+
 async function loadPreview() {
+  if (previewDisabled) return;
   const k = parseKreamUrl(urlInput.value);
   if (!k.ok) { resetPreview(); return; }
   if (k.productId === lastPreviewId) return;
@@ -180,12 +190,13 @@ async function loadPreview() {
 
   const r = await api.preview(k.url);
   if (seq !== previewSeq) return; // 그 사이 주소가 바뀌었다
+  if (!r.ok && r.error.code === 'kream_off') { previewOff(); return; }
   const model = r.ok ? buildPreviewModel(r.data) : null;
   if (model) {
     renderPreview(model);
   } else {
     lastPreviewId = null; // 다음에 다시 시도할 수 있게
-    $('pv-error').textContent = (r.ok ? '상품 정보를 읽지 못했습니다.' : r.error.message) + ' 신청은 그대로 진행할 수 있어요.';
+    $('pv-error').textContent = previewFailText(r.ok ? '' : r.error.message);
     setPreviewState('error');
     chips.hidden = true;
     sizeHint.hidden = true;

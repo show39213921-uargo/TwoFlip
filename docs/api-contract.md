@@ -49,6 +49,7 @@
 | 429 | `rate_limited` | 같은 IP 조회 과다(10분 40회) |
 | 502 | `kream_unavailable` | KREAM 페이지를 못 읽음 |
 | 503 | `kream_busy` | KREAM 요청량 제한 중. `Retry-After` 헤더 |
+| 503 | `kream_off` | 서버가 KREAM 을 읽지 않는 설정(`KREAM_SERVER=off`). 화면은 미리보기를 접고 「접수 후 확인」 안내만, 이 화면에서는 다시 묻지 않는다. KREAM 정보는 같은 상품 최근 신청에서 복사하거나(6시간) 사무실 PC 도구가 채운다 |
 
 ## `POST /applications`
 
@@ -81,7 +82,7 @@
 ### 응답
 
 **성공 — 201 (또는 200)**. `id` 가 **반드시** 있어야 한다. 페이지는 `id` 가 없으면 접수됐다고 보이지 않는다.
-서버는 저장할 때 KREAM 상품 스냅샷(이름·모델번호·즉시 구매가·사이즈별 시세)을 최대 4초 기다려 같이 남긴다. 못 받으면 `kream: null` 로 저장하고 접수는 그대로 한다.
+서버는 저장할 때 KREAM 상품 스냅샷(이름·모델번호·즉시 구매가·사이즈별 시세)을 최대 4초 기다려 같이 남긴다. 못 받으면 `kream: null` 로 저장하고 접수는 그대로 한다(`KREAM_SERVER=off` 면 처음부터 `null`).
 
 ```json
 { "id": "a1b2c3d4", "status": "received", "receivedAt": "2026-10-13T07:30:00Z" }
