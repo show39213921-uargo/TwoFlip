@@ -30,7 +30,7 @@ function notice(text, retry) {
   if (retry) {
     const b = el('button', 'btn btn-outline', '다시 불러오기');
     b.type = 'button';
-    b.addEventListener('click', () => load());
+    b.addEventListener('click', () => load({ fresh: true }));
     links.append(b);
   }
   const a = Object.assign(el('a', 'btn btn-primary', 'KREAM 링크로 신청하기'), { href: './#apply' });
@@ -39,9 +39,9 @@ function notice(text, retry) {
   list.replaceChildren(box);
 }
 
-async function load() {
+async function load({ fresh = false } = {}) {
   if (CONFIG.mode === 'closed') { notice('바로 구매는 준비 중이에요.', false); return; }
-  const r = await api.items();
+  const r = await api.items({ fresh });
   if (!r.ok) {
     if (r.error.code === 'items_unavailable') notice('바로 구매는 준비 중이에요. 원하는 상품은 KREAM 링크로 신청해 주세요.', false);
     else notice('상품 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.', true);
@@ -228,7 +228,7 @@ form.addEventListener('submit', async (e) => {
   btn.textContent = '구매 요청 보내기';
   if (r.ok) { rememberRequest(current.id, r.data.id); done(r.data.id); return; }
   setStatus('error', r.error.message);
-  if (r.error.code === 'item_reserved' || r.error.code === 'item_not_found') load(); // 그 사이 예약·판매됨 — 목록을 새로
+  if (r.error.code === 'item_reserved' || r.error.code === 'item_not_found') load({ fresh: true }); // 그 사이 예약·판매됨 — 캐시를 건너뛰고 목록을 새로
 });
 
 function done(id) {
