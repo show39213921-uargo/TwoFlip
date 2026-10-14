@@ -111,3 +111,12 @@ test('공개 목록 — 평소엔 브라우저 캐시를 따르고, fresh 면 ca
   assert.equal(f.calls[0].init.cache, undefined);
   assert.equal(f.calls[1].init.cache, 'reload');
 });
+
+test('최근 진행 사례 — GET {base}/cases(개편 A-3)', async () => {
+  const f = fakeFetch(() => json(200, { cases: [] }));
+  const api = createApiClient({ baseUrl: 'https://api.example/', fetchImpl: f });
+  const r = await api.cases();
+  assert.equal(r.ok, true);
+  assert.equal(f.calls[0].url, 'https://api.example/cases');
+  assert.equal(f.calls[0].init.method, 'GET');
+});

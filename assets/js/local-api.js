@@ -14,7 +14,23 @@ async function loadSampleItems() {
   return res.json();
 }
 
-export function createLocalApi({ store, now = Date.now, newId = randomId, loadItems = loadSampleItems }) {
+// 테스트 모드 최근 진행 사례 — 「[샘플]」 이 붙은 가짜 3건(찾음 둘 · 못 찾음 하나)
+async function loadSampleCases() {
+  const res = await fetch('assets/demo/sample-cases.json', { cache: 'no-store' });
+  if (!res.ok) throw new Error('샘플 사례를 불러오지 못했습니다.');
+  return res.json();
+}
+
+export function createLocalApi({ store, now = Date.now, newId = randomId, loadItems = loadSampleItems, loadCases = loadSampleCases }) {
+  async function cases() {
+    try {
+      const list = await loadCases();
+      return { ok: true, data: { cases: Array.isArray(list) ? list : [] } };
+    } catch (e) {
+      return { ok: false, error: { kind: 'demo', message: e.message } };
+    }
+  }
+
   async function submitApplication(payload) {
     const record = {
       id: newId(),
@@ -79,5 +95,5 @@ export function createLocalApi({ store, now = Date.now, newId = randomId, loadIt
     return { ok: true, data: { id: record.id, status: record.status, receivedAt: record.receivedAt } };
   }
 
-  return { submitApplication, preview, health, items, requestItem };
+  return { submitApplication, preview, health, items, requestItem, cases };
 }

@@ -18,6 +18,7 @@ import { CANDIDATE_TYPES, CURRENCIES, checkRate, compareToKream, parseRates, toK
 import { STOCK_STATES, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from './stock.js';
 import { formatWon } from './preview-view.js';
 import { createItemsView } from './admin-items.js';
+import { CASE_RESULTS, caseChoices } from './cases-view.js';
 
 const store = createLocalStore(browserStorage());
 const SETTINGS_KEY = 'twoflip.admin.settings.v1';
@@ -179,6 +180,8 @@ const ops = {
     () => ({ sourcing: cands(r).map((c) => (c.id === checkId ? { ...c, ...patch, at: nowIso(), method: 'manual' } : c)) }),
     (api) => (patch.stock ? api.patchCheck(checkId, { stock: patch.stock }) : api.touchCheck(checkId))),
   removeCheck: (r, checkId) => apply(r, () => ({ sourcing: cands(r).filter((c) => c.id !== checkId) }), (api) => api.deleteCheck(checkId)),
+  // 최근 진행 사례(개편 A-3) — 서버에서만. result 가 비면 끄기
+  setCase: (r, result) => apply(r, () => ({}), (api) => (result ? api.setCase(r.id, result) : api.deleteCase(r.id))),
   async removeApp(r) {
     if (!confirm(`접수번호 ${r.id} 신청을 지울까요?` + (isServer() ? ' 서버 DB 에서 지워지고 되돌릴 수 없습니다.' : ''))) return;
     if (isServer()) {
@@ -627,7 +630,21 @@ function serverExtras(r) {
         render();
       },
     });
-  return [h('dt', { text: '담당자' }), h('dd', {}, assignee), h('dt', { text: '상태 이력' }), h('dd', {}, histBox)];
+  return [h('dt', { text: '담당자' }), h('dd', {}, assignee), h('dt', { text: '상태 이력' }), h('dd', {}, histBox), ...caseRow(r)];
+}
+
+// 「사례로 공개」(개편 A-3) — 완료·취소 신청만, 기본 꺼짐. 켜면 날짜·브랜드·상품명·사이즈·결과만 첫 페이지·소개 페이지에 나간다
+function caseRow(r) {
+  const choices = caseChoices(r.status);
+  if (!choices.length) return [h('dt', { text: '사례 공개' }), h('dd', { class: 'muted', text: '완료나 취소된 신청만 공개할 수 있습니다.' })];
+  const cur = r.case && r.case.result;
+  const sel = h('select', {
+    'aria-label': '사례로 공개', class: 'assignee-sel',
+    onchange: (e) => ops.setCase(r, e.target.value),
+  }, h('option', { value: '' }, '공개 안 함'), ...choices.map((v) => h('option', { value: v, selected: v === cur }, `공개 — ${CASE_RESULTS[v].admin}`)));
+  return [h('dt', { text: '사례 공개' }), h('dd', {}, sel,
+    h('span', { class: 'sub', text: cur ? ` · ${r.case.date} 날짜로 공개 중` : '' }),
+    h('p', { class: 'muted', style: 'margin:4px 0 0', text: '이름·번호·가격은 나가지 않습니다 — 날짜·브랜드·상품명·사이즈·결과만.' }))];
 }
 
 function customerPanel(r, revealed) {

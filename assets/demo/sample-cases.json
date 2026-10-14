@@ -1,0 +1,5 @@
+[
+  { "date": "2026-10-12", "brand": "Salomon", "name": "[샘플] 살로몬 UNI 크로스 인슐레이션 자켓", "size": "L", "result": "found_store" },
+  { "date": "2026-10-11", "brand": null, "name": "[샘플] 러닝화", "size": "270", "result": "found_online" },
+  { "date": "2026-10-10", "brand": null, "name": "[샘플] 볼캡", "size": "FREE", "result": "not_found" }
+]
