@@ -75,7 +75,8 @@ a { color: inherit; }
 .logo-word { --logo-h: 30px; display: block; height: var(--logo-h); width: auto; margin: 0 calc(var(--logo-h) * -1.5) 0 calc(var(--logo-h) * -1.35); }
 .header-cta {
   color: var(--hero-bg); background: var(--lime); text-decoration: none;
-  font-weight: 700; font-size: .9rem; padding: 8px 14px; border-radius: 999px;
+  font-weight: 700; font-size: .9rem; padding: 8px 16px; border-radius: 999px;
+  min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap; /* 2차 QA U-6: 누르는 곳 44px */
 }
 
 /* ── 테스트 모드 띠 ─────────────────────────────────── */
@@ -129,6 +130,22 @@ a { color: inherit; }
 .btn-ghost { color: var(--hero-ink); border-color: #343842; background: transparent; }
 .btn-ghost:hover { background: #1b1d22; }
 .btn-block { width: 100%; padding: 15px; font-size: 1.05rem; }
+.btn-outline { color: var(--ink); border-color: var(--line-strong); background: transparent; }
+.btn-outline:hover { background: var(--surface-2); }
+
+/* 히어로 아래 안내 3줄(2차 QA D-1) */
+.trust { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 4px; color: var(--hero-ink-2); font-size: .84rem; }
+.trust li::before { content: "·"; margin-right: 6px; color: var(--lime); font-weight: 800; }
+
+/* 접수 완료 카드(2차 QA U-3) */
+.apply-done { text-align: center; padding: 8px 0 4px; outline: none; }
+.done-k { display: inline-block; margin: 0 0 8px; font-size: .78rem; font-weight: 800; color: var(--ok); background: var(--ok-bg); padding: 3px 10px; border-radius: 999px; }
+.done-title { margin: 0 0 18px; font-size: 1.35rem; letter-spacing: -0.03em; }
+.done-id { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 14px; border: 1px dashed var(--line-strong); border-radius: var(--radius); background: var(--surface-2); }
+.done-id-k { color: var(--ink-3); font-size: .86rem; }
+.done-id strong { font-size: 1.35rem; letter-spacing: .04em; user-select: all; }
+.done-copy { font: inherit; font-size: .86rem; font-weight: 700; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; }
+.done-msg { margin: 14px 0 18px; color: var(--ink-2); font-size: .92rem; }
 .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 
 /* ── 진행 순서 ─────────────────────────────────────── */
@@ -258,11 +275,11 @@ textarea { resize: vertical; min-height: 88px; }
 /* ── 처음 진입 스플래시(splash.js) ──────────────────── */
 /* html.splash-on 은 index.html 머리의 한 줄 스크립트가 붙인다(이 탭 첫 진입 · 움직임 줄이기 아님). 없으면 스플래시는 안 보인다 */
 .splash { display: none; }
-.splash-on .splash { display: block; position: fixed; inset: 0; z-index: 100; background: #000; animation: splash-failsafe 0s linear 3s forwards; }
-.splash-art { display: block; width: 100%; height: 100%; object-fit: contain; transition: opacity .18s ease; }
-.splash.leaving { background: transparent; transition: background-color .55s ease; }
-.splash-fly { position: fixed; z-index: 101; transform-origin: 0 0; pointer-events: none; transition: transform .65s cubic-bezier(.65, 0, .25, 1), opacity .18s ease; }
-.splash-on .site-header .logo-word { visibility: hidden; animation: splash-failsafe-show 0s linear 3s forwards; }
+.splash-on .splash { display: block; position: fixed; inset: 0; z-index: 100; background: #000; animation: splash-failsafe 0s linear 1.5s forwards; }
+.splash-art { display: block; width: 100%; height: 100%; object-fit: contain; transition: opacity .1s ease; }
+.splash.leaving { background: transparent; transition: background-color .3s ease; }
+.splash-fly { position: fixed; z-index: 101; transform-origin: 0 0; pointer-events: none; transition: transform .35s cubic-bezier(.65, 0, .25, 1), opacity .1s ease; }
+.splash-on .site-header .logo-word { visibility: hidden; animation: splash-failsafe-show 0s linear 1.5s forwards; }
 @keyframes splash-failsafe { to { visibility: hidden; opacity: 0; } }
 @keyframes splash-failsafe-show { to { visibility: visible; } }
 .footer-note { color: var(--ink-3); font-size: .8rem; }
@@ -274,10 +291,18 @@ textarea { resize: vertical; min-height: 88px; }
 }
 @media (max-width: 560px) {
   .wrap { padding: 0 16px; }
-  .hero { padding: 48px 0 56px; }
+  .hero { padding: 40px 0 44px; }
   .lede { font-size: 1rem; }
-  .hero-actions .btn { flex: 1; }
-  .steps { grid-template-columns: 1fr; }
+  /* D-4 · 큰 글자에서도 버튼 글자가 끊기지 않게 — 한 줄에 하나, 엄지로 누르기 쉬운 폭 */
+  .hero-actions { flex-direction: column; }
+  .hero-actions .btn { width: 100%; white-space: nowrap; }
+  /* D-2 · 진행 설명이 두 번 나오던 것 — 히어로 그림 카드는 숨기고, 「진행 순서」는 옆으로 넘기는 한 줄 */
+  .hero-visual { display: none; }
+  .how { padding: 36px 0 8px; }
+  .section-title { font-size: 1.2rem; margin-bottom: 12px; }
+  .steps { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 0 -16px; padding: 0 16px 8px; }
+  .steps li { flex: 0 0 72%; scroll-snap-align: start; padding: 16px; }
+  .step-n { margin-bottom: 6px; }
   .apply { padding: 24px 0 56px; }
   .apply-card { padding: 22px 18px; border-radius: 16px; }
   .row { grid-template-columns: 1fr; gap: 0; }

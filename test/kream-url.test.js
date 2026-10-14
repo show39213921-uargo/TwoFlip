@@ -57,3 +57,10 @@ test('주소 찾기 — 못 찾거나 고르지 않는 경우(기존 검증 유�
   assert.equal(extractKreamUrl('https://kream.co.kr/products/1 https://kream.co.kr/products/2'), null, '상품이 둘이면 고르지 않음');
   assert.equal(extractKreamUrl('kream.co.kr/products/12abc'), null);
 });
+
+test('주소 찾기 — 줄바꿈이 지워져 한글에 붙은 공유 문구도(2차 QA B-1)', () => {
+  assert.deepEqual(extractKreamUrl('KREAM 공유https://kream.co.kr/products/1068133?size=265'), { productId: '1068133', url: 'https://kream.co.kr/products/1068133', size: '265' });
+  assert.equal(extractKreamUrl('KREAM 공유\nhttps://kream.co.kr/products/1068133?size=265').size, '265');
+  assert.equal(extractKreamUrl('https://evilkream.co.kr/products/1'), null);
+  assert.equal(extractKreamUrl('a@kream.co.kr/products/1'), null);
+});

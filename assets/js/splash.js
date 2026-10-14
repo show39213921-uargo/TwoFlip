@@ -2,11 +2,11 @@
 // 같은 자리에 워드마크(twoflip-logo-white.svg)를 겹친 뒤 헤더 로고 자리로 옮겨 붙인다.
 //
 // 켜는 조건은 index.html 머리의 한 줄 스크립트가 정한다(html.splash-on: 이 탭 첫 진입 · 움직임 줄이기 아님).
-// 클릭·키 입력이면 바로 끝낸다. JS 가 안 돌거나 여기서 실패해도 CSS 가 3초 뒤 스플래시를 걷고 헤더 로고를 보인다.
+// 클릭·키 입력이면 바로 끝낸다. JS 가 안 돌거나 여기서 실패해도 CSS 가 1.5초 뒤 스플래시를 걷고 헤더 로고를 보인다.
 
 const SEEN_KEY = 'twoflip.splash.seen';
-const HOLD_MS = 650;   // 가운데 TWOFLIP 을 보여 주는 시간
-const FLY_MS = 650;    // 헤더로 옮겨 가는 시간(app.css .splash-fly 와 같게)
+const HOLD_MS = 150;   // 가운데 TWOFLIP 을 보여 주는 시간 — 공유 링크는 매번 새 탭이라 고객 대부분이 매번 본다(2차 QA D-3: 전체 0.6초 이하)
+const FLY_MS = 350;    // 헤더로 옮겨 가는 시간(app.css .splash-fly 와 같게)
 
 // 두 SVG 의 글자 자리 — 스플래시: 945×2048 중 가운데(472.5) · 기준선 950 / 로고: 500×80 중 가운데(250) · 기준선 52
 const ART = { w: 945, h: 2048, cx: 472.5, base: 950 };
@@ -51,7 +51,7 @@ function fly() {
     el.style.transform = `translate(${r.left - left}px, ${r.top - top}px) scale(${r.height / (LOGO.h * s)})`;
     splash.classList.add('leaving');
     setTimeout(finish, FLY_MS + 50);
-  }, 180);
+  }, 100);
 }
 
 if (root.classList.contains('splash-on') && splash && target) {

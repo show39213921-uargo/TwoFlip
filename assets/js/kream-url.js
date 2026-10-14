@@ -35,10 +35,12 @@ export function parseKreamUrl(input) {
 
 // 붙여 넣은 글(「[KREAM] 상품명 https://kream.co.kr/products/1068133?size=270」 등)에서 KREAM 상품 주소 하나를 찾는다.
 // 화면 편의용 — 검증은 그대로 parseKreamUrl 이 한다(찾은 주소도 parseKreamUrl 을 통과해야 한다).
-//   · 주소 앞은 글의 처음 · 공백 · 괄호/따옴표만 — 「evil.com/kream.co.kr/products/1」 · 「kream.co.kr.evil.com/…」 은 못 찾는다
+//   · 주소 바로 앞이 주소에 쓰이는 글자(영문·숫자·. / = ? & 등)면 못 찾는다 — 「evil.com/kream.co.kr/products/1」 · 「?r=kream.co.kr/…」 ·
+//     「kream.co.kr.evil.com/…」 은 거절. 한글·공백·괄호 뒤는 찾는다 — 주소 칸(type=url)이 줄바꿈을 지워 「공유https://…」로 붙어도(2차 QA B-1)
 //   · 서로 다른 상품이 둘 이상이면 고르지 않는다(null)
 //   · size: 주소의 ?size= 값(없으면 null) — 사이즈 칸이 비었을 때만 화면이 채운다
-const FIND = /(?:^|[\s"'(<[「])((?:https?:\/\/)?(?:www\.)?kream\.co\.kr\/products\/\d+(?!\w)\/?(?:[?#][^\s"'<>)\]」]*)?)/gi;
+// (lookbehind 는 iOS 16.3 이하 Safari 에서 문법 오류라 쓰지 않는다)
+const FIND = /(?:^|[^A-Za-z0-9.\/=?&_%@:+~#-])((?:https?:\/\/)?(?:www\.)?kream\.co\.kr\/products\/\d+(?!\w)\/?(?:[?#][^\s"'<>)\]」]*)?)/gi;
 
 export function extractKreamUrl(input) {
   const found = new Map();
