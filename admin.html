@@ -21,13 +21,33 @@
         <span>TwoFlip</span>
         <span class="admin-badge">관리자 · 임시</span>
       </a>
-      <a class="header-link" href="./?demo=1">신청 화면(테스트 모드) →</a>
+      <div class="server-session" id="server-session" hidden>
+        <span id="server-who"></span>
+        <button type="button" class="btn-sm" id="server-refresh">새로고침</button>
+        <button type="button" class="btn-sm" id="server-logout">로그아웃</button>
+      </div>
     </div>
   </header>
 
-  <main class="wrap wide admin-main">
+  <!-- 로그인 전에는 이 화면만 보인다. 데이터 보호는 서버가 한다(로그인 없이는 API 가 아무것도 주지 않음) -->
+  <section class="gate" id="gate" aria-labelledby="gate-title">
+    <form class="gate-card" id="gate-form" novalidate>
+      <h1 id="gate-title">관리자 로그인</h1>
+      <p class="gate-sub">운영자 아이디와 비밀번호로 들어갑니다.</p>
+      <label for="gate-id">아이디</label>
+      <input id="gate-id" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="30" required>
+      <label for="gate-pw">비밀번호</label>
+      <input id="gate-pw" type="password" autocomplete="current-password" maxlength="200" required>
+      <label class="remember"><input type="checkbox" id="gate-remember"> 이 기기에서 로그인 유지(30일)</label>
+      <button type="submit" class="btn btn-primary btn-block" id="gate-submit">로그인</button>
+      <p class="gate-msg" id="gate-msg" role="alert" aria-live="assertive"></p>
+      <p class="gate-help">계정이 없으면 운영 담당에게 요청하세요.</p>
+    </form>
+  </section>
+
+  <main class="wrap wide admin-main" id="admin-app" hidden>
     <p class="notice">
-      <strong>서버</strong>는 운영자 아이디·비밀번호로 로그인해 DB 의 실제 신청을 보고 고칩니다(3명이 같은 데이터).
+      <strong>서버</strong>는 DB 의 실제 신청입니다(3명이 같은 데이터, 바꾸면 누가 바꿨는지 남음).
       <strong>이 브라우저</strong>·<strong>JSON 파일</strong>은 서버에 아무것도 보내지 않는 테스트·백업용입니다.
     </p>
 
@@ -46,21 +66,6 @@
         <button type="button" class="btn-sm danger" id="btn-clear">이 브라우저 데이터 비우기</button>
       </div>
     </section>
-    <div class="server-bar" id="server-bar" hidden>
-      <form class="server-login" id="server-login">
-        <label for="server-id">아이디</label>
-        <input id="server-id" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="30">
-        <label for="server-pw">비밀번호</label>
-        <input id="server-pw" type="password" autocomplete="current-password" maxlength="200">
-        <label class="remember"><input type="checkbox" id="server-remember"> 이 기기에서 기억(30일)</label>
-        <button type="submit" class="btn-sm primary">로그인</button>
-      </form>
-      <div class="server-session" id="server-session" hidden>
-        <span id="server-who"></span>
-        <button type="button" class="btn-sm" id="server-refresh">새로고침</button>
-        <button type="button" class="btn-sm" id="server-logout">로그아웃</button>
-      </div>
-    </div>
     <p class="src-note" id="src-note" role="status"></p>
 
     <details class="settings" id="settings">
