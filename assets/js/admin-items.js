@@ -162,13 +162,16 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
       ` · ${it.kream ? `확인 ${formatKst(k.checkedAt)}${k.via === 'copy' ? ' · 같은 상품 정보 복사' : k.via === 'office' ? ' · 사무실 PC' : ''}` : 'KREAM 정보 대기 중(사무실 PC 가 채움)'}`,
       ` · 등록 ${formatKst(it.createdAt)}${it.createdBy ? ` · ${it.createdBy}` : ''}`);
 
+    // 같은 번호로 여러 번 요청 — 막지 않고 표시만(결정 ④)
+    const byPhone = reqs.reduce((m, q) => m.set(q.phone, (m.get(q.phone) || 0) + 1), new Map());
     const reqList = reqs.length
       ? h('ol', { class: 'item-requests' }, ...reqs.map((q) => {
         const mine = it.reservedApplicationId === q.id;
         const shown = st.reveal.has(q.id);
+        const dup = byPhone.get(q.phone) || 1;
         return h('li', { class: mine ? 'is-reserved' : null },
           h('div', {},
-            h('strong', { text: q.name }), ' ',
+            h('strong', { text: q.name }), ' ', dup > 1 ? h('span', { class: 'tag warn', text: `같은 번호 요청 ${dup}건` }) : null, ' ',
             h('span', { class: 'mono', text: shown ? formatPhone(q.phone) : maskPhone(q.phone) }), ' ',
             h('button', { type: 'button', class: 'link-btn', text: shown ? '가리기' : '보기', onclick: () => { if (shown) st.reveal.delete(q.id); else st.reveal.add(q.id); render(); } }),
             h('div', { class: 'sub' }, `${formatKst(q.receivedAt)} · 접수번호 `, h('span', { class: 'mono', text: q.id }), ` · 신청 상태 ${statusLabel(q.status)}`, q.memo ? ` · 「${q.memo}」` : '')),
