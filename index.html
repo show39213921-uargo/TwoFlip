@@ -10,14 +10,20 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="assets/css/app.css">
+  <!-- 스플래시는 이 탭에서 처음 들어올 때만 · 움직임 줄이기 설정이면 건너뛴다(그리기 전에 판단해 깜빡임 없게) -->
+  <script>try{if(!sessionStorage.getItem('twoflip.splash.seen')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('splash-on')}catch(e){}</script>
+  <script type="module" src="assets/js/splash.js"></script>
   <script type="module" src="assets/js/app.js"></script>
 </head>
 <body>
+  <!-- 처음 진입 스플래시 — 가운데 TWOFLIP 이 헤더 로고 자리로 옮겨 간다(splash.js). JS 가 안 돌아도 3초 뒤 CSS 로 사라진다 -->
+  <div class="splash" id="splash" aria-hidden="true">
+    <img class="splash-art" src="assets/img/twoflip-splash.svg" alt="">
+  </div>
   <header class="site-header">
     <div class="wrap header-row">
-      <a class="logo" href="#top" aria-label="TwoFlip 처음으로">
-        <svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M9 12h12l-3-3M23 20H11l3 3"/></svg>
-        <span>TwoFlip</span>
+      <a class="logo" href="#top" aria-label="TWOFLIP 처음으로">
+        <img class="logo-word" src="assets/img/twoflip-logo-white.svg" alt="TWOFLIP" width="500" height="80">
       </a>
       <a class="header-cta" href="#apply">신청하기</a>
     </div>
@@ -200,8 +206,7 @@
   <footer class="site-footer">
     <div class="wrap footer-row">
       <span class="logo small">
-        <svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M9 12h12l-3-3M23 20H11l3 3"/></svg>
-        <span>TwoFlip</span>
+        <img class="logo-word" src="assets/img/twoflip-logo-white.svg" alt="TWOFLIP" width="500" height="80">
       </span>
       <span class="footer-note">TwoFlip 은 KREAM 과 제휴 관계가 없는 독립 서비스입니다.</span>
     </div>

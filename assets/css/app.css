@@ -71,9 +71,8 @@ a { color: inherit; }
 }
 .header-row { display: flex; align-items: center; justify-content: space-between; height: 60px; }
 .logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--hero-ink); font-weight: 800; font-size: 1.1rem; letter-spacing: -0.03em; }
-.logo-mark { width: 28px; height: 28px; }
-.logo-mark rect { fill: #1d1f24; }
-.logo-mark path { stroke: var(--lime); stroke-width: 2.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+/* 워드마크(assets/img/twoflip-logo-white.svg) — 500×80 안에 글자가 x 108~393 이라 양옆 빈자리를 음수 여백으로 걷는다 */
+.logo-word { --logo-h: 30px; display: block; height: var(--logo-h); width: auto; margin: 0 calc(var(--logo-h) * -1.5) 0 calc(var(--logo-h) * -1.35); }
 .header-cta {
   color: var(--hero-bg); background: var(--lime); text-decoration: none;
   font-weight: 700; font-size: .9rem; padding: 8px 14px; border-radius: 999px;
@@ -253,8 +252,19 @@ textarea { resize: vertical; min-height: 88px; }
 /* ── 푸터 ───────────────────────────────────────────── */
 .site-footer { border-top: 1px solid var(--line); padding: 28px 0 40px; }
 .footer-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
-.logo.small { color: var(--ink); font-size: .95rem; }
-.logo.small .logo-mark { width: 22px; height: 22px; }
+.logo.small .logo-word { --logo-h: 22px; filter: invert(1); } /* 흰 글자 파일 → 밝은 바탕에서 검게 */
+@media (prefers-color-scheme: dark) { .logo.small .logo-word { filter: none; } }
+
+/* ── 처음 진입 스플래시(splash.js) ──────────────────── */
+/* html.splash-on 은 index.html 머리의 한 줄 스크립트가 붙인다(이 탭 첫 진입 · 움직임 줄이기 아님). 없으면 스플래시는 안 보인다 */
+.splash { display: none; }
+.splash-on .splash { display: block; position: fixed; inset: 0; z-index: 100; background: #000; animation: splash-failsafe 0s linear 3s forwards; }
+.splash-art { display: block; width: 100%; height: 100%; object-fit: contain; transition: opacity .18s ease; }
+.splash.leaving { background: transparent; transition: background-color .55s ease; }
+.splash-fly { position: fixed; z-index: 101; transform-origin: 0 0; pointer-events: none; transition: transform .65s cubic-bezier(.65, 0, .25, 1), opacity .18s ease; }
+.splash-on .site-header .logo-word { visibility: hidden; animation: splash-failsafe-show 0s linear 3s forwards; }
+@keyframes splash-failsafe { to { visibility: hidden; opacity: 0; } }
+@keyframes splash-failsafe-show { to { visibility: visible; } }
 .footer-note { color: var(--ink-3); font-size: .8rem; }
 
 /* ── 좁은 화면 ─────────────────────────────────────── */
