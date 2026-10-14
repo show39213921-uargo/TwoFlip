@@ -14,7 +14,6 @@
   <script>try{if(!sessionStorage.getItem('twoflip.splash.seen')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('splash-on')}catch(e){}</script>
   <script type="module" src="assets/js/splash.js"></script>
   <script type="module" src="assets/js/app.js"></script>
-  <script type="module" src="assets/js/shop.js"></script>
 </head>
 <body>
   <!-- 처음 진입 스플래시 — 가운데 TWOFLIP 이 헤더 로고 자리로 옮겨 간다(splash.js). JS 가 안 돌아도 1.5초 뒤 CSS 로 사라진다 -->
@@ -27,8 +26,7 @@
         <img class="logo-word" src="assets/img/twoflip-logo-white.svg" alt="TWOFLIP" width="500" height="80">
       </a>
       <nav class="header-nav" aria-label="메뉴">
-        <!-- 바로 구매는 상품 목록을 받아 온 뒤에만 보인다(shop.js) -->
-        <a class="nav-link" href="#shop" id="nav-shop" hidden>바로 구매</a>
+        <a class="nav-link" href="shop.html">바로 구매</a>
         <a class="header-cta" href="#apply">신청하기</a>
       </nav>
     </div>
@@ -227,75 +225,7 @@
       </div>
     </section>
 
-    <!-- 바로 구매 — 저희가 먼저 확보해 둔 상품(shop.js). 목록을 못 받으면(준비 전·오류) 통째로 숨는다 -->
-    <section class="shop" id="shop" hidden>
-      <div class="wrap">
-        <h2 class="section-title">바로 구매</h2>
-        <p class="section-sub">저희가 먼저 확보해 둔 상품이에요. 마음에 들면 구매 요청을 남겨 주세요 — 확인 후 연락드려요.</p>
-        <div class="shop-grid" id="shop-list" aria-live="polite"></div>
-      </div>
-    </section>
   </main>
-
-  <!-- 구매 요청 시트 — 휴대폰에선 아래에서 올라온다 -->
-  <dialog class="sheet" id="item-sheet" aria-labelledby="sheet-title">
-    <div class="sheet-head">
-      <h2 class="sheet-title" id="sheet-title">구매 요청</h2>
-      <button type="button" class="sheet-x" id="sheet-close" aria-label="닫기">✕</button>
-    </div>
-    <div class="sheet-item">
-      <div class="sheet-img"><img id="sheet-img" alt="" referrerpolicy="no-referrer"></div>
-      <div>
-        <p class="sheet-sub" id="sheet-sub"></p>
-        <p class="sheet-name" id="sheet-name"></p>
-        <p class="sheet-meta"><span class="chip mono" id="sheet-size"></span> <strong id="sheet-price"></strong></p>
-      </div>
-    </div>
-
-    <form id="item-form" novalidate>
-      <div class="field">
-        <label for="it-name">이름</label>
-        <input id="it-name" name="name" type="text" maxlength="30" autocomplete="name" enterkeyhint="next" required>
-        <p class="error" data-error-for="name" aria-live="polite"></p>
-      </div>
-      <div class="field">
-        <label for="it-phone">휴대폰 번호</label>
-        <input id="it-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-1234-5678" enterkeyhint="done" required>
-        <p class="error" data-error-for="phone" aria-live="polite"></p>
-      </div>
-      <div class="field">
-        <label for="it-memo">요청사항 <span class="optional">선택</span></label>
-        <textarea id="it-memo" name="memo" rows="2" maxlength="500" placeholder="연락 가능한 시간 등"></textarea>
-        <p class="error" data-error-for="memo" aria-live="polite"></p>
-      </div>
-      <div class="hp" aria-hidden="true">
-        <label for="it-website">웹사이트</label>
-        <input id="it-website" name="website" type="text" tabindex="-1" autocomplete="off">
-      </div>
-      <div class="consent">
-        <label class="check">
-          <input type="checkbox" name="consent" value="yes">
-          <span class="check-box" aria-hidden="true"></span>
-          <span>개인정보(이름·휴대폰 번호) 수집·이용에 동의합니다. 구매 요청 처리와 연락에만 사용합니다.</span>
-        </label>
-        <p class="error" data-error-for="consent" aria-live="polite"></p>
-      </div>
-      <button class="btn btn-primary btn-block" type="submit" id="item-submit">구매 요청 보내기</button>
-      <div id="item-status" class="status" role="status" hidden></div>
-    </form>
-
-    <div class="apply-done" id="item-done" role="status" tabindex="-1" hidden>
-      <p class="done-k">요청 완료</p>
-      <h3 class="done-title">구매 요청을 받았어요</h3>
-      <div class="done-id">
-        <span class="done-id-k">접수번호</span>
-        <strong id="item-done-id" class="mono"></strong>
-        <button type="button" class="done-copy" id="item-done-copy">복사</button>
-      </div>
-      <p class="done-msg" id="item-done-msg"></p>
-      <button type="button" class="btn btn-outline btn-block" id="item-done-close">닫기</button>
-    </div>
-  </dialog>
 
   <footer class="site-footer">
     <div class="wrap footer-row">

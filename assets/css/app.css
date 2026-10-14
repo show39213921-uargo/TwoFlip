@@ -278,7 +278,15 @@ textarea { resize: vertical; min-height: 88px; }
 .nav-link:hover { color: var(--lime); }
 
 /* ── 바로 구매(shop.js) ─────────────────────────────── */
-.shop { padding: 8px 0 80px; }
+/* 바로 구매 페이지(shop.html) — 신청과 다른 페이지. 머리는 히어로와 같은 어두운 톤으로 짧게 */
+.page-hero { background: var(--hero-bg); color: var(--hero-ink); padding: 44px 0 36px; }
+.page-hero h1 { font-size: clamp(1.6rem, 3.6vw, 2.4rem); line-height: 1.25; letter-spacing: -0.035em; margin: 0 0 12px; font-weight: 800; }
+.page-hero .lede { margin-bottom: 0; }
+.page-hero .lede a { color: var(--lime); }
+.nav-link[aria-current="page"] { color: var(--lime); }
+.shop { padding: 28px 0 80px; }
+.shop-empty p { margin: 0; }
+.shop-empty .shop-empty-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
 .section-sub { margin: -14px 0 20px; color: var(--ink-2); font-size: .95rem; }
 .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
 .shop-empty { margin: 0; padding: 28px 16px; text-align: center; color: var(--ink-3); background: var(--surface); border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); }

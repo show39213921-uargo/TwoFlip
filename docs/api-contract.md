@@ -104,7 +104,7 @@
 
 ## 바로 구매(확보 상품) — 10-14
 
-운영자가 먼저 사 둔 상품을 공개하고 고객이 구매 요청을 남긴다. 화면은 신청 화면 「바로 구매」(`assets/js/shop.js`) · 관리자 「확보 상품」(`assets/js/admin-items.js`).
+운영자가 먼저 사 둔 상품을 공개하고 고객이 구매 요청을 남긴다. 화면은 바로 구매 페이지 `shop.html`(`assets/js/shop.js`) · 관리자 「확보 상품」(`assets/js/admin-items.js`).
 DB 저장일 때만 열린다 — 서버에 표(`twoflip_items`)가 아직 없으면 `503 items_unavailable` 이고, 화면은 메뉴째 숨는다.
 
 ### `GET /items`

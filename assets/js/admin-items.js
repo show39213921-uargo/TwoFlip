@@ -86,7 +86,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
         st.items = [r.data.item, ...st.items];
         st.open.add(r.data.item.id);
         flash('', r.data.item.status === 'on_sale'
-          ? '등록했습니다 — 신청 화면 「바로 구매」에 바로 보입니다.'
+          ? '등록했습니다 — 「바로 구매」 페이지에 바로 보입니다.'
           : '등록했습니다(비공개). 공개하려면 상태를 「판매 중」으로 바꾸세요.');
         render();
       },
@@ -179,8 +179,8 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
               onclick: () => {
                 // 한 번 누르면 바로 공개 화면이 바뀌므로 한 번 묻는다(3차 QA U-5)
                 if (!confirm(`${q.name} 님 요청으로 예약할까요?
-신청 화면에 「예약 중」으로 바뀌고, 새 구매 요청은 받지 않습니다.`)) return;
-                call(getApi().patchItem(it.id, { status: 'reserved', reservedApplicationId: q.id }), `${q.name} 님 요청으로 예약했습니다 — 신청 화면에서 「예약 중」으로 보입니다.`);
+「바로 구매」 페이지에 「예약 중」으로 바뀌고, 새 구매 요청은 받지 않습니다.`)) return;
+                call(getApi().patchItem(it.id, { status: 'reserved', reservedApplicationId: q.id }), `${q.name} 님 요청으로 예약했습니다 — 「바로 구매」 페이지에서 「예약 중」으로 보입니다.`);
               },
             }));
       }))
@@ -210,7 +210,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
 
   function render() {
     const head = h('div', { class: 'items-head' },
-      h('p', { class: 'src-note', 'data-kind': st.msg ? st.msg.kind : '', text: st.loading ? '불러오는 중…' : (st.msg ? st.msg.text : `확보 상품 ${st.items.length}건 — 「판매 중」·「예약 중」만 신청 화면 「바로 구매」에 보입니다.`) }),
+      h('p', { class: 'src-note', 'data-kind': st.msg ? st.msg.kind : '', text: st.loading ? '불러오는 중…' : (st.msg ? st.msg.text : `확보 상품 ${st.items.length}건 — 「판매 중」·「예약 중」만 「바로 구매」 페이지에 보입니다.`) }),
       h('button', { type: 'button', class: 'btn-sm', text: '새로고침', disabled: st.loading ? true : null, onclick: () => load() }));
     root.replaceChildren(head, registerForm(),
       h('div', { class: 'app-list' }, ...(st.items.length ? st.items.map(card) : [h('div', { class: 'empty' }, h('p', { text: st.loaded ? '등록한 확보 상품이 없습니다. 위 「확보 상품 등록」으로 시작하세요.' : '' }))])));
