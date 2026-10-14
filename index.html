@@ -149,15 +149,26 @@
             </form>
 
             <!-- 접수 완료 — 신청이 끝나면 폼 자리에 보인다(app.js showDone) -->
+            <!-- 개편 A-4 — 단계 표시로 「처리되고 있다」는 신호. 지금 단계(접수됨)만 강조, 「찾으면 연락」 — 못 찾을 수도 있는 여지를 남긴다 -->
             <div id="apply-done" class="apply-done" role="status" tabindex="-1" hidden>
-              <p class="done-k">접수 완료</p>
-              <h2 class="done-title">신청이 접수되었어요</h2>
+              <h2 class="done-title">신청이 접수됐어요</h2>
+              <ol class="done-steps" aria-label="진행 단계">
+                <li class="is-now" aria-current="step">
+                  <span class="done-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>
+                  <span>접수됨</span>
+                </li>
+                <li><span class="done-dot" aria-hidden="true"></span><span>찾는 중</span></li>
+                <li><span class="done-dot" aria-hidden="true"></span><span>찾으면 연락</span></li>
+              </ol>
+              <p class="done-now">지금은 「접수됨」이에요. 찾는 데 걸리는 시간은 상품마다 달라요.</p>
               <div class="done-id">
                 <span class="done-id-k">접수번호</span>
                 <strong id="done-id" class="mono"></strong>
                 <button type="button" class="done-copy" id="done-copy">복사</button>
               </div>
               <p class="done-msg" id="done-msg"></p>
+              <!-- TODO(결정 대기): 진행 상황 보기(접수번호 + 휴대폰 뒷자리) · 알림 수단(문자·카톡) 안내 — 정해지면 이 자리에 -->
+              <!-- 「이용 방법 보기」는 카드 바로 아래 링크가 그대로 보인다 — 카드 안에 두 번 두지 않는다 -->
               <button type="button" class="btn btn-outline btn-block" id="done-again">다른 상품 신청하기</button>
             </div>
           </div>
