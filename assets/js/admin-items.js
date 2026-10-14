@@ -123,7 +123,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
         h('div', { class: 'cell-s clip' }, `${it.size} · ${formatWon(it.salePrice) || '가격 문의'}`, reqs.length ? h('span', { class: 'tag', text: `요청 ${reqs.length}` }) : null)),
       statusSel);
 
-    const det = h('details', { class: 'app-card item-card', open: st.open.has(it.id) }, summary, detail(it, reqs));
+    const det = h('details', { class: 'app-card item-card', 'data-id': it.id, open: st.open.has(it.id) }, summary, detail(it, reqs));
     det.addEventListener('toggle', () => { if (det.open) st.open.add(it.id); else st.open.delete(it.id); });
     return det;
   }
@@ -176,7 +176,12 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
             ? h('span', { class: 'tag ok-tag', text: '예약됨' })
             : h('button', {
               type: 'button', class: 'btn-sm', text: '이 요청으로 예약', disabled: it.status === 'sold' ? true : null,
-              onclick: () => call(getApi().patchItem(it.id, { status: 'reserved', reservedApplicationId: q.id }), `${q.name} 님 요청으로 예약했습니다 — 신청 화면에서 「예약 중」으로 보입니다.`),
+              onclick: () => {
+                // 한 번 누르면 바로 공개 화면이 바뀌므로 한 번 묻는다(3차 QA U-5)
+                if (!confirm(`${q.name} 님 요청으로 예약할까요?
+신청 화면에 「예약 중」으로 바뀌고, 새 구매 요청은 받지 않습니다.`)) return;
+                call(getApi().patchItem(it.id, { status: 'reserved', reservedApplicationId: q.id }), `${q.name} 님 요청으로 예약했습니다 — 신청 화면에서 「예약 중」으로 보입니다.`);
+              },
             }));
       }))
       : h('p', { class: 'muted', text: '아직 구매 요청이 없습니다.' });
@@ -212,7 +217,25 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
     onRender();
   }
 
+  const titleOf = (id) => {
+    const it = st.items.find((x) => x.id === id);
+    if (!it) return null;
+    const k = it.kream || {};
+    return `${it.title || k.nameKo || k.name || 'KREAM 정보 대기 중'} · ${it.size}`;
+  };
+
+  async function openItem(id) {
+    st.open.add(id);
+    if (!st.loaded) await load(); else render();
+    const el = root.querySelector(`.item-card[data-id="${CSS.escape(id)}"]`);
+    if (el) el.scrollIntoView({ block: 'start' });
+    else { flash('error', '그 확보 상품을 찾지 못했습니다(지워졌을 수 있습니다).'); render(); }
+  }
+
   return {
+    titleOf,
+    openItem,
+    preload() { if (!st.loaded && !st.loading) load(); },
     show() { if (!st.loaded && !st.loading) load(); else render(); },
     reset() { st.items = []; st.loaded = false; st.msg = null; st.open.clear(); st.reveal.clear(); root.replaceChildren(); },
     count: () => (st.loaded ? st.items.length : null),

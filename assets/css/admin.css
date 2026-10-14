@@ -209,7 +209,7 @@
   /* B-2 헤더: 이름은 숨기고(로그아웃 버튼 title 에 남김) 버튼·배지는 한 줄 */
   .server-session { flex-wrap: nowrap; gap: 4px; }
   .server-session #server-who { display: none; }
-  .site-header .server-session .btn-sm { padding: 6px 9px; }
+  .site-header .server-session .btn-sm { padding: 6px 9px; min-height: 44px; } /* 3차 QA U-6 */
   .logo { gap: 6px; }
   .logo-word { --logo-h: 24px; }
   .admin-badge { font-size: .66rem; padding: 2px 6px; }
@@ -217,7 +217,9 @@
   /* U-8 터치 영역 — 버튼·셀렉트 최소 40px */
   .btn-sm, .status-sel, .stock-sel, .assignee-sel, .cand-form select, .cand-form input, .manual input { min-height: 40px; }
   .x-btn { min-width: 40px; min-height: 40px; }
-  .link-btn { min-height: 32px; }
+  .link-btn { min-height: 40px; display: inline-flex; align-items: center; font-size: .8rem; } /* 「지금 다시 확인함」 · 「보기」(3차 QA U-7) */
+  /* 디자인 가이드 ⑭ — 16px 보다 작은 칸은 iOS 가 누를 때 화면을 확대한다 */
+  .cand-form select, .cand-form input, .manual input, .item-form-grid input, .item-register select, .filters select, .filters input, .settings input, .status-sel, .stock-sel, .assignee-sel { font-size: 16px !important; }
 }
 
 /* ── 화면 전환 · 확보 상품(admin-items.js) ───────────── */
@@ -250,3 +252,6 @@
   .items-head { flex-wrap: wrap; }
 }
 .item-requests li .tag { align-self: flex-start; }
+
+/* 바로 구매 요청 카드 — 재고 배지 자리에 확보 상품으로 가는 단추(3차 QA B-1) */
+.stock-badge.item-link { font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; color: var(--focus); background: var(--surface-2); border-color: color-mix(in srgb, var(--focus) 40%, transparent); text-align: left; }
