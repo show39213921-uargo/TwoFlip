@@ -1,5 +1,5 @@
 // 관리자(임시) — 데이터 출처 세 가지:
-//   서버       : 백엔드 DB(twoflip_backend 관리자 API). 운영자 개인 접속 키로 로그인 — 3명이 같은 데이터를 본다
+//   서버       : 백엔드 DB(twoflip_backend 관리자 API). 아이디·비밀번호로 로그인(세션 키) — 3명이 같은 데이터를 본다
 //   이 브라우저: 테스트 모드(?demo=1) 신청 · 샘플 — 이 브라우저에만
 //   JSON 파일  : 직접 연 파일(예전 서버 JSON 저장분 등) — 바꾸면 「JSON 내보내기」로 저장
 // 모든 변경은 ops 를 거친다 — 브라우저·파일은 그 자리에서, 서버는 API 로 보내고 돌아온 신청으로 바꿔 끼운다.
@@ -7,7 +7,7 @@
 // 신청자·KREAM·판매처 문자열은 전부 textContent 로 넣는다(HTML 로 해석하지 않는다).
 
 import { CONFIG } from './config.js';
-import { createAdminClient, looksLikeKey } from './admin-api.js';
+import { createAdminClient, looksLikeKey, loginAdmin } from './admin-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
 import {
   STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest,
@@ -136,7 +136,7 @@ function saveLocal(id, patch) {
 function serverFail(res) {
   if (res.error.kind === 'auth') {
     logout(false);
-    flash('error', '접속 키가 맞지 않거나 막혔습니다. 다시 로그인해 주세요.');
+    flash('error', '로그인이 만료됐거나 막힌 계정입니다. 다시 로그인해 주세요.');
   } else {
     const fields = res.error.fields ? Object.values(res.error.fields).join(' ') : '';
     flash('error', `서버에 저장하지 못했습니다: ${fields || res.error.message}`);
@@ -195,19 +195,38 @@ const ops = {
 };
 
 // ── 서버 로그인 · 불러오기 ─────────────────────────────
-async function login(key, remember) {
-  state.server.key = key.trim();
+// 아이디·비밀번호 → 세션 키 → 그 키로 시작
+async function loginWithPassword(loginId, password, remember) {
   state.server.loading = true;
   render();
-  const me = await adminApi().me();
+  const r = await loginAdmin({ baseUrl: CONFIG.apiBaseUrl, loginId, password, remember });
   state.server.loading = false;
-  if (!me.ok) {
-    state.server.key = '';
-    flash('error', me.error.kind === 'auth' ? '접속 키가 맞지 않습니다(또는 막힌 키).' : `서버에 연결하지 못했습니다: ${me.error.message}`);
+  if (!r.ok) {
+    flash('error', r.error.status === 401 || r.error.status === 429 || r.error.kind === 'input' ? r.error.message : `서버에 연결하지 못했습니다: ${r.error.message}`);
     render();
     return false;
   }
-  state.server.member = me.data.member;
+  return useSession(r.data.token, remember, r.data.member);
+}
+
+// 세션 키(방금 받았거나 기억해 둔 것)로 시작 — 만료됐으면 로그인 칸으로
+async function useSession(key, remember, member = null) {
+  state.server.key = key.trim();
+  if (!member) {
+    state.server.loading = true;
+    render();
+    const me = await adminApi().me();
+    state.server.loading = false;
+    if (!me.ok) {
+      state.server.key = '';
+      forgetKey();
+      flash(me.error.kind === 'auth' ? 'warn' : 'error', me.error.kind === 'auth' ? '로그인이 만료됐습니다. 다시 로그인해 주세요.' : `서버에 연결하지 못했습니다: ${me.error.message}`);
+      render();
+      return false;
+    }
+    member = me.data.member;
+  }
+  state.server.member = member;
   writeKey(state.server.key, remember);
   await loadServer();
   return true;
@@ -232,11 +251,12 @@ async function loadServer() {
 }
 
 function logout(clearMsg = true) {
+  if (clearMsg && state.server.key) adminApi().logout(); // 서버 세션도 끊는다(결과는 기다리지 않음)
   forgetKey();
   state.server = { key: '', member: null, members: [], records: [], loading: false, loaded: false };
   state.history.clear();
   if (isServer()) useSettings();
-  if (clearMsg) flash('', '로그아웃했습니다. 이 브라우저에 저장된 접속 키도 지웠습니다.');
+  if (clearMsg) flash('', '로그아웃했습니다(이 브라우저에 기억해 둔 로그인도 지웠습니다).');
 }
 
 // 출처에 맞는 설정 — 서버면 3명이 같이 쓰는 공용 설정, 아니면 이 브라우저 설정
@@ -290,7 +310,7 @@ function renderToolbar() {
   } else if (state.msg) {
     note(state.msg.kind, state.msg.text);
   } else if (isServer()) {
-    note('', state.server.member ? '서버 DB 의 신청입니다. 상태·재고 확인·설정을 바꾸면 3명 모두에게 바로 반영됩니다.' : '운영자 접속 키로 로그인하면 서버 DB 의 신청을 보고 고칠 수 있습니다.');
+    note('', state.server.member ? '서버 DB 의 신청입니다. 상태·재고 확인·설정을 바꾸면 3명 모두에게 바로 반영됩니다.' : '아이디·비밀번호로 로그인하면 서버 DB 의 신청을 보고 고칠 수 있습니다.');
   } else if (state.source === 'file' && state.file) {
     note(state.file.dirty ? 'warn' : '', `파일: ${state.file.name}` + (state.file.dirty ? ' — 바꾼 내용은 파일에 저장되지 않았습니다. 「JSON 내보내기」로 받아 두세요.' : ' — 바꾼 내용은 「JSON 내보내기」로 저장합니다.'));
   } else {
@@ -605,19 +625,18 @@ function initServer() {
 
   $('server-login').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const key = $('server-key').value.trim();
-    if (!looksLikeKey(key)) { flash('error', '접속 키 모양이 아닙니다 — tf_ 로 시작하는 35자를 붙여 넣어 주세요.'); render(); return; }
-    const ok = await login(key, $('server-remember').checked);
-    if (ok) $('server-key').value = '';
+    const ok = await loginWithPassword($('server-id').value, $('server-pw').value, $('server-remember').checked);
+    $('server-pw').value = ''; // 비밀번호는 성공·실패와 상관없이 지운다
+    if (ok) $('server-id').value = '';
   });
   $('server-refresh').addEventListener('click', () => loadServer());
   $('server-logout').addEventListener('click', () => { logout(); render(); });
 
-  // 기억해 둔 키가 있으면 서버 출처로 바로 연다
+  // 기억해 둔 로그인이 있으면 서버 출처로 바로 연다(만료됐으면 로그인 칸)
   const saved = readKey();
   if (CONFIG.apiBaseUrl && looksLikeKey(saved)) {
     state.source = 'server';
-    login(saved, (() => { try { return localStorage.getItem(KEY_STORAGE) === saved; } catch { return false; } })());
+    useSession(saved, (() => { try { return localStorage.getItem(KEY_STORAGE) === saved; } catch { return false; } })());
   }
 }
 

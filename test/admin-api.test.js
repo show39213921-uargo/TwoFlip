@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createAdminClient, looksLikeKey } from '../assets/js/admin-api.js';
+import { createAdminClient, looksLikeKey, loginAdmin } from '../assets/js/admin-api.js';
 
 function fakeFetch(handler) {
   const calls = [];
@@ -80,4 +80,39 @@ test('키 모양이 틀리면 요청하지 않고 auth 오류', async () => {
   const r = await createAdminClient({ baseUrl: 'https://a', key: 'nope', fetchImpl: f }).me();
   assert.equal(r.error.kind, 'auth');
   assert.equal(f.calls.length, 0);
+});
+
+test('로그인 — POST /admin/login(키 헤더 없이), 성공이면 세션 키', async () => {
+  const f = fakeFetch(() => json(200, { token: KEY, member: { id: 1, name: '재영' }, expiresAt: '2026-10-14T15:00:00Z' }));
+  const r = await loginAdmin({ baseUrl: 'https://a/index.php', loginId: ' jaeyoung ', password: 'pw', remember: true, fetchImpl: f });
+  assert.equal(r.ok, true);
+  assert.equal(r.data.token, KEY);
+  assert.equal(f.calls[0].url, 'https://a/index.php/admin/login');
+  assert.equal(f.calls[0].init.method, 'POST');
+  assert.equal(f.calls[0].init.headers['X-TwoFlip-Key'], undefined);
+  assert.deepEqual(JSON.parse(f.calls[0].init.body), { loginId: 'jaeyoung', password: 'pw', remember: true });
+});
+
+test('로그인 — 401·429 는 서버 문구 그대로, 성공인데 키 모양이 아니면 실패로', async () => {
+  const f401 = fakeFetch(() => json(401, { error: { code: 'invalid_login', message: '아이디 또는 비밀번호가 맞지 않습니다.' } }));
+  const r = await loginAdmin({ baseUrl: 'https://a', loginId: 'x', password: 'y', fetchImpl: f401 });
+  assert.equal(r.ok, false);
+  assert.match(r.error.message, /아이디 또는 비밀번호/);
+  const fBad = fakeFetch(() => json(200, { token: 'nope' }));
+  assert.equal((await loginAdmin({ baseUrl: 'https://a', loginId: 'x', password: 'y', fetchImpl: fBad })).ok, false);
+});
+
+test('로그인 — 아이디·비밀번호가 비면 요청하지 않는다', async () => {
+  const f = fakeFetch(() => json(200, {}));
+  const r = await loginAdmin({ baseUrl: 'https://a', loginId: '', password: '', fetchImpl: f });
+  assert.equal(r.ok, false);
+  assert.equal(f.calls.length, 0);
+});
+
+test('로그아웃 — POST /admin/logout(세션 키 헤더)', async () => {
+  const f = fakeFetch(() => json(200, { ok: true }));
+  await createAdminClient({ baseUrl: 'https://a', key: KEY, fetchImpl: f }).logout();
+  assert.equal(f.calls[0].url, 'https://a/admin/logout');
+  assert.equal(f.calls[0].init.method, 'POST');
+  assert.equal(f.calls[0].init.headers['X-TwoFlip-Key'], KEY);
 });
