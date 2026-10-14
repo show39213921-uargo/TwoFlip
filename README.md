@@ -39,6 +39,9 @@ dev/server.js              로컬 정적 서버 (배포 안 됨)
 docs/api-contract.md       API 요청·응답 계약 — 두 레포의 정본
 docs/deploy.md             도메인·DNS·Pages 현재 설정
 docs/qa-prompt.md          화면 QA · UI/UX 제안 지시서 — 다른 세션·사람에게 그대로 넘긴다(계정 비밀번호는 별도 전달)
+docs/ux-review-mobile-prompt.md  2차 UI/UX · 소비자 편의 디자인 제안 지시서(모바일 우선, 10-14 반영분 기준) — Claude in Chrome 용
+assets/img/                워드마크(twoflip-logo-white.svg) · 스플래시(twoflip-splash.svg)
+assets/js/splash.js        처음 진입 스플래시 → 헤더 로고로 이동(이 탭 첫 진입만 · 움직임 줄이기면 건너뜀)
 ```
 
 페이지는 DB 를 모른다. 신청 데이터는 API 로 보내고, 저장은 백엔드가 한다.
