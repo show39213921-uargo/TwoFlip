@@ -110,6 +110,8 @@ function card(m) {
   const btn = el('button', 'btn ' + (m.reserved ? 'btn-outline' : (mine.length ? 'btn-outline' : 'btn-primary')), m.reserved ? '예약 중' : (mine.length ? '다시 요청' : '구매 요청'));
   btn.type = 'button';
   btn.disabled = m.reserved;
+  // 화면 낭독기에선 「구매 요청」만 여러 번 들린다 — 어느 상품인지 붙인다(6차 QA U-2)
+  btn.setAttribute('aria-label', `${m.title} 사이즈 ${m.size} ${btn.textContent}`);
   btn.addEventListener('click', () => {
     const ids = requestedIds(m.id);
     if (ids.length && !confirm(`이미 요청하셨어요(접수번호 ${ids.join(', ')}).\n새로 보낼까요?`)) return;
@@ -129,6 +131,9 @@ function openSheet(m) {
   $('sheet-name').textContent = m.title;
   $('sheet-size').textContent = `사이즈 ${m.size}`;
   $('sheet-price').textContent = m.price;
+  // 카드에선 3줄로 잘린 설명을 여기선 전부(6차 QA U-1)
+  $('sheet-desc').textContent = m.note;
+  $('sheet-desc').hidden = !m.note;
   form.reset();
   showErrors({});
   setStatus(null);

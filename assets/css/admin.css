@@ -254,7 +254,7 @@
 .item-requests li .tag { align-self: flex-start; }
 
 /* 바로 구매 요청 카드 — 재고 배지 자리에 확보 상품으로 가는 단추(3차 QA B-1) */
-.stock-badge.item-link { font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; color: var(--focus); background: var(--surface-2); border-color: color-mix(in srgb, var(--focus) 40%, transparent); text-align: left; }
+.stock-badge.item-link { min-height: 40px; line-height: 32px; /* 6차 QA B-3 — inline-block 그대로(말줄임 유지) */ font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; color: var(--focus); background: var(--surface-2); border-color: color-mix(in srgb, var(--focus) 40%, transparent); text-align: left; }
 
 /* 저장 버튼 옆 안내(5차 QA U-3) */
 .row-actions .saved-msg { display: inline-flex; align-items: center; min-height: 0; margin: 0 8px 0 0; }
