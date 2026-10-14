@@ -141,11 +141,29 @@ function openSheet(m) {
   $('item-done').hidden = true;
   if (typeof sheet.showModal === 'function') sheet.showModal(); else sheet.setAttribute('open', '');
   // 이름 칸에 바로 커서를 두지 않는다 — 휴대폰 키보드가 먼저 올라와 상품 요약·보내기 버튼을 가린다(3차 QA U-3). 첫 포커스는 닫기 ✕
+  // 뒤로 가기가 페이지를 떠나지 않고 시트만 닫게 기록을 하나 쌓는다(8차 QA U-1)
+  if (!sheetEntry) { history.pushState({ sheet: true }, ''); sheetEntry = true; }
 }
 
+// 시트를 열며 쌓은 기록이 아직 남아 있나 — ✕·Esc·바깥으로 닫으면 그 기록을 되돌리고, 뒤로 가기로 닫으면 이미 빠진 것
+let sheetEntry = false;
+if (history.state && history.state.sheet) history.replaceState(null, ''); // 시트가 열린 채 새로고침한 경우
 function closeSheet() {
   if (typeof sheet.close === 'function') sheet.close(); else sheet.removeAttribute('open');
+  sheetClosed(); // close 이벤트는 나중에 온다(늦거나 안 오는 환경도 있다) — 여기서 바로 정리하고, 이벤트는 두 번째엔 아무것도 안 한다
 }
+function sheetClosed() {
+  if (!sheetEntry) return;
+  sheetEntry = false;
+  history.back();
+}
+sheet.addEventListener('cancel', sheetClosed); // Esc — 이건 바로 온다
+sheet.addEventListener('close', sheetClosed);
+window.addEventListener('popstate', () => {
+  if (!sheetEntry) return;
+  sheetEntry = false;
+  closeSheet();
+});
 $('sheet-close').addEventListener('click', closeSheet);
 $('item-done-close').addEventListener('click', closeSheet);
 sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet(); }); // 바깥(어두운 곳) 누르면 닫기
