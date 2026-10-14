@@ -62,7 +62,18 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, timeout
     return request('GET', '/health');
   }
 
-  return { submitApplication, preview, health };
+  // 바로 구매(확보 상품) — 공개 목록 · 구매 요청(상품·사이즈는 서버가 상품 것으로 고정)
+  function items() {
+    return request('GET', '/items');
+  }
+
+  async function requestItem(id, payload) {
+    const r = await request('POST', `/items/${encodeURIComponent(id)}/requests`, payload);
+    if (r.ok && !(r.data && r.data.id)) return fail('invalid_response', '접수 확인 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    return r;
+  }
+
+  return { submitApplication, preview, health, items, requestItem };
 }
 
 function fail(kind, message, status) {
