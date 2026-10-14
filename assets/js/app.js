@@ -5,7 +5,7 @@ import { CONFIG } from './config.js';
 import { createApiClient } from './api.js';
 import { createLocalApi } from './local-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
-import { validateApplication } from './validate.js';
+import { validateApplication, applicationKey } from './validate.js';
 import { parseKreamUrl, extractKreamUrl } from './kream-url.js';
 import { buildPreviewModel, previewFailText } from './preview-view.js';
 
@@ -109,7 +109,7 @@ function setStatus(kind, parts) {
 
 if (CONFIG.mode === 'closed') {
   submitBtn.disabled = true;
-  setStatus('info', '신청 접수 준비 중입니다. 곧 열립니다.');
+  setStatus('info', '신청 접수 준비 중이에요. 곧 열려요.');
 }
 if (CONFIG.mode === 'demo') $('demo-banner').hidden = false;
 
@@ -119,9 +119,13 @@ form.addEventListener('submit', async (e) => {
   tidyUrlInput(); // 붙여 넣고 바로 누른 경우
 
   const v = validateApplication(readForm());
-  if (v.spam) { setStatus('ok', '신청이 접수되었습니다.'); form.reset(); return; } // 봇에게 거절 사유를 알려주지 않는다
+  if (v.spam) { setStatus('ok', '신청이 접수됐어요.'); form.reset(); return; } // 봇에게 거절 사유를 알려주지 않는다
   showErrors(v.errors);
   if (!v.ok) return;
+  // 같은 탭에서 같은 상품·사이즈를 다시 보내면 한 번 묻는다 — 막지는 않는다(8차 QA U-2, 바로 구매의 「다시 요청」과 같은 동작)
+  const key = applicationKey(v.payload);
+  const before = appliedIds(key);
+  if (before.length && !confirm(`이미 같은 상품·사이즈로 신청하셨어요(접수번호 ${before.join(', ')}).\n다른 사이즈라면 사이즈를 바꿔 주세요. 그래도 다시 보낼까요?`)) return;
 
   submitBtn.disabled = true;
   submitBtn.textContent = '보내는 중…';
@@ -130,6 +134,7 @@ form.addEventListener('submit', async (e) => {
   submitBtn.textContent = '신청하기';
 
   if (r.ok) {
+    rememberApplied(key, r.data.id);
     form.reset();
     resetPreview();
     autoSize = null;
@@ -139,6 +144,19 @@ form.addEventListener('submit', async (e) => {
     setStatus('error', r.error.message);
   }
 });
+
+// 이 탭에서 보낸 신청(같은 상품·사이즈 → 접수번호). 탭을 닫으면 잊는다 — 바로 구매의 twoflip.item.requests 와 같은 방식
+const APPLIED_KEY = 'twoflip.apply.requests';
+function appliedIds(key) {
+  try { return (JSON.parse(sessionStorage.getItem(APPLIED_KEY) || '{}')[key]) || []; } catch { return []; }
+}
+function rememberApplied(key, id) {
+  try {
+    const all = JSON.parse(sessionStorage.getItem(APPLIED_KEY) || '{}');
+    all[key] = [...(all[key] || []), id];
+    sessionStorage.setItem(APPLIED_KEY, JSON.stringify(all));
+  } catch { /* 저장 못 하면 안내만 빠진다 */ }
+}
 
 // ── 접수 완료 카드 — 폼 자리를 바꿔 끼운다(2차 QA U-3: 화면 밖 안내 · 입력이 비워져 접수번호를 놓침) ──
 // 연락 시점은 아직 정해지지 않았다 — 「확보되면 연락」까지만 쓴다

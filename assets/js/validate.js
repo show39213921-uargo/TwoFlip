@@ -35,7 +35,7 @@ export function validateApplication(input = {}) {
   const memo = str(input.memo);
   if (memo.length > LIMITS.memo) errors.memo = `요청사항은 ${LIMITS.memo}자 이내로 적어 주세요.`;
 
-  if (input.consent !== true) errors.consent = '개인정보 수집·이용에 동의해야 신청할 수 있습니다.';
+  if (input.consent !== true) errors.consent = '개인정보 수집·이용에 동의해야 신청할 수 있어요.';
 
   if (Object.keys(errors).length) return { ok: false, errors, payload: null };
 
@@ -52,4 +52,9 @@ export function validateApplication(input = {}) {
       consent: true,
     },
   };
+}
+
+// 같은 상품·같은 사이즈 신청을 알아보는 열쇠(8차 QA U-2) — 사이즈는 대소문자·띄어쓰기를 무시한다(「free」=「FREE」, 「27 0」=「270」)
+export function applicationKey(payload) {
+  return `${payload.kreamProductId}|${String(payload.size).toUpperCase().replace(/\s+/g, '')}`;
 }

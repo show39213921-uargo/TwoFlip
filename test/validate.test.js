@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateApplication } from '../assets/js/validate.js';
+import { validateApplication, applicationKey } from '../assets/js/validate.js';
 
 const good = {
   kreamUrl: 'https://kream.co.kr/products/1068133?size=270',
@@ -61,4 +61,16 @@ test('봇 함정 칸(website)이 채워지면 spam 으로 거절', () => {
   const r = validateApplication({ ...good, website: 'http://spam' });
   assert.equal(r.ok, false);
   assert.equal(r.spam, true);
+});
+
+test('applicationKey: 같은 상품·사이즈면 같은 열쇠(대소문자·띄어쓰기 무시), 사이즈가 다르면 다른 열쇠', () => {
+  const a = applicationKey({ kreamProductId: '12345', size: 'free' });
+  assert.equal(a, applicationKey({ kreamProductId: '12345', size: ' FREE ' }));
+  assert.equal(applicationKey({ kreamProductId: '12345', size: '27 0' }), applicationKey({ kreamProductId: '12345', size: '270' }));
+  assert.notEqual(applicationKey({ kreamProductId: '12345', size: '270' }), applicationKey({ kreamProductId: '12345', size: '275' }));
+  assert.notEqual(applicationKey({ kreamProductId: '12345', size: '270' }), applicationKey({ kreamProductId: '99999', size: '270' }));
+});
+
+test('동의 오류는 해요체(8차 QA B-1)', () => {
+  assert.equal(validateApplication({ consent: false }).errors.consent, '개인정보 수집·이용에 동의해야 신청할 수 있어요.');
 });
