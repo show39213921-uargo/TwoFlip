@@ -164,7 +164,8 @@ const done = $('apply-done');
 function showDone(id) {
   $('done-id').textContent = id;
   // 4차 QA R-4 — 정해지지 않은 시점은 정해진 것처럼 쓰지 않는다. 테스트 모드도 실제 문구를 그대로 보인다(5차 QA U-4)
-  const real = '상품을 확보하면 적어 주신 번호로 연락드려요. 연락 시점은 상품마다 달라요 — 접수번호를 남겨 두세요(캡처해 두면 편해요).';
+  // 개편 A-4 — 연락 시점 안내는 단계 표시 아래 한 줄(「찾는 데 걸리는 시간은 상품마다 달라요」)로 옮겼다
+  const real = '찾으면 적어 주신 번호로 연락드려요. 접수번호를 남겨 두세요(캡처해 두면 편해요).';
   $('done-msg').textContent = CONFIG.mode === 'demo' ? `[테스트 — 이 브라우저에만 저장, 관리자 화면에서 확인] ${real}` : real;
   $('done-copy').textContent = '복사';
   form.hidden = true;
