@@ -10,7 +10,8 @@ const DEFAULT_TIMEOUT_MS = 10000;
 export function createRequester({ baseUrl, fetchImpl = globalThis.fetch, timeoutMs = DEFAULT_TIMEOUT_MS, extraHeaders = {} } = {}) {
   const base = String(baseUrl || '').replace(/\/+$/, '');
 
-  return async function request(method, path, body) {
+  // opts.cache — fetch 의 cache(예: 'reload' = 브라우저 캐시를 건너뛰고 새로 받기)
+  return async function request(method, path, body, opts = {}) {
     if (!base) return fail('config', '신청 서버 주소가 아직 설정되지 않았습니다.');
 
     const ctrl = new AbortController();
@@ -22,6 +23,7 @@ export function createRequester({ baseUrl, fetchImpl = globalThis.fetch, timeout
         headers: { ...(body === undefined ? { Accept: 'application/json' } : { 'Content-Type': 'application/json', Accept: 'application/json' }), ...extraHeaders },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: ctrl.signal,
+        ...(opts.cache ? { cache: opts.cache } : {}),
       });
     } catch (e) {
       if (e && e.name === 'AbortError') return fail('timeout', '서버 응답이 늦습니다. 잠시 후 다시 시도해 주세요.');
@@ -63,8 +65,9 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, timeout
   }
 
   // 바로 구매(확보 상품) — 공개 목록 · 구매 요청(상품·사이즈는 서버가 상품 것으로 고정)
-  function items() {
-    return request('GET', '/items');
+  // 서버가 목록을 60초 캐시하게 한다(backend · 9차 QA B-1). fresh 면 캐시를 건너뛴다 — 「예약 중이라 요청 못 함」 직후·다시 불러오기
+  function items({ fresh = false } = {}) {
+    return request('GET', '/items', undefined, fresh ? { cache: 'reload' } : {});
   }
 
   async function requestItem(id, payload) {

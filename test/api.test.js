@@ -101,3 +101,13 @@ test('health → GET {base}/health', async () => {
   assert.equal(f.calls[0].url, 'https://a/health');
   assert.equal(f.calls[0].init.method, 'GET');
 });
+
+test('공개 목록 — 평소엔 브라우저 캐시를 따르고, fresh 면 cache: reload 로 새로 받는다', async () => {
+  const f = fakeFetch(() => json(200, { items: [] }));
+  const api = createApiClient({ baseUrl: 'https://api.example', fetchImpl: f });
+  await api.items();
+  await api.items({ fresh: true });
+  assert.equal(f.calls[0].url, 'https://api.example/items');
+  assert.equal(f.calls[0].init.cache, undefined);
+  assert.equal(f.calls[1].init.cache, 'reload');
+});
