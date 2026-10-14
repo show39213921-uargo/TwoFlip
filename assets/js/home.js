@@ -39,7 +39,10 @@ function peekCard(m) {
     img.append(i);
   }
   if (m.reserved) img.append(el('span', 'shop-flag', '예약 중'));
-  a.append(img, el('span', 'peek-title', m.title), el('span', 'peek-meta', `사이즈 ${m.size} · ${m.price}`));
+  // 사진 작게 + 이름 한 줄 + 사이즈·가격·상태 — 미리보기 높이를 줄여 신청 칸이 덜 밀리게(5차 QA U-2 · D-1). 칩은 실제로 입력된 값만
+  const text = el('span', 'peek-text');
+  text.append(el('span', 'peek-title', m.title), el('span', 'peek-meta', [`사이즈 ${m.size}`, m.price, ...(m.noteChips || []).slice(0, 1)].join(' · ')));
+  a.append(img, text);
   return a;
 }
 
