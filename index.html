@@ -39,9 +39,11 @@
       <a class="logo" href="#top" aria-label="TWOFLIP 처음으로">
         <img class="logo-word" src="assets/img/twoflip-logo-white.svg" alt="TWOFLIP" width="500" height="80">
       </a>
+      <!-- 메뉴 셋(개편 A-1) — 지금 페이지는 aria-current(소개·바로 구매는 밑줄, 신청하기는 테두리) -->
       <nav class="header-nav" aria-label="메뉴">
+        <a class="nav-link" href="about.html">소개</a>
         <a class="nav-link" href="shop.html">바로 구매</a>
-        <a class="header-cta" href="#apply">신청하기</a>
+        <a class="header-cta" href="#apply" aria-current="page">신청하기</a>
       </nav>
     </div>
   </header>
@@ -54,33 +56,114 @@
   </div>
 
   <main id="top">
-    <section class="hero">
+    <!-- 첫 페이지 = 하는 페이지(개편 A-1) — 히어로 안에 신청서를 바로 둔다. 375px 첫 화면에서 스크롤 없이 링크를 붙여 넣는다.
+         진행 순서 · 안내 줄은 소개 페이지(about.html)로 옮겼다. 폼 아래에는 가격 안내 한 줄만 -->
+    <section class="hero hero-apply" id="apply">
       <div class="wrap hero-grid">
         <div class="hero-copy">
-          <!-- 문구는 「부탁하고 답하는」 말투(분위기 개선 1단계 · 가이드 §8) — 운영 단어(확보·접수)는 앞쪽에서 뺀다 -->
-          <p class="eyebrow">직접 찾아 드리는 구매대행</p>
           <h1>KREAM에서 찾던 그 상품,<br><em>매장에서</em> 먼저 찾아볼게요</h1>
-          <p class="lede">KREAM 링크만 보내 주세요. 저희가 공식몰과 매장을 직접 돌아보고, 찾으면 연락드릴게요.</p>
-          <!-- 두 갈래(결정 ② · 4차 QA R-1): 찾아 주세요(신청) / 지금 있는 상품(바로 구매 — 공개 상품이 있을 때만 보인다, home.js) -->
-          <div class="paths">
-            <a class="path path-main" href="#apply"><span class="path-k">이거 찾아 주세요</span><strong>KREAM 링크로 신청</strong><span class="path-arrow" aria-hidden="true">→</span></a>
-            <a class="path" href="shop.html" id="path-shop" hidden><span class="path-k">구해 둔 물건 구경하기</span><strong id="path-shop-label">바로 구매 보기</strong><span class="path-arrow" aria-hidden="true">→</span></a>
-          </div>
-          <!-- 첫 화면 상품 사진 줄(분위기 개선 1단계 · 가이드 §6) — 진행 순서 아래 미리보기를 여기로 합쳤다. 공개 상품이 있을 때만(home.js) -->
-          <section class="strip" id="strip" aria-labelledby="strip-title" hidden>
-            <div class="strip-head">
-              <h2 class="strip-title" id="strip-title">저희가 먼저 구해 둔 물건</h2>
-              <a class="strip-all" href="shop.html">전체 보기 →</a>
+
+          <!-- 어두운 바탕 위 신청서 — 토큰을 이 안에서만 어둡게 바꾼다(.on-dark, 라이트 모드에서도) -->
+          <div class="apply-card on-dark">
+            <form id="apply-form" novalidate aria-label="신청서">
+              <div class="field">
+                <label for="kreamUrl">KREAM 링크</label>
+                <div class="input-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
+                  <input id="kreamUrl" name="kreamUrl" type="url" inputmode="url" spellcheck="false" placeholder="KREAM 앱 「공유 → 링크 복사」 후 붙여넣기" required>
+                </div>
+                <p class="hint" id="url-hint" hidden></p>
+                <p class="error" data-error-for="kreamUrl" aria-live="polite"></p>
+              </div>
+
+              <div id="preview" class="preview" hidden aria-live="polite">
+                <div class="preview-skeleton" data-state="loading">
+                  <div class="sk sk-img"></div>
+                  <div class="sk-lines"><div class="sk sk-line w60"></div><div class="sk sk-line w90"></div><div class="sk sk-line w40"></div></div>
+                </div>
+                <div class="preview-body" data-state="ready">
+                  <div class="preview-img"><img id="pv-image" alt="" referrerpolicy="no-referrer" loading="lazy"></div>
+                  <div class="preview-info">
+                    <p class="pv-brand" id="pv-brand"></p>
+                    <p class="pv-title" id="pv-title"></p>
+                    <p class="pv-subtitle" id="pv-subtitle"></p>
+                    <div class="pv-meta">
+                      <span class="chip mono" id="pv-model"></span>
+                      <span class="pv-price"><span class="pv-price-k">KREAM 즉시 구매가</span> <strong id="pv-buynow"></strong></span>
+                    </div>
+                  </div>
+                </div>
+                <p class="preview-msg" data-state="error" id="pv-error"></p>
+              </div>
+
+              <!-- 사이즈 · 이름은 한 줄(좁은 칸 9rem 아래로는 한 줄에 하나 — 큰 글자) -->
+              <div class="row-pair">
+                <div class="field">
+                  <label for="size">사이즈</label>
+                  <div id="size-chips" class="size-chips" role="group" aria-label="KREAM 에 시세가 있는 사이즈" hidden></div>
+                  <input id="size" name="size" type="text" maxlength="20" placeholder="270, L, FREE" required>
+                  <p class="hint" id="size-hint" hidden></p>
+                  <p class="error" data-error-for="size" aria-live="polite"></p>
+                </div>
+                <div class="field">
+                  <label for="name">이름</label>
+                  <input id="name" name="name" type="text" maxlength="30" autocomplete="name" required>
+                  <p class="error" data-error-for="name" aria-live="polite"></p>
+                </div>
+              </div>
+
+              <div class="field">
+                <!-- 번호를 넣기 직전에 쓰임을 같이(4차 QA U-2) — 문의 창구는 사업 결정 뒤에 -->
+                <label for="phone">휴대폰 번호 <span class="label-note">· 찾으면 이 번호로 연락드려요</span></label>
+                <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-1234-5678" required>
+                <p class="error" data-error-for="phone" aria-live="polite"></p>
+              </div>
+
+              <!-- 요청사항은 접어 둔다 — 첫 화면에 버튼까지 들어오게 -->
+              <details class="memo-more">
+                <summary>+ 요청사항 남기기 <span class="optional">선택</span></summary>
+                <div class="field">
+                  <label for="memo">요청사항</label>
+                  <textarea id="memo" name="memo" rows="3" maxlength="500" placeholder="희망 가격대, 연락 가능한 시간 등"></textarea>
+                  <p class="error" data-error-for="memo" aria-live="polite"></p>
+                </div>
+              </details>
+
+              <!-- 봇 함정: 사람에겐 보이지 않는다 -->
+              <div class="hp" aria-hidden="true">
+                <label for="website">웹사이트</label>
+                <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+              </div>
+
+              <div class="consent">
+                <label class="check">
+                  <input type="checkbox" name="consent" value="yes">
+                  <span class="check-box" aria-hidden="true"></span>
+                  <span>개인정보(이름·휴대폰 번호) 수집·이용에 동의합니다. 신청 처리와 연락에만 사용합니다.</span>
+                </label>
+                <p class="error" data-error-for="consent" aria-live="polite"></p>
+              </div>
+
+              <button id="apply-submit" class="btn btn-primary btn-block" type="submit">이 상품 찾아 주세요</button>
+              <div id="apply-status" class="status" role="status" hidden></div>
+            </form>
+
+            <!-- 접수 완료 — 신청이 끝나면 폼 자리에 보인다(app.js showDone) -->
+            <div id="apply-done" class="apply-done" role="status" tabindex="-1" hidden>
+              <p class="done-k">접수 완료</p>
+              <h2 class="done-title">신청이 접수되었어요</h2>
+              <div class="done-id">
+                <span class="done-id-k">접수번호</span>
+                <strong id="done-id" class="mono"></strong>
+                <button type="button" class="done-copy" id="done-copy">복사</button>
+              </div>
+              <p class="done-msg" id="done-msg"></p>
+              <button type="button" class="btn btn-outline btn-block" id="done-again">다른 상품 신청하기</button>
             </div>
-            <div class="strip-row" id="strip-row"></div>
-          </section>
-          <a class="hero-more" href="#how">어떻게 진행되나요?</a>
-          <!-- 신청 칸까지 가야 보이던 안내를 앞으로(2차 QA D-1) — 이미 화면에 있는 내용만, 보장 표현 없음 -->
-          <ul class="trust">
-            <li>가격은 찾은 뒤에 알려 드려요 — 보고 결정하시면 돼요</li>
-            <li>번호는 신청 처리와 연락에만 써요</li>
-            <li>KREAM과 제휴 관계가 없는 독립 서비스예요</li>
-          </ul>
+          </div>
+
+          <p class="apply-note">가격은 찾은 뒤에 알려 드려요 — 보고 결정하시면 돼요</p>
+          <a class="hero-more" href="about.html">처음이세요? 이용 방법 보기 →</a>
         </div>
 
         <div class="hero-visual" aria-hidden="true">
@@ -113,147 +196,17 @@
       </div>
     </section>
 
-    <section class="how" id="how">
+    <!-- 첫 화면 상품 사진 줄(가이드 §6) — 폼 아래로 내렸다(개편 A-1). 공개 상품이 있을 때만(home.js), 조회 실패면 숨김 -->
+    <section class="strip" id="strip" aria-labelledby="strip-title" hidden>
       <div class="wrap">
-        <h2 class="section-title">이렇게 진행돼요</h2>
-        <ol class="steps">
-          <li>
-            <span class="step-n">01</span>
-            <strong>링크 보내기</strong>
-            <p>KREAM 링크와 사이즈, 연락처만 남겨 주세요.</p>
-          </li>
-          <li>
-            <span class="step-n">02</span>
-            <strong>매장에서 찾기</strong>
-            <p>모델번호로 공식몰과 근처 매장을 직접 찾아볼게요.</p>
-          </li>
-          <li>
-            <span class="step-n">03</span>
-            <strong>찾으면 연락</strong>
-            <p>찾으면 상품과 가격을 알려 드려요.</p>
-          </li>
-          <li>
-            <span class="step-n">04</span>
-            <strong>보고 결정</strong>
-            <p>가격을 확인하고 결정하시면 진행돼요.</p>
-          </li>
-        </ol>
-        <!-- 가격 기준 · 수수료 · 확보 실패 시 처리 등은 사업계획서 확정 후 추가 -->
-      </div>
-    </section>
-
-
-    <section class="apply" id="apply">
-      <div class="wrap">
-        <div class="apply-card">
-          <div class="apply-head">
-            <h2>어떤 상품을 찾아 드릴까요?</h2>
-            <!-- 서버가 KREAM 을 읽지 않는 동안(KREAM_SERVER=off) 미리보기는 안 뜬다 — 지키지 못할 약속은 쓰지 않는다(9차 QA U-1) -->
-            <p>링크와 사이즈만 있으면 돼요. 상품은 저희가 확인할게요.</p>
-          </div>
-
-          <form id="apply-form" novalidate>
-            <fieldset class="block">
-              <legend><span class="legend-n">1</span>상품</legend>
-
-              <div class="field">
-                <label for="kreamUrl">찾는 상품의 KREAM 링크</label>
-                <div class="input-icon">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
-                  <input id="kreamUrl" name="kreamUrl" type="url" inputmode="url" spellcheck="false" placeholder="https://kream.co.kr/products/…" required>
-                </div>
-                <p class="hint" id="url-hint" hidden></p>
-                <p class="error" data-error-for="kreamUrl" aria-live="polite"></p>
-              </div>
-
-              <div id="preview" class="preview" hidden aria-live="polite">
-                <div class="preview-skeleton" data-state="loading">
-                  <div class="sk sk-img"></div>
-                  <div class="sk-lines"><div class="sk sk-line w60"></div><div class="sk sk-line w90"></div><div class="sk sk-line w40"></div></div>
-                </div>
-                <div class="preview-body" data-state="ready">
-                  <div class="preview-img"><img id="pv-image" alt="" referrerpolicy="no-referrer" loading="lazy"></div>
-                  <div class="preview-info">
-                    <p class="pv-brand" id="pv-brand"></p>
-                    <p class="pv-title" id="pv-title"></p>
-                    <p class="pv-subtitle" id="pv-subtitle"></p>
-                    <div class="pv-meta">
-                      <span class="chip mono" id="pv-model"></span>
-                      <span class="pv-price"><span class="pv-price-k">KREAM 즉시 구매가</span> <strong id="pv-buynow"></strong></span>
-                    </div>
-                  </div>
-                </div>
-                <p class="preview-msg" data-state="error" id="pv-error"></p>
-              </div>
-
-              <div class="field">
-                <label for="size">사이즈</label>
-                <div id="size-chips" class="size-chips" role="group" aria-label="KREAM 에 시세가 있는 사이즈" hidden></div>
-                <input id="size" name="size" type="text" maxlength="20" placeholder="예: 270, L, FREE" required>
-                <p class="hint" id="size-hint" hidden></p>
-                <p class="error" data-error-for="size" aria-live="polite"></p>
-              </div>
-            </fieldset>
-
-            <fieldset class="block">
-              <legend><span class="legend-n">2</span>연락받을 곳</legend>
-              <!-- 이름·번호를 넣기 직전에 쓰임을 다시(4차 QA U-2) — 문의 창구는 사업 결정 뒤에 -->
-              <p class="hint fieldset-note">찾으면 이 번호로 연락드려요. 다른 데는 쓰지 않아요.</p>
-              <div class="row">
-                <div class="field">
-                  <label for="name">이름</label>
-                  <input id="name" name="name" type="text" maxlength="30" autocomplete="name" required>
-                  <p class="error" data-error-for="name" aria-live="polite"></p>
-                </div>
-                <div class="field">
-                  <label for="phone">휴대폰 번호</label>
-                  <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-1234-5678" required>
-                  <p class="error" data-error-for="phone" aria-live="polite"></p>
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="memo">요청사항 <span class="optional">선택</span></label>
-                <textarea id="memo" name="memo" rows="3" maxlength="500" placeholder="희망 가격대, 연락 가능한 시간 등"></textarea>
-                <p class="error" data-error-for="memo" aria-live="polite"></p>
-              </div>
-            </fieldset>
-
-            <!-- 봇 함정: 사람에겐 보이지 않는다 -->
-            <div class="hp" aria-hidden="true">
-              <label for="website">웹사이트</label>
-              <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
-            </div>
-
-            <div class="consent">
-              <label class="check">
-                <input type="checkbox" name="consent" value="yes">
-                <span class="check-box" aria-hidden="true"></span>
-                <span>개인정보(이름·휴대폰 번호) 수집·이용에 동의합니다. 신청 처리와 연락에만 사용합니다.</span>
-              </label>
-              <p class="error" data-error-for="consent" aria-live="polite"></p>
-            </div>
-
-            <button id="apply-submit" class="btn btn-primary btn-block" type="submit">이 상품 찾아 주세요</button>
-            <div id="apply-status" class="status" role="status" hidden></div>
-          </form>
-
-          <!-- 접수 완료 — 신청이 끝나면 폼 자리에 보인다(app.js showDone) -->
-          <div id="apply-done" class="apply-done" role="status" tabindex="-1" hidden>
-            <p class="done-k">접수 완료</p>
-            <h3 class="done-title">신청이 접수되었어요</h3>
-            <div class="done-id">
-              <span class="done-id-k">접수번호</span>
-              <strong id="done-id" class="mono"></strong>
-              <button type="button" class="done-copy" id="done-copy">복사</button>
-            </div>
-            <p class="done-msg" id="done-msg"></p>
-            <button type="button" class="btn btn-outline btn-block" id="done-again">다른 상품 신청하기</button>
-          </div>
+        <div class="strip-head">
+          <h2 class="strip-title" id="strip-title">저희가 먼저 구해 둔 물건</h2>
+          <a class="strip-all" href="shop.html">전체 보기 →</a>
         </div>
+        <p class="strip-sub">바로 결제가 아니라, 먼저 구매 요청을 받아요</p>
+        <div class="strip-row" id="strip-row"></div>
       </div>
     </section>
-
   </main>
 
   <footer class="site-footer">
@@ -262,6 +215,7 @@
         <img class="logo-word" src="assets/img/twoflip-logo-white.svg" alt="TWOFLIP" width="500" height="80">
       </span>
       <span class="footer-note">TWOFLIP은 KREAM과 제휴 관계가 없는 독립 서비스예요.</span>
+      <nav class="footer-nav" aria-label="아래 메뉴"><a href="about.html">소개</a><a href="shop.html">바로 구매</a></nav>
     </div>
   </footer>
 </body>
