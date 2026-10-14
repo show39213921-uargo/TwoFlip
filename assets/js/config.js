@@ -5,7 +5,9 @@
 
 import { resolveMode } from './mode.js';
 
-const API_BASE_URL = ''; // 예: 'https://api.u-argo.com/twoflip' — 비어 있으면 「준비 중」(테스트 모드는 ?demo=1)
+// twoflip_backend(PHP) — wms.fivespace.kr/Testtwo 에 배포. 서버에 mod_rewrite 가 없어 /index.php/… 모양으로 부른다.
+// 2026-10-14 외부 IP 배포 점검(tools/check-deploy.php) 전부 통과 후 연결. 비우면 「준비 중」(테스트 모드는 ?demo=1)
+const API_BASE_URL = 'https://wms.fivespace.kr/Testtwo/index.php';
 
 // 로컬 개발: 프론트(npm run dev, 4400) + 백엔드(twoflip_backend npm start, 4410)
 const isLocal = ['localhost', '127.0.0.1'].includes(globalThis.location?.hostname);
