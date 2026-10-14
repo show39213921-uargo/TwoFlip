@@ -219,7 +219,7 @@
   .x-btn { min-width: 40px; min-height: 40px; }
   .link-btn { min-height: 40px; display: inline-flex; align-items: center; font-size: .8rem; } /* 「지금 다시 확인함」 · 「보기」(3차 QA U-7) */
   /* 디자인 가이드 ⑭ — 16px 보다 작은 칸은 iOS 가 누를 때 화면을 확대한다 */
-  .cand-form select, .cand-form input, .manual input, .item-form-grid input, .item-register select, .filters select, .filters input, .settings input, .status-sel, .stock-sel, .assignee-sel { font-size: 16px !important; }
+  .cand-form select, .cand-form input, .manual input, .item-form-grid input, .item-form-grid select, .item-register select, .filters select, .filters input, .settings input, .status-sel, .stock-sel, .assignee-sel { font-size: 16px !important; }
 }
 
 /* ── 화면 전환 · 확보 상품(admin-items.js) ───────────── */
@@ -232,7 +232,7 @@
 .item-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; margin-top: 10px; }
 .item-form-grid label { font-size: .82rem; font-weight: 600; color: var(--ink-2); display: grid; gap: 4px; }
 .item-form-grid label.wide { grid-column: 1 / -1; }
-.item-form-grid input, .item-register select { font: inherit; font-size: .9rem; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); min-width: 0; }
+.item-form-grid input, .item-form-grid select, .item-register select { font: inherit; font-size: .9rem; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); min-width: 0; }
 .item-register-actions { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin: 12px 0 6px; flex-wrap: wrap; }
 .item-card > summary { grid-template-columns: 56px minmax(0, 1fr) 170px; }
 .item-requests { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
@@ -245,7 +245,7 @@
 
 @media (max-width: 560px) {
   .item-form-grid { grid-template-columns: 1fr; }
-  .item-form-grid input, .item-register select { min-height: 44px; }
+  .item-form-grid input, .item-form-grid select, .item-register select { min-height: 44px; }
   .item-card > summary { grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: "thumb prod prod" "stock stock status"; }
   .item-card > summary .status-sel { grid-area: status; }
   .item-requests li { flex-direction: column; align-items: stretch; }

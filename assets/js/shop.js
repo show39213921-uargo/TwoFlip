@@ -102,7 +102,8 @@ function card(m) {
     const chipsBox = el('p', 'shop-chips');
     chipsBox.append(...m.noteChips.map((t) => el('span', 'shop-chip', t)));
     body.append(chipsBox);
-  } else if (m.note) body.append(el('p', 'shop-note', m.note));
+  }
+  if (m.note) body.append(el('p', 'shop-note', m.note)); // 칩으로 안 나뉜 설명은 글로(상태 칩과 같이 보일 수 있다)
 
   if (mine.length) body.append(el('p', 'shop-mine', `요청함 · 접수번호 ${mine.join(', ')}`));
   const btn = el('button', 'btn ' + (m.reserved ? 'btn-outline' : (mine.length ? 'btn-outline' : 'btn-primary')), m.reserved ? '예약 중' : (mine.length ? '다시 요청' : '구매 요청'));

@@ -21,7 +21,7 @@ test('공개 카드 — 판매가 있으면 원화, 없으면 「가격 문의�
 test('확보 상품 입력 검증 — 등록(주소·사이즈 필수, 가격은 비우면 null, 사진은 https) · 수정은 넘긴 칸만', () => {
   const ok = validateItem({ kreamUrl: 'kream.co.kr/products/1068133?size=m', size: 'm', salePrice: '299,000', costPrice: '', note: ' 새상품 ', imageUrl: '', status: 'on_sale' });
   assert.equal(ok.ok, true);
-  assert.deepEqual(ok.value, { kreamUrl: 'https://kream.co.kr/products/1068133', size: 'M', title: null, note: '새상품', internalMemo: '', salePrice: 299000, costPrice: null, imageUrl: null, status: 'on_sale' });
+  assert.deepEqual(ok.value, { kreamUrl: 'https://kream.co.kr/products/1068133', size: 'M', title: null, note: '새상품', internalMemo: '', salePrice: 299000, costPrice: null, condition: null, channel: null, imageUrl: null, status: 'on_sale' });
 
   const bad = validateItem({ kreamUrl: 'https://musinsa.com/1', size: '', salePrice: '-1', imageUrl: 'http://x', status: 'sold' });
   assert.deepEqual(Object.keys(bad.errors).sort(), ['imageUrl', 'kreamUrl', 'salePrice', 'size', 'status']);
@@ -63,4 +63,18 @@ test('공개 설명 → 칩(짧은 조각 2~5개일 때만, 아니면 글 그대
   assert.equal(noteChips('새상품'), null);
   assert.equal(noteChips('오프라인 매장에서 어제 직접 구매한 새상품 · 택'), null);
   assert.equal(noteChips(''), null);
+});
+
+test('상품 상태 · 구매처(4차 QA R-5) — 정해진 값만, 카드 칩 맨 앞, 칩으로 안 나뉜 설명은 글로', () => {
+  const v = validateItem({ kreamUrl: 'kream.co.kr/products/1', size: 'M', condition: 'new', channel: 'store' });
+  assert.deepEqual([v.value.condition, v.value.channel], ['new', 'store']);
+  assert.deepEqual(Object.keys(validateItem({ condition: '정품', channel: 'kream' }, false).errors).sort(), ['channel', 'condition']);
+  assert.deepEqual(validateItem({ condition: '' }, false).value, { condition: null });
+
+  const a = itemCardModel({ ...item, condition: 'new', channel: 'store', note: '택 있음 · 박스 있음' });
+  assert.deepEqual([a.noteChips, a.note], [['새상품', '매장 구매', '택 있음', '박스 있음'], '']);
+  const b = itemCardModel({ ...item, condition: 'used', channel: null, note: '오른쪽 소매 끝에 아주 작은 얼룩이 있어요' });
+  assert.deepEqual([b.noteChips, b.note], [['사용감 있음'], '오른쪽 소매 끝에 아주 작은 얼룩이 있어요']);
+  const c = itemCardModel({ ...item, condition: null, channel: null, note: '' });
+  assert.deepEqual([c.noteChips, c.note], [null, '']);
 });

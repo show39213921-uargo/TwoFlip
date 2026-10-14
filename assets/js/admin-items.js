@@ -2,7 +2,7 @@
 // 서버(DB)에서만 관리한다. 화면 값·검증은 items-view.js(순수), 여기는 DOM 만.
 // 매입가 · 내부 메모는 이 화면에만 있다(공개 API 는 보내지 않는다). 차액·예상 수익은 계산해 보이지 않는다(미정 비용이 빠진 값이라).
 
-import { ITEM_STATUSES, itemStatusLabel, validateItem } from './items-view.js';
+import { ITEM_STATUSES, ITEM_CONDITIONS, ITEM_CHANNELS, itemStatusLabel, validateItem } from './items-view.js';
 import { maskPhone, formatPhone, formatKst, statusLabel } from './admin-view.js';
 import { formatWon } from './preview-view.js';
 
@@ -12,13 +12,26 @@ const FIELDS = [
   { key: 'salePrice', label: '판매가(원) — 비우면 「가격 문의」', placeholder: '예: 299000', mode: 'numeric' },
   { key: 'costPrice', label: '매입가(원) · 관리자만', placeholder: '예: 259000', mode: 'numeric' },
   { key: 'title', label: '공개 상품명(선택) — 비우면 KREAM 이름', placeholder: '' , wide: true },
-  { key: 'note', label: '공개 설명(선택)', placeholder: '예: 새상품 · 택 있음 · 매장 구매', wide: true },
+  { key: 'condition', label: '상품 상태 — 고객 카드에 칩으로', options: ITEM_CONDITIONS },
+  { key: 'channel', label: '구매처 — 고객 카드에 칩으로', options: ITEM_CHANNELS },
+  { key: 'note', label: '공개 설명(선택) — 「택 있음 · 박스 있음」처럼 · 로 나누면 칩', placeholder: '예: 택 있음 · 박스 있음', wide: true },
   { key: 'imageUrl', label: '사진 주소(선택, https) — 비우면 KREAM 이미지', placeholder: 'https://…', wide: true },
   { key: 'internalMemo', label: '내부 메모 · 관리자만', placeholder: '예: 강남점에서 구매, 영수증 보관', wide: true },
 ];
 
+// 칸 하나 — 정해진 값(상품 상태 · 구매처)은 셀렉트, 나머지는 글 칸
+function fieldOf(h, f, value) {
+  if (f.options) {
+    return h('select', { 'aria-label': f.label },
+      h('option', { value: '', selected: value === '' ? true : null }, '고르지 않음'),
+      ...f.options.map((o) => h('option', { value: o.key, selected: o.key === value ? true : null }, o.label)));
+  }
+  return h('input', { type: 'text', value: value || null, placeholder: f.placeholder || null, inputmode: f.mode || null, 'aria-label': f.label });
+}
+
 export function createItemsView({ root, h, ext, getApi, onFail, onRender = () => {} }) {
   const st = { items: [], loaded: false, loading: false, msg: null, open: new Set(), reveal: new Set() };
+  const field = (f, value) => fieldOf(h, f, value);
   const flash = (kind, text) => { st.msg = text ? { kind, text } : null; };
 
   async function load() {
@@ -56,7 +69,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
     const inputs = {};
     const errs = {};
     const grid = h('div', { class: 'item-form-grid' }, ...FIELDS.map((f) => {
-      inputs[f.key] = h('input', { type: 'text', placeholder: f.placeholder, inputmode: f.mode || null, 'aria-label': f.label });
+      inputs[f.key] = field(f, '');
       errs[f.key] = h('span', { class: 'field-msg', 'data-kind': 'error' });
       return h('label', { class: f.wide ? 'wide' : null }, f.label, inputs[f.key], errs[f.key]);
     }));
@@ -136,7 +149,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
     const editable = FIELDS.filter((f) => !f.create);
     const grid = h('div', { class: 'item-form-grid' }, ...editable.map((f) => {
       const cur = it[f.key];
-      edits[f.key] = h('input', { type: 'text', value: cur == null ? '' : String(cur), inputmode: f.mode || null, 'aria-label': f.label });
+      edits[f.key] = field(f, cur == null ? '' : String(cur));
       errs[f.key] = h('span', { class: 'field-msg', 'data-kind': 'error' });
       return h('label', { class: f.wide ? 'wide' : null }, f.label, edits[f.key], errs[f.key]);
     }));
