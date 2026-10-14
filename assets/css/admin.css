@@ -164,14 +164,45 @@
   .settings-grid { grid-template-columns: 1fr; }
   .settings-grid .set-area, .settings-grid .rates, .settings-grid .set-stale { grid-column: 1; grid-row: auto; }
 }
+.rec-btn { display: none; }
+
 @media (max-width: 560px) {
-  .kpis { grid-template-columns: repeat(2, 1fr); }
+  /* 2차 U-5 · 상태 숫자 8칸(4줄)을 옆으로 넘기는 칩 한 줄로 — 검색창·목록이 위로 올라온다 */
+  .kpis { display: flex; overflow-x: auto; gap: 6px; margin: 12px -16px; padding: 0 16px 4px; scrollbar-width: none; }
+  .kpi { flex: 0 0 auto; display: flex; align-items: baseline; gap: 6px; padding: 8px 12px; border-radius: 999px; min-height: 40px; }
+  .kpi .v { font-size: 1rem; }
+  /* 2차 U-5 · 접힌 카드에서 바로 05 재고 기록으로(자리는 아래 B-1 카드 배치의 rec 줄) */
+  .rec-btn { display: block; grid-area: rec; font: inherit; font-size: .86rem; font-weight: 700; min-height: 40px; border-radius: 8px; border: 1px dashed var(--line-strong); background: transparent; color: var(--ink); cursor: pointer; }
+
+  /* 2차 B-3 · 재고 표 → 기록마다 카드(가로 스크롤 없이 재고 셀렉트·✕ 를 바로 누른다) */
+  .stock-table { display: block; overflow: visible; }
+  .stock-table thead { display: none; }
+  .stock-table tbody { display: grid; gap: 8px; }
+  .stock-table tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px;
+    grid-template-areas: "name name x" "stock stock stock" "price krw cmp" "type size size" "when when when" "note note note"; }
+  .stock-table td { display: block; padding: 0; border: 0; text-align: left; white-space: normal; background: none !important; min-width: 0; }
+  .stock-table tr.hl { background: color-mix(in srgb, var(--lime) 18%, transparent); }
+  .stock-table tr.other { background: var(--surface-2); }
+  .stock-table td[data-label]::before { content: attr(data-label); display: block; font-size: .7rem; font-weight: 600; color: var(--ink-3); }
+  .stock-table .c-name { grid-area: name; font-weight: 700; align-self: center; }
+  .stock-table .c-x { grid-area: x; justify-self: end; }
+  .stock-table .c-stock { grid-area: stock; }
+  .stock-table .c-stock .stock-sel { width: 100%; }
+  .stock-table .c-price { grid-area: price; }
+  .stock-table .c-krw { grid-area: krw; }
+  .stock-table .c-cmp { grid-area: cmp; }
+  .stock-table .c-type { grid-area: type; font-size: .78rem; color: var(--ink-3); }
+  .stock-table .c-size { grid-area: size; font-size: .78rem; color: var(--ink-3); }
+  .stock-table .c-when { grid-area: when; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: .8rem; }
+  .stock-table .c-when .link-btn { white-space: nowrap; }
+  .stock-table .c-note { grid-area: note; font-size: .8rem; color: var(--ink-2); }
+  .stock-table .c-note:empty { display: none; }
   .filters { flex-direction: column; }
   .header-link { display: none; }
-  .mini-table { display: block; overflow-x: auto; }
+  .mini-table:not(.stock-table) { display: block; overflow-x: auto; }
 
-  /* B-1 카드: 1줄 상품(+사이즈·이름·시각) / 2줄 재고 배지 + 상태 */
-  .app-card > summary { grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: "thumb prod prod" "stock stock status"; gap: 8px 10px; padding: 12px; }
+  /* B-1 카드: 1줄 상품(+사이즈·이름·시각) / 2줄 재고 배지 + 상태 / 3줄 「재고 기록」 바로가기(2차 U-5) */
+  .app-card > summary { grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: "thumb prod prod" "stock stock status" "rec rec rec"; gap: 8px 10px; padding: 12px; }
   .app-card > summary .thumb { grid-area: thumb; width: 44px; height: 44px; align-self: start; }
   .app-card > summary .sum-prod { grid-area: prod; min-width: 0; }
   .app-card > summary .sum-stock { grid-area: stock; min-width: 0; }
