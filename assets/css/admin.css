@@ -3,7 +3,7 @@
 /* hidden 속성이 아래 display 규칙(.btn-sm · .server-login 등)에 지지 않게 */
 [hidden] { display: none !important; }
 .wrap.wide { max-width: 1200px; }
-.admin-badge { font-size: .72rem; font-weight: 700; color: #0e0f12; background: var(--lime); padding: 2px 8px; border-radius: 999px; margin-left: 4px; letter-spacing: 0; }
+.admin-badge { font-size: .72rem; font-weight: 700; color: var(--on-lime); background: var(--lime); padding: 2px 8px; border-radius: 999px; margin-left: 4px; letter-spacing: 0; }
 .header-link { color: var(--hero-ink-2); font-size: .88rem; text-decoration: none; }
 .header-link:hover { color: var(--hero-ink); }
 
@@ -39,7 +39,7 @@
 /* 헤더의 로그인 상태 */
 .server-session { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .server-session #server-who { font-weight: 700; font-size: .86rem; color: var(--hero-ink); margin-right: 4px; }
-.site-header .server-session .btn-sm { background: transparent; color: var(--hero-ink); border-color: #343842; }
+.site-header .server-session .btn-sm { background: transparent; color: var(--hero-ink); border-color: var(--hero-line); }
 .assignee-sel { font: inherit; font-size: .84rem; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); }
 .history { margin: 0; padding-left: 18px; font-size: .84rem; font-weight: 500; }
 .history li { margin: 2px 0; }
@@ -111,7 +111,7 @@
 .kv dt { color: var(--ink-3); }
 .kv dd { margin: 0; font-weight: 600; }
 
-.cheapest { font-size: .7rem; font-weight: 800; color: #0e0f12; background: var(--lime); padding: 1px 6px; border-radius: 5px; margin-left: 6px; }
+.cheapest { font-size: .7rem; font-weight: 800; color: var(--on-lime); background: var(--lime); padding: 1px 6px; border-radius: 5px; margin-left: 6px; }
 .diff-neg { color: var(--ok); font-weight: 700; }
 .diff-pos { color: var(--error); font-weight: 700; }
 
@@ -121,7 +121,7 @@
 /* 재고 */
 .stock-badge { display: inline-block; font-size: .8rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); line-height: 1.4; }
 .stock-badge.ok { background: var(--ok-bg); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
-.stock-badge.warn { background: color-mix(in srgb, #f0a400 14%, var(--surface)); color: #9a6200; border-color: color-mix(in srgb, #f0a400 40%, transparent); }
+.stock-badge.warn { background: color-mix(in srgb, var(--warn-line) 14%, var(--surface)); color: var(--warn); border-color: color-mix(in srgb, var(--warn-line) 40%, transparent); }
 .stock-badge.none { color: var(--ink-3); }
 .stock-line { margin: 0 0 10px; font-size: .86rem; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .stock-sel { font: inherit; font-size: .8rem; font-weight: 700; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
@@ -131,11 +131,8 @@
 .mini-table tr.stale td { opacity: .62; }
 .mini-table tr.other td { background: var(--surface-2); }
 .mini-table .sub { font-size: .72rem; }
-.tag.warn { color: #9a6200; border-color: color-mix(in srgb, #f0a400 40%, transparent); background: color-mix(in srgb, #f0a400 12%, var(--surface)); }
+.tag.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn-line) 40%, transparent); background: color-mix(in srgb, var(--warn-line) 12%, var(--surface)); }
 .link-btn { font: inherit; font-size: .72rem; border: 0; background: none; color: var(--focus); cursor: pointer; padding: 0; text-decoration: underline; }
-@media (prefers-color-scheme: dark) {
-  .stock-badge.warn, .tag.warn { color: #ffc14d; }
-}
 .cand-form select, .cand-form input { font: inherit; font-size: .84rem; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); width: 100%; }
 .form-err { grid-column: 1 / -1; color: var(--error); font-size: .8rem; margin: 0; }
 .form-err:empty { display: none; }
@@ -212,7 +209,7 @@
   /* B-2 헤더: 이름은 숨기고(로그아웃 버튼 title 에 남김) 버튼·배지는 한 줄 */
   .server-session { flex-wrap: nowrap; gap: 4px; }
   .server-session #server-who { display: none; }
-  .site-header .server-session .btn-sm { padding: 6px 9px; }
+  .site-header .server-session .btn-sm { padding: 6px 9px; min-height: 44px; } /* 3차 QA U-6 */
   .logo { gap: 6px; }
   .logo-word { --logo-h: 24px; }
   .admin-badge { font-size: .66rem; padding: 2px 6px; }
@@ -220,12 +217,14 @@
   /* U-8 터치 영역 — 버튼·셀렉트 최소 40px */
   .btn-sm, .status-sel, .stock-sel, .assignee-sel, .cand-form select, .cand-form input, .manual input { min-height: 40px; }
   .x-btn { min-width: 40px; min-height: 40px; }
-  .link-btn { min-height: 32px; }
+  .link-btn { min-height: 40px; display: inline-flex; align-items: center; font-size: .8rem; } /* 「지금 다시 확인함」 · 「보기」(3차 QA U-7) */
+  /* 디자인 가이드 ⑭ — 16px 보다 작은 칸은 iOS 가 누를 때 화면을 확대한다 */
+  .cand-form select, .cand-form input, .manual input, .item-form-grid input, .item-register select, .filters select, .filters input, .settings input, .status-sel, .stock-sel, .assignee-sel { font-size: 16px !important; }
 }
 
 /* ── 화면 전환 · 확보 상품(admin-items.js) ───────────── */
 .view-tabs { margin: 0 0 14px; }
-.tag.buy-tag { color: #0e0f12; background: var(--lime); border-color: transparent; }
+.tag.buy-tag { color: var(--on-lime); background: var(--lime); border-color: transparent; }
 .tag.ok-tag { color: var(--ok); background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 35%, transparent); white-space: nowrap; }
 .items-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
 .items-head .src-note { margin: 0; }
@@ -253,3 +252,6 @@
   .items-head { flex-wrap: wrap; }
 }
 .item-requests li .tag { align-self: flex-start; }
+
+/* 바로 구매 요청 카드 — 재고 배지 자리에 확보 상품으로 가는 단추(3차 QA B-1) */
+.stock-badge.item-link { font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; color: var(--focus); background: var(--surface-2); border-color: color-mix(in srgb, var(--focus) 40%, transparent); text-align: left; }

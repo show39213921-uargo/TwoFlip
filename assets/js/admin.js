@@ -264,6 +264,7 @@ async function loadServer() {
   state.server.records = list.data.applications || [];
   state.server.members = list.data.members || [];
   state.server.loaded = true;
+  itemsView.preload(); // 탭을 열기 전에도 확보 상품 건수·이름이 보이게(3차 QA B-4)
   if (settings.ok) {
     const s = settings.data.settings;
     state.server.settings = { area: s.area || '', rates: parseRates(s.fxRates || {}), staleHours: Number(s.staleHours) || DEFAULT_STALE_HOURS };
@@ -368,7 +369,8 @@ function emptyText() {
 
 function renderList(all) {
   const opts = stockOpts();
-  const rows = sortNewest(filterRecords(all, state.filter).filter((r) => matchesStockFilter(r, state.filter.stock, opts)));
+  // 바로 구매 요청은 재고 확인 대상이 아니다 — 재고 필터를 걸면 뺀다(3차 QA B-1)
+  const rows = sortNewest(filterRecords(all, state.filter).filter((r) => !(state.filter.stock && r.itemId) && matchesStockFilter(r, state.filter.stock, opts)));
   const list = $('list');
   if (!all.length) {
     list.replaceChildren(h('div', { class: 'empty' },
@@ -421,12 +423,17 @@ function renderCard(r) {
       h('div', { class: 'cell-k clip' }, formatKst(r.receivedAt), ' ', h('span', { class: 'mono rid', text: r.id })),
       h('div', { class: 'cell-v clip', text: r.name || '—' }),
       h('div', { class: 'cell-s mono', text: revealed ? formatPhone(r.phone) : maskPhone(r.phone) })),
-    h('div', { class: 'sum-stock' },
-      h('div', { class: 'cell-k', text: '재고' }),
-      h('div', { class: `stock-badge ${stockTone}`, text: stock.label, title: stock.label })),
+    // 바로 구매 요청은 이미 확보한 상품이다 — 재고 배지·「재고 기록」 대신 그 확보 상품으로 가는 길(3차 QA B-1)
+    r.itemId
+      ? h('div', { class: 'sum-stock' },
+        h('div', { class: 'cell-k', text: '확보 상품' }),
+        h('button', { type: 'button', class: 'stock-badge item-link', title: '확보 상품 화면에서 열기', onclick: (e) => { e.preventDefault(); e.stopPropagation(); openItem(r.itemId); } }, `${itemsView.titleOf(r.itemId) || r.itemId} →`))
+      : h('div', { class: 'sum-stock' },
+        h('div', { class: 'cell-k', text: '재고' }),
+        h('div', { class: `stock-badge ${stockTone}`, text: stock.label, title: stock.label })),
     statusSel,
     // 좁은 화면에서만 보인다 — 매장에서 펼쳐 05 까지 내려가지 않고 바로 기록(2차 QA U-5)
-    h('button', {
+    r.itemId ? null : h('button', {
       type: 'button', class: 'rec-btn', text: '05 재고 기록하기',
       onclick: (e) => { e.preventDefault(); e.stopPropagation(); state.open.add(r.id); state.jumpToRecord = r.id; render(); },
     }));
@@ -476,6 +483,13 @@ function renderDetail(r, { k, brand, modelNo, revealed, stock }) {
   const overseasPanel = h('div', { class: 'panel' }, h('h3', {}, h('span', { class: 'n', text: '04' }), '해외 공식몰'),
     linkList(links.overseas, links.known ? '모델번호가 없어 해외 검색을 만들지 못했습니다.' : '등록된 해외 공식몰이 없는 브랜드입니다.'));
 
+  if (r.itemId) {
+    // 바로 구매 요청 — 이미 확보한 상품이라 판매처 찾기(02~04)·재고 확인(05)이 필요 없다(3차 QA B-1)
+    const itemPanel = h('div', { class: 'panel full' }, h('h3', {}, h('span', { class: 'n', text: '02' }), '바로 구매 요청'),
+      h('p', { class: 'muted', text: `이미 확보해 둔 상품(${itemsView.titleOf(r.itemId) || r.itemId})에 들어온 구매 요청입니다. 재고 확인은 필요 없습니다 — 연락하고, 예약은 확보 상품 화면에서 고릅니다.` }),
+      h('div', { class: 'row-actions', style: 'margin-top:8px' }, h('button', { type: 'button', class: 'btn-sm primary', text: '확보 상품 화면에서 열기', onclick: () => openItem(r.itemId) })));
+    return h('div', { class: 'detail' }, kreamPanel, itemPanel, customerPanel(r, revealed));
+  }
   return h('div', { class: 'detail' }, kreamPanel, officialPanel, offlinePanel, overseasPanel, stockPanel(r, kPrice, stock), customerPanel(r, revealed));
 }
 
@@ -559,10 +573,13 @@ function stockPanel(r, kPrice, stock) {
     setTimeout(() => { f.name.scrollIntoView({ block: 'center' }); f.name.focus({ preventScroll: true }); }, 0);
   }
   const err = h('p', { class: 'form-err', 'aria-live': 'polite' });
-  f.type.addEventListener('change', () => { if (f.type.value !== 'overseas') f.currency.value = 'KRW'; });
+  // 국내(공식몰·오프라인)를 고르면 통화를 원화로 — 해외(EUR) 기록 뒤 이어 적을 때 통화가 남지 않게(3차 QA U-6)
+  const domestic = () => f.type.value === 'official' || f.type.value === 'offline';
+  for (const ev of ['change', 'input']) f.type.addEventListener(ev, () => { if (domestic()) f.currency.value = 'KRW'; });
   const add = h('button', {
     type: 'button', class: 'btn-sm primary', text: '기록',
     onclick: () => {
+      if (domestic() && f.currency.value !== 'KRW') { err.textContent = `국내 판매처인데 통화가 ${f.currency.value} 입니다 — 맞다면 종류를 「해외」나 「기타」로 바꿔 주세요.`; return; }
       const v = validateCheck({ type: f.type.value, name: f.name.value, size: f.size.value, stock: f.stock.value, price: f.price.value, currency: f.currency.value, url: f.url.value, note: f.note.value });
       if (!v.ok) { err.textContent = Object.values(v.errors).join(' '); return; }
       state.checkForm.set(r.id, { type: v.value.type, currency: v.value.currency, size: v.value.size, focus: true });
@@ -636,7 +653,7 @@ function render() {
 
 // ── 화면 전환: 신청 | 확보 상품(바로 구매) ─────────────────
 // 확보 상품은 서버(DB)에서만 — 로그인한 세션 키로 부른다(신청 탭의 데이터 출처와 상관없이)
-const itemsView = createItemsView({ root: $('items-view'), h, ext, getApi: adminApi, onFail: serverFail, onRender: () => renderView() });
+const itemsView = createItemsView({ root: $('items-view'), h, ext, getApi: adminApi, onFail: serverFail, onRender: () => { renderView(); if (state.view === 'apps') renderList(records()); } }); // 신청 카드의 확보 상품 이름도 같이
 function renderView() {
   const items = state.view === 'items';
   $('view-apps').setAttribute('aria-selected', String(!items));
@@ -650,6 +667,12 @@ function setView(v) {
   state.view = v;
   renderView();
   if (v === 'items') itemsView.show();
+}
+// 신청 카드의 「확보 상품 →」 — 확보 상품 화면으로 가서 그 카드를 펼친다
+function openItem(id) {
+  state.view = 'items';
+  renderView();
+  itemsView.openItem(id);
 }
 
 // ── 설정 · 이벤트 ────────────────────────────────────
