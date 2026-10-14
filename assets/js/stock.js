@@ -17,6 +17,15 @@ export const STOCK_STATES = [
   { key: 'unknown', label: '확인 불가', buyable: false },
 ];
 export const DEFAULT_STALE_HOURS = 24; // 화면 「설정」에서 바꾼다
+export const STALE_HOURS_RANGE = [1, 168]; // 1시간 ~ 7일 — 백엔드 PUT /admin/settings 와 같은 범위
+
+// 설정 「재고 확인 유효 시간」 입력 검사 — 범위 밖이면 저장하지 않는다(3명 공용 설정이라)
+export function parseStaleHours(raw) {
+  const s = String(raw ?? '').trim();
+  const [min, max] = STALE_HOURS_RANGE;
+  if (!/^\d+$/.test(s) || Number(s) < min || Number(s) > max) return { ok: false, error: `${min}~${max} 사이 시간(정수)으로 적어 주세요. 저장하지 않았습니다.` };
+  return { ok: true, value: Number(s) };
+}
 export const METHOD_LABELS = { manual: '수동', auto: '자동' };
 
 const STATE_KEYS = new Set(STOCK_STATES.map((s) => s.key));

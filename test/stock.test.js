@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { STOCK_STATES, isStale, normalizeCheck, validateCheck, stockSummary, matchesStockFilter } from '../assets/js/stock.js';
+import { STOCK_STATES, isStale, normalizeCheck, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from '../assets/js/stock.js';
 
 const NOW = Date.parse('2026-10-13T10:00:00Z');
 const H = 3600000;
@@ -110,4 +110,10 @@ test('목록 필터 — 확인 필요 / 재고 있음 / 재고 없음', () => {
   assert.deepEqual([none, yes, no].map((r) => matchesStockFilter(r, 'available', opts)), [false, true, false]);
   assert.deepEqual([none, yes, no].map((r) => matchesStockFilter(r, 'none', opts)), [false, false, true]);
   assert.deepEqual([none, yes, no].map((r) => matchesStockFilter(r, '', opts)), [true, true, true]);
+});
+
+test('설정 유효 시간 — 1~168 정수만(B-3)', () => {
+  assert.deepEqual(parseStaleHours(' 24 '), { ok: true, value: 24 });
+  assert.deepEqual(parseStaleHours('168'), { ok: true, value: 168 });
+  for (const bad of ['0', '169', '1400', '-1', '2.5', 'abc', '']) assert.equal(parseStaleHours(bad).ok, false, bad);
 });

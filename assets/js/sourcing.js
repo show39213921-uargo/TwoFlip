@@ -55,6 +55,15 @@ export function validateCandidate(input = {}) {
   return { ok: true, errors, value: { type, name, price, currency, url, note } };
 }
 
+// 설정 환율 한 칸 검사 — 비우면 그 통화 환율 없음(ok, null), 숫자가 아니거나 0 이하면 거절
+export function checkRate(raw) {
+  const s = String(raw ?? '').replace(/,/g, '').trim();
+  if (!s) return { ok: true, value: null };
+  const n = Number(s);
+  if (!Number.isFinite(n) || n <= 0) return { ok: false, error: '0보다 큰 숫자로 적어 주세요. 저장하지 않았습니다.' };
+  return { ok: true, value: n };
+}
+
 export function parseRates(input = {}) {
   const out = {};
   for (const c of FOREIGN) {

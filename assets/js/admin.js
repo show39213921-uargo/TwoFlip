@@ -14,8 +14,8 @@ import {
   sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes,
 } from './admin-view.js';
 import { brandLinks } from './brands.js';
-import { CANDIDATE_TYPES, CURRENCIES, compareToKream, parseRates, toKrw } from './sourcing.js';
-import { STOCK_STATES, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter } from './stock.js';
+import { CANDIDATE_TYPES, CURRENCIES, checkRate, compareToKream, parseRates, toKrw } from './sourcing.js';
+import { STOCK_STATES, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from './stock.js';
 import { formatWon } from './preview-view.js';
 
 const store = createLocalStore(browserStorage());
@@ -289,13 +289,22 @@ function useSettings() {
   fillSettingsInputs();
 }
 
-async function persistSettings() {
+// 설정 칸 옆 한 줄 — 저장되면 잠깐 「저장됨」, 거절·실패는 고칠 때까지
+function fieldMsg(el, kind, text) {
+  clearTimeout(el._timer);
+  el.dataset.kind = kind;
+  el.textContent = text;
+  if (kind === 'ok') el._timer = setTimeout(() => { el.textContent = ''; }, 2500);
+}
+
+async function persistSettings(msgEl) {
   if (isServer() && state.server.member) {
     const res = await adminApi().putSettings({ area: state.settings.area, fxRates: state.settings.rates, staleHours: state.settings.staleHours });
-    if (!res.ok) { serverFail(res); return; }
-    flash('', '공용 설정을 저장했습니다(3명 모두에게 적용).');
+    if (!res.ok) { fieldMsg(msgEl, 'error', '저장하지 못했습니다.'); serverFail(res); return; }
+    fieldMsg(msgEl, 'ok', '저장됨 · 3명에게 적용');
   } else {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.localSettings)); } catch { /* 이번 화면에서만 */ }
+    fieldMsg(msgEl, 'ok', '저장됨 · 이 브라우저');
   }
   render();
 }
@@ -605,34 +614,49 @@ function render() {
 
 // ── 설정 · 이벤트 ────────────────────────────────────
 const rateInputs = {};
+const rateMsgs = {};
 
 function fillSettingsInputs() {
   $('set-area').value = state.settings.area;
   $('set-stale').value = String(state.settings.staleHours);
   for (const [c, el] of Object.entries(rateInputs)) el.value = state.settings.rates[c] ?? '';
+  // 출처를 바꾸면 이전 출처의 안내·오류 표시는 지운다
+  for (const el of [$('set-area'), $('set-stale'), ...Object.values(rateInputs)]) el.removeAttribute('aria-invalid');
+  for (const el of [$('msg-area'), $('msg-stale'), ...Object.values(rateMsgs)]) fieldMsg(el, '', '');
   $('settings-scope').textContent = isServer() && state.server.settings ? '(서버 공용 — 3명 모두에게 적용)' : '(이 브라우저에만)';
 }
 
+// 잘못된 값은 저장하지 않고 칸 아래에 이유를 남긴다(B-3) — 3명 공용 설정이 한 번의 오타로 바뀌지 않게
 function initSettings() {
   const area = $('set-area');
-  area.addEventListener('change', () => { state.settings.area = area.value.trim(); persistSettings(); });
+  area.addEventListener('change', () => { state.settings.area = area.value.trim(); persistSettings($('msg-area')); });
 
   const stale = $('set-stale');
   stale.addEventListener('change', () => {
-    const n = Number(stale.value.trim());
-    state.settings.staleHours = Number.isFinite(n) && n > 0 ? n : DEFAULT_STALE_HOURS;
-    stale.value = String(state.settings.staleHours);
-    persistSettings();
+    const v = parseStaleHours(stale.value);
+    if (!v.ok) { stale.setAttribute('aria-invalid', 'true'); fieldMsg($('msg-stale'), 'error', v.error); return; }
+    stale.removeAttribute('aria-invalid');
+    stale.value = String(v.value);
+    state.settings.staleHours = v.value;
+    persistSettings($('msg-stale'));
   });
 
   const box = $('set-rates');
   for (const c of CURRENCIES.filter((x) => x !== 'KRW')) {
-    rateInputs[c] = h('input', { type: 'text', inputmode: 'decimal', placeholder: c === 'JPY' ? '예: 9.3' : '예: 1400' });
-    rateInputs[c].addEventListener('change', () => {
-      state.settings.rates = parseRates(Object.fromEntries(Object.entries(rateInputs).map(([kk, el]) => [kk, el.value])));
-      persistSettings();
+    const msg = h('span', { class: 'field-msg', id: `msg-rate-${c}`, role: 'status' });
+    const input = h('input', { type: 'text', inputmode: 'decimal', placeholder: c === 'JPY' ? '예: 9.3' : '예: 1400', 'aria-describedby': msg.id });
+    input.addEventListener('change', () => {
+      const v = checkRate(input.value);
+      if (!v.ok) { input.setAttribute('aria-invalid', 'true'); fieldMsg(msg, 'error', v.error); return; }
+      input.removeAttribute('aria-invalid');
+      const rates = { ...state.settings.rates };
+      if (v.value == null) delete rates[c]; else rates[c] = v.value;
+      state.settings.rates = rates;
+      persistSettings(msg);
     });
-    box.append(h('label', {}, c === 'JPY' ? 'JPY (1엔당 원)' : `${c} (원)`, rateInputs[c]));
+    rateInputs[c] = input;
+    rateMsgs[c] = msg;
+    box.append(h('label', {}, c === 'JPY' ? 'JPY (1엔당 원)' : `${c} (원)`, input, msg));
   }
   fillSettingsInputs();
 }
