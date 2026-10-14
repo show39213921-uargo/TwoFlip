@@ -267,6 +267,8 @@ function previewOff() {
   resetPreview();
   $('url-hint').textContent = '상품 정보는 접수 후 저희가 확인해요.';
   $('url-hint').hidden = false;
+  // 폼 위 안내가 「먼저 보여드려요」라고 하면 아래 안내와 말이 엇갈린다(3차 QA B-2)
+  document.querySelector('.apply-head p').textContent = 'KREAM 링크와 사이즈만 남겨 주세요.';
 }
 
 async function loadPreview() {
