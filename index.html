@@ -57,19 +57,28 @@
     <section class="hero">
       <div class="wrap hero-grid">
         <div class="hero-copy">
-          <p class="eyebrow">KREAM 링크 하나로</p>
-          <h1>찾던 그 상품,<br><em>매장에서</em> 먼저 찾아드려요</h1>
-          <p class="lede">원하는 상품의 KREAM 주소만 남겨 주세요. 공식몰과 오프라인 매장을 직접 돌아 확보하고, 확보되면 연락드려요.</p>
+          <!-- 문구는 「부탁하고 답하는」 말투(분위기 개선 1단계 · 가이드 §8) — 운영 단어(확보·접수)는 앞쪽에서 뺀다 -->
+          <p class="eyebrow">직접 찾아 드리는 구매대행</p>
+          <h1>KREAM에서 찾던 그 상품,<br><em>매장에서</em> 먼저 찾아볼게요</h1>
+          <p class="lede">KREAM 링크만 보내 주세요. 저희가 공식몰과 매장을 직접 돌아보고, 찾으면 연락드릴게요.</p>
           <!-- 두 갈래(결정 ② · 4차 QA R-1): 찾아 주세요(신청) / 지금 있는 상품(바로 구매 — 공개 상품이 있을 때만 보인다, home.js) -->
           <div class="paths">
-            <a class="path path-main" href="#apply"><span class="path-k">찾아 주세요</span><strong>KREAM 링크로 신청하기</strong><span class="path-arrow" aria-hidden="true">→</span></a>
-            <a class="path" href="shop.html" id="path-shop" hidden><span class="path-k">지금 있는 상품</span><strong id="path-shop-label">확보해 둔 상품 보기</strong><span class="path-arrow" aria-hidden="true">→</span></a>
+            <a class="path path-main" href="#apply"><span class="path-k">이거 찾아 주세요</span><strong>KREAM 링크로 신청</strong><span class="path-arrow" aria-hidden="true">→</span></a>
+            <a class="path" href="shop.html" id="path-shop" hidden><span class="path-k">구해 둔 물건 구경하기</span><strong id="path-shop-label">바로 구매 보기</strong><span class="path-arrow" aria-hidden="true">→</span></a>
           </div>
+          <!-- 첫 화면 상품 사진 줄(분위기 개선 1단계 · 가이드 §6) — 진행 순서 아래 미리보기를 여기로 합쳤다. 공개 상품이 있을 때만(home.js) -->
+          <section class="strip" id="strip" aria-labelledby="strip-title" hidden>
+            <div class="strip-head">
+              <h2 class="strip-title" id="strip-title">저희가 먼저 구해 둔 물건</h2>
+              <a class="strip-all" href="shop.html">전체 보기 →</a>
+            </div>
+            <div class="strip-row" id="strip-row"></div>
+          </section>
           <a class="hero-more" href="#how">어떻게 진행되나요?</a>
           <!-- 신청 칸까지 가야 보이던 안내를 앞으로(2차 QA D-1) — 이미 화면에 있는 내용만, 보장 표현 없음 -->
           <ul class="trust">
-            <li>가격은 상품을 확보한 뒤 안내 — 확인하고 결정해요</li>
-            <li>번호는 신청 처리와 연락에만 사용해요</li>
+            <li>가격은 찾은 뒤에 알려 드려요 — 보고 결정하시면 돼요</li>
+            <li>번호는 신청 처리와 연락에만 써요</li>
             <li>KREAM과 제휴 관계가 없는 독립 서비스예요</li>
           </ul>
         </div>
@@ -87,16 +96,16 @@
             <div class="flow-row">
               <span class="flow-dot">2</span>
               <div>
-                <p class="flow-k">공식몰 · 매장 탐색</p>
-                <p class="flow-v">재고 있는 곳을 직접 확인</p>
+                <p class="flow-k">공식몰 · 매장에서 찾기</p>
+                <p class="flow-v">재고 있는 곳을 직접 확인해요</p>
               </div>
             </div>
             <div class="flow-line"></div>
             <div class="flow-row is-done">
               <span class="flow-dot">✓</span>
               <div>
-                <p class="flow-k">확보 완료 · 연락</p>
-                <p class="flow-v">가격 안내 후 확정</p>
+                <p class="flow-k">찾으면 연락</p>
+                <p class="flow-v">가격을 보고 결정하시면 돼요</p>
               </div>
             </div>
           </div>
@@ -106,26 +115,26 @@
 
     <section class="how" id="how">
       <div class="wrap">
-        <h2 class="section-title">진행 순서</h2>
+        <h2 class="section-title">이렇게 진행돼요</h2>
         <ol class="steps">
           <li>
             <span class="step-n">01</span>
-            <strong>신청</strong>
-            <p>KREAM 주소와 사이즈, 연락처를 남겨 주세요.</p>
+            <strong>링크 보내기</strong>
+            <p>KREAM 링크와 사이즈, 연락처만 남겨 주세요.</p>
           </li>
           <li>
             <span class="step-n">02</span>
-            <strong>탐색 · 확보</strong>
-            <p>모델번호로 공식몰과 근처 매장을 찾아 직접 확보해요.</p>
+            <strong>매장에서 찾기</strong>
+            <p>모델번호로 공식몰과 근처 매장을 직접 찾아볼게요.</p>
           </li>
           <li>
             <span class="step-n">03</span>
-            <strong>연락</strong>
-            <p>확보되면 상품과 가격을 안내해 드려요.</p>
+            <strong>찾으면 연락</strong>
+            <p>찾으면 상품과 가격을 알려 드려요.</p>
           </li>
           <li>
             <span class="step-n">04</span>
-            <strong>확정</strong>
+            <strong>보고 결정</strong>
             <p>가격을 확인하고 결정하시면 진행돼요.</p>
           </li>
         </ol>
@@ -133,24 +142,13 @@
       </div>
     </section>
 
-    <!-- 바로 구매 미리보기 — 공개 상품이 있을 때만(home.js). 눌러서 바로 구매 페이지로 -->
-    <section class="peek" id="peek" hidden>
-      <div class="wrap">
-        <div class="peek-head">
-          <h2 class="section-title">지금 바로 살 수 있는 상품</h2>
-          <a class="peek-all" href="shop.html">전체 보기 →</a>
-        </div>
-        <p class="section-sub">저희가 먼저 확보해 둔 상품이에요. 바로 결제가 아니라, 먼저 구매 요청을 받아요.</p>
-        <div class="peek-row" id="peek-row"></div>
-      </div>
-    </section>
 
     <section class="apply" id="apply">
       <div class="wrap">
         <div class="apply-card">
           <div class="apply-head">
-            <h2>구매 신청</h2>
-            <p>링크를 붙여 넣으면, 불러올 수 있을 때 상품 정보를 먼저 보여드려요.</p>
+            <h2>어떤 상품을 찾아 드릴까요?</h2>
+            <p>KREAM 링크를 붙여 넣으면, 불러올 수 있을 때 상품 정보를 먼저 보여 드려요.</p>
           </div>
 
           <form id="apply-form" novalidate>
@@ -158,7 +156,7 @@
               <legend><span class="legend-n">1</span>상품</legend>
 
               <div class="field">
-                <label for="kreamUrl">KREAM 상품 주소</label>
+                <label for="kreamUrl">찾는 상품의 KREAM 링크</label>
                 <div class="input-icon">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
                   <input id="kreamUrl" name="kreamUrl" type="url" inputmode="url" spellcheck="false" placeholder="https://kream.co.kr/products/…" required>
@@ -197,9 +195,9 @@
             </fieldset>
 
             <fieldset class="block">
-              <legend><span class="legend-n">2</span>연락처</legend>
+              <legend><span class="legend-n">2</span>연락받을 곳</legend>
               <!-- 이름·번호를 넣기 직전에 쓰임을 다시(4차 QA U-2) — 문의 창구는 사업 결정 뒤에 -->
-              <p class="hint fieldset-note">이름·번호는 신청 처리와 연락에만 써요.</p>
+              <p class="hint fieldset-note">찾으면 이 번호로 연락드려요. 다른 데는 쓰지 않아요.</p>
               <div class="row">
                 <div class="field">
                   <label for="name">이름</label>
@@ -235,7 +233,7 @@
               <p class="error" data-error-for="consent" aria-live="polite"></p>
             </div>
 
-            <button id="apply-submit" class="btn btn-primary btn-block" type="submit">신청하기</button>
+            <button id="apply-submit" class="btn btn-primary btn-block" type="submit">이 상품 찾아 주세요</button>
             <div id="apply-status" class="status" role="status" hidden></div>
           </form>
 
