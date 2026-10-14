@@ -6,7 +6,7 @@ import { createApiClient } from './api.js';
 import { createLocalApi } from './local-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
 import { validateApplication } from './validate.js';
-import { parseKreamUrl } from './kream-url.js';
+import { parseKreamUrl, extractKreamUrl } from './kream-url.js';
 import { buildPreviewModel, previewFailText } from './preview-view.js';
 
 // demo: 서버 대신 이 브라우저에 저장(?demo=1 로만 켜진다) · api: 백엔드 · closed: 「준비 중」
@@ -70,6 +70,7 @@ if (CONFIG.mode === 'demo') $('demo-banner').hidden = false;
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   setStatus('', null);
+  tidyUrlInput(); // 붙여 넣고 바로 누른 경우
 
   const v = validateApplication(readForm());
   if (v.spam) { setStatus('ok', '신청이 접수되었습니다.'); form.reset(); return; } // 봇에게 거절 사유를 알려주지 않는다
@@ -203,12 +204,23 @@ async function loadPreview() {
   }
 }
 
+// 붙여 넣은 글에 KREAM 주소가 하나 있으면 그 주소만 남긴다(U-1) · 주소의 ?size= 는 사이즈 칸이 비었을 때만 채운다(U-2)
+function tidyUrlInput() {
+  const ex = extractKreamUrl(urlInput.value);
+  if (!ex) return;
+  if (!parseKreamUrl(urlInput.value).ok) urlInput.value = ex.url;
+  if (ex.size && !sizeInput.value.trim()) {
+    sizeInput.value = ex.size;
+    sizeInput.dispatchEvent(new Event('input'));
+  }
+}
+
 urlInput.addEventListener('input', () => {
   clearTimeout(debounce);
-  debounce = setTimeout(loadPreview, 450);
+  debounce = setTimeout(() => { tidyUrlInput(); loadPreview(); }, 450);
 });
 urlInput.addEventListener('paste', () => {
   clearTimeout(debounce);
-  debounce = setTimeout(loadPreview, 0);
+  debounce = setTimeout(() => { tidyUrlInput(); loadPreview(); }, 0);
 });
 sizeInput.addEventListener('input', syncChips);
