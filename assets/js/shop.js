@@ -82,7 +82,8 @@ function card(m) {
     const chipsBox = el('p', 'shop-chips');
     chipsBox.append(...m.noteChips.map((t) => el('span', 'shop-chip', t)));
     body.append(chipsBox);
-  } else if (m.note) body.append(el('p', 'shop-note', m.note));
+  }
+  if (m.note) body.append(el('p', 'shop-note', m.note)); // 칩으로 안 나뉜 설명은 글로(상태 칩과 같이 보일 수 있다)
 
   const btn = el('button', 'btn ' + (m.reserved ? 'btn-outline' : 'btn-primary'), m.reserved ? '예약 중' : '구매 요청');
   btn.type = 'button';

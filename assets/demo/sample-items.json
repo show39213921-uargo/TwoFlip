@@ -4,7 +4,7 @@
     "status": "on_sale",
     "size": "M",
     "salePrice": 299000,
-    "note": "[샘플] 새상품 · 택 있음 · 매장 구매",
+    "note": "[샘플] 택 있음 · 박스 있음",
     "title": null,
     "name": "Salomon UNI Cross Insulation Jacket Light Grey",
     "nameKo": "살로몬 UNI 크로스 인슐레이션 자켓 라이트 그레이",
@@ -72,7 +72,9 @@
       ],
       "checkedAt": "2026-10-13T07:44:35.002Z",
       "cached": true
-    }
+    },
+    "condition": "new",
+    "channel": "store"
   },
   {
     "id": "item0002",
@@ -147,7 +149,9 @@
       ],
       "checkedAt": "2026-10-13T07:44:35.002Z",
       "cached": true
-    }
+    },
+    "condition": null,
+    "channel": null
   },
   {
     "id": "item0003",
@@ -222,6 +226,8 @@
       ],
       "checkedAt": "2026-10-13T07:44:35.002Z",
       "cached": true
-    }
+    },
+    "condition": "unused",
+    "channel": "official"
   }
 ]

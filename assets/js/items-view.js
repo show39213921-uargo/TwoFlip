@@ -18,6 +18,19 @@ export const ITEM_STATUSES = [
 ];
 export const itemStatusLabel = (key) => (ITEM_STATUSES.find((s) => s.key === key) || { label: key || '—' }).label;
 
+// 상품 상태 · 구매처 — 정해진 값(4차 QA R-5, 백엔드 Repo::ITEM_CONDITIONS · ITEM_CHANNELS 와 같다). 「정품 보장」 같은 값은 없다 — 사실만
+export const ITEM_CONDITIONS = [
+  { key: 'new', label: '새상품' },
+  { key: 'unused', label: '미사용' },
+  { key: 'used', label: '사용감 있음' },
+];
+export const ITEM_CHANNELS = [
+  { key: 'store', label: '매장 구매' },
+  { key: 'official', label: '공식몰 구매' },
+  { key: 'other', label: '기타 구매처' },
+];
+const labelOf = (list, key) => (list.find((x) => x.key === key) || {}).label || null;
+
 const httpsUrl = (u) => (typeof u === 'string' && /^https:\/\/\S+$/i.test(u) ? u : null);
 
 /** 공개 카드 한 장 — 서버 GET /items 한 건 → 화면 값(전부 문자열, textContent 로만 넣는다) */
@@ -39,12 +52,19 @@ export function itemCardModel(item) {
     reserved: i.status === 'reserved',
     reservedNote: i.status === 'reserved' ? '다른 분께 먼저 안내 중이에요' : null,
     statusLabel: itemStatusLabel(i.status),
-    note: i.note || '',
-    noteChips: noteChips(i.note),
+    // 칩 = 상품 상태 · 구매처(정해진 값) + 공개 설명을 나눈 조각. 설명이 칩으로 안 나뉘면 글(note)로 따로 둔다
+    noteChips: chipsOf(i),
+    note: noteChips(i.note) ? '' : (i.note || ''),
   };
 }
 
 // 공개 설명 「새상품 · 택 있음 · 매장 구매」 → 칩 3개(3차 QA D-3). 조각이 하나뿐이거나 길거나 많으면 칩으로 만들지 않고 글로 둔다(null)
+function chipsOf(i) {
+  const fixed = [labelOf(ITEM_CONDITIONS, i.condition), labelOf(ITEM_CHANNELS, i.channel)].filter(Boolean);
+  const all = [...fixed, ...(noteChips(i.note) || [])];
+  return all.length ? all : null;
+}
+
 export function noteChips(note) {
   const parts = String(note || '').split(/\s*[·,|/]\s*/).map((x) => x.trim()).filter(Boolean);
   if (parts.length < 2 || parts.length > 5 || parts.some((x) => x.length > 16)) return null;
@@ -81,6 +101,13 @@ export function validateItem(input = {}, create = true) {
     if (!raw) value[f] = null;
     else if (!/^\d{1,9}$/.test(raw) || Number(raw) < 1) errors[f] = `${label}는 1원 이상 숫자로 적어 주세요(정하지 않았으면 비워 두기).`;
     else value[f] = Number(raw);
+  }
+  for (const [f, list, msg] of [['condition', ITEM_CONDITIONS, '상품 상태를 골라 주세요.'], ['channel', ITEM_CHANNELS, '구매처를 골라 주세요.']]) {
+    if (!has(f)) continue;
+    const val = str(input[f]);
+    if (!val) value[f] = null;
+    else if (!list.some((x) => x.key === val)) errors[f] = msg;
+    else value[f] = val;
   }
   if (has('imageUrl')) {
     const u = str(input.imageUrl);
