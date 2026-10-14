@@ -73,13 +73,13 @@ export function sizeQuoteFor(record) {
   return chip.price ? chip : null;
 }
 
-// 그 사이즈 KREAM 가격(숫자) — 최저가 비교용. 최근 거래 → 판매 입찰 → 구매 입찰 → 즉시 구매가
+// 신청 사이즈의 KREAM 가격(숫자) — 「KREAM 대비」 비교용. 최근 거래 → 판매 입찰 → 구매 입찰.
+// 그 사이즈 시세가 없으면 null — 상품 전체 즉시 구매가(다른 사이즈 값일 수 있음)로 대신하지 않는다(2차 QA B-2: 미확인 값을 확정처럼 보이지 않기)
 export function kreamPriceFor(record) {
   const sizes = record && record.kream && Array.isArray(record.kream.sizes) ? record.kream.sizes : [];
   const want = String(record && record.size || '').trim().toUpperCase();
   const s = sizes.find((x) => String(x.size).toUpperCase() === want);
-  const v = s ? (s.recentPrice ?? s.lowestAsk ?? s.highestBid) : null;
-  return v ?? (record && record.kream ? record.kream.buyNowPrice ?? null : null);
+  return s ? (s.recentPrice ?? s.lowestAsk ?? s.highestBid ?? null) : null;
 }
 
 const csvCell = (v) => {

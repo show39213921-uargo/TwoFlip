@@ -497,7 +497,9 @@ function stockPanel(r, kPrice, stock) {
         const krw = toKrw(c.price, c.currency, state.settings.rates);
         const isBest = stock.cheapest && c.id === stock.cheapest.id;
         const buyable = STOCK_STATES.some((s) => s.key === c.stock && s.buyable);
-        const cmp = buyable && (isBest || (c.sameSize && !c.stale)) ? compareToKream(krw, kPrice) : null; // 못 사는 곳은 비교하지 않는다
+        const cmpWanted = buyable && (isBest || (c.sameSize && !c.stale)); // 못 사는 곳은 비교하지 않는다
+        const cmp = cmpWanted ? compareToKream(krw, kPrice) : null;
+        const cmpText = cmp ? cmp.label.replace('KREAM 대비 ', '') : (cmpWanted && krw != null && kPrice == null ? '시세 미확인' : '—');
         const url = httpUrl(c.url);
         const stockSel = h('select', {
           class: `stock-sel s-${c.stock}`, 'aria-label': `${c.name} 재고 상태`,
@@ -514,7 +516,7 @@ function stockPanel(r, kPrice, stock) {
           h('td', {}, stockSel),
           h('td', { text: c.price == null ? '미기록' : (c.currency === 'KRW' ? formatWon(c.price) : `${Number(c.price).toLocaleString('ko-KR')} ${c.currency}`) }),
           h('td', { text: c.price == null ? '—' : (krw != null ? formatWon(krw) : '환율 필요') }),
-          h('td', { class: cmp ? (cmp.cheaper ? 'diff-neg' : 'diff-pos') : null, text: cmp ? cmp.label.replace('KREAM 대비 ', '') : '—' }),
+          h('td', { class: cmp ? (cmp.cheaper ? 'diff-neg' : 'diff-pos') : null, text: cmpText }),
           h('td', { class: 'left', text: c.note || '' }),
           h('td', {}, h('button', {
             type: 'button', class: 'x-btn', 'aria-label': `${c.name} 확인 기록 삭제`, text: '✕',
@@ -558,7 +560,8 @@ function stockPanel(r, kPrice, stock) {
     h('h3', {}, h('span', { class: 'n', text: '05' }), `재고 확인 — 신청 사이즈 ${want || '미지정'}`),
     h('p', { class: 'stock-line' },
       h('span', { class: `stock-badge ${stock.buyable ? 'ok' : (stock.needsCheck ? 'warn' : 'none')}`, text: stock.label }),
-      bestCmp ? h('span', { class: bestCmp.cheaper ? 'diff-neg' : 'diff-pos', text: ` ${bestCmp.label}(KREAM 수수료·배송비 전)` }) : null,
+      bestCmp ? h('span', { class: bestCmp.cheaper ? 'diff-neg' : 'diff-pos', text: ` ${bestCmp.label}(KREAM 수수료·배송비 전)` })
+        : (stock.cheapest && kPrice == null ? h('span', { class: 'sub', text: ` KREAM 대비 — (사이즈 ${want || '?'} 시세 미확인)` }) : null),
       h('span', { class: 'sub', text: ` · 최근 확인 기준 ${state.settings.staleHours}시간(설정) · 오래된 확인 ${stock.stale}건` + (stock.otherSize ? ` · 다른 사이즈 ${stock.otherSize}건` : '') })),
     table,
     h('div', { class: 'cand-form stock-form' }, f.type, f.name, f.size, f.stock, f.price, f.currency, f.url, f.note, add, err),
