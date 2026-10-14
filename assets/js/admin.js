@@ -161,6 +161,7 @@ async function apply(r, local, remote) {
   const res = await remote(adminApi());
   if (!res.ok) { serverFail(res); return; }
   replaceServerRecord(res.data.application);
+  if (r.itemId) itemsView.refresh(); // 확보 상품 카드의 요청 상태·건수도 새로(5차 QA B-2)
   state.msg = null;
   render();
 }
@@ -184,6 +185,7 @@ const ops = {
       const res = await adminApi().deleteApplication(r.id);
       if (!res.ok) { serverFail(res); return; }
       state.server.records = state.server.records.filter((x) => x.id !== r.id);
+      if (r.itemId) itemsView.refresh(); // 요청을 지우면 그 상품의 삭제 버튼이 바로 풀리게(5차 QA B-2)
       flash('', `접수번호 ${r.id} 를 지웠습니다.`);
       render();
       return;

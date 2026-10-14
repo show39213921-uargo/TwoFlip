@@ -96,7 +96,8 @@ function card(m) {
   meta.append(el('span', 'shop-size', `사이즈 ${m.size}`), el('strong', m.priceKnown ? 'shop-price' : 'shop-price ask', m.price));
   body.append(meta);
   if (m.priceHint) body.append(el('p', 'shop-hint', m.priceHint));
-  if (m.reservedNote) body.append(el('p', 'shop-hint', m.reservedNote));
+  // 이 탭에서 요청한 상품이 예약 중이면 누가 예약됐는지 화면은 모른다 — 「다른 분께」라고 단정하지 않는다(5차 QA B-1)
+  if (m.reserved) body.append(el('p', 'shop-hint', mine.length ? '요청하신 상품이 예약 중이에요 — 확인 후 연락드려요' : m.reservedNote));
   // 공개 설명 — 짧은 조각이면 칩(「새상품」「택 있음」), 아니면 글 그대로(3차 QA D-3)
   if (m.noteChips) {
     const chipsBox = el('p', 'shop-chips');
@@ -211,9 +212,8 @@ function done(id) {
   if (shown.length) render(shown); // 뒤 카드에 「요청함 · 접수번호」가 바로 보이게
   form.hidden = true;
   $('item-done-id').textContent = id;
-  $('item-done-msg').textContent = CONFIG.mode === 'demo'
-    ? '테스트 요청이라 이 브라우저에만 저장됐어요. 관리자 화면에서 확인할 수 있어요.'
-    : '확인 후 적어 주신 번호로 연락드려요. 연락 시점은 상품마다 달라요 — 접수번호를 남겨 두세요. 같은 상품에 요청이 여러 건이면 저희가 확인해 한 분께 예약을 드려요.';
+  const real = '확인 후 적어 주신 번호로 연락드려요. 연락 시점은 상품마다 달라요 — 접수번호를 남겨 두세요. 같은 상품에 요청이 여러 건이면 저희가 확인해 한 분께 예약을 드려요.';
+  $('item-done-msg').textContent = CONFIG.mode === 'demo' ? `[테스트 — 이 브라우저에만 저장, 관리자 화면에서 확인] ${real}` : real; // 5차 QA U-4
   $('item-done-copy').textContent = '복사';
   $('item-done').hidden = false;
   $('item-done').focus();

@@ -166,7 +166,13 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
         const v = validateItem(changed, false);
         for (const [key, el] of Object.entries(errs)) el.textContent = v.errors[key] || '';
         if (!v.ok) return;
-        call(getApi().patchItem(it.id, v.value), '저장했습니다.');
+        call(getApi().patchItem(it.id, v.value), '').then((r) => {
+          if (!r) return;
+          // 저장 안내는 저장 버튼 옆에 잠깐 — 휴대폰에서 구역 맨 위는 화면 밖이다(5차 QA U-3)
+          st.savedFor = it.id;
+          render();
+          setTimeout(() => { if (st.savedFor === it.id) { st.savedFor = null; const m = root.querySelector('.saved-msg'); if (m) m.textContent = ''; } }, 2500);
+        });
       },
     });
 
@@ -217,7 +223,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
 
     return h('div', { class: 'detail' },
       h('div', { class: 'panel full' }, h('h3', {}, h('span', { class: 'n', text: '01' }), '상품 · 공개 정보'), kreamLine, grid,
-        h('div', { class: 'row-actions' }, save)),
+        h('div', { class: 'row-actions' }, h('span', { class: 'field-msg saved-msg', 'data-kind': 'ok', role: 'status', text: st.savedFor === it.id ? '저장했습니다' : '' }), save)),
       h('div', { class: 'panel full' }, h('h3', {}, h('span', { class: 'n', text: '02' }), `구매 요청 ${reqs.length}건`),
         reqList,
         h('p', { class: 'muted', style: 'margin-top:8px', text: '요청은 「신청」 목록에도 「바로 구매」 표시로 들어옵니다 — 연락·상태 변경은 거기서. 예약을 풀려면 위 상태를 「판매 중」으로.' }),
@@ -252,6 +258,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
     titleOf,
     openItem,
     preload() { if (!st.loaded && !st.loading) load(); },
+    refresh() { if (st.loaded && !st.loading) load(); },
     show() { if (!st.loaded && !st.loading) load(); else render(); },
     reset() { st.items = []; st.loaded = false; st.msg = null; st.open.clear(); st.reveal.clear(); root.replaceChildren(); },
     count: () => (st.loaded ? st.items.length : null),
