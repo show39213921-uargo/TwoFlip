@@ -136,7 +136,8 @@ function saveLocal(id, patch) {
 function serverFail(res) {
   if (res.error.kind === 'auth') {
     logout(false);
-    flash('error', '로그인이 만료됐거나 막힌 계정입니다. 다시 로그인해 주세요.');
+    showGate('로그인이 만료됐거나 막힌 계정입니다. 다시 로그인해 주세요.');
+    return;
   } else {
     const fields = res.error.fields ? Object.values(res.error.fields).join(' ') : '';
     flash('error', `서버에 저장하지 못했습니다: ${fields || res.error.message}`);
@@ -194,40 +195,57 @@ const ops = {
   },
 };
 
-// ── 서버 로그인 · 불러오기 ─────────────────────────────
+// ── 로그인 화면 — 로그인 전에는 관리자 화면 전체를 감춘다 ──
+// (페이지 코드는 공개 정적 파일이라 감추는 건 화면이고, 데이터는 서버가 로그인 없이는 주지 않는 것으로 지킨다)
+function gateMsg(text, kind = 'error') {
+  const el = $('gate-msg');
+  el.textContent = text || '';
+  el.dataset.kind = kind;
+}
+
+function showGate(text = '', kind = 'error') {
+  $('gate').hidden = false;
+  $('admin-app').hidden = true;
+  $('server-session').hidden = true;
+  gateMsg(text, kind);
+  setTimeout(() => ($('gate-id').value ? $('gate-pw') : $('gate-id')).focus(), 0);
+}
+
+function showApp() {
+  $('gate').hidden = true;
+  $('admin-app').hidden = false;
+  $('server-session').hidden = false;
+  $('server-who').textContent = `${state.server.member.name} 님`;
+}
+
 // 아이디·비밀번호 → 세션 키 → 그 키로 시작
 async function loginWithPassword(loginId, password, remember) {
-  state.server.loading = true;
-  render();
   const r = await loginAdmin({ baseUrl: CONFIG.apiBaseUrl, loginId, password, remember });
-  state.server.loading = false;
   if (!r.ok) {
-    flash('error', r.error.status === 401 || r.error.status === 429 || r.error.kind === 'input' ? r.error.message : `서버에 연결하지 못했습니다: ${r.error.message}`);
-    render();
+    gateMsg(r.error.status === 401 || r.error.status === 429 || r.error.kind === 'input' ? r.error.message : `서버에 연결하지 못했습니다: ${r.error.message}`);
     return false;
   }
   return useSession(r.data.token, remember, r.data.member);
 }
 
-// 세션 키(방금 받았거나 기억해 둔 것)로 시작 — 만료됐으면 로그인 칸으로
+// 세션 키(방금 받았거나 기억해 둔 것)로 시작 — 만료됐으면 로그인 화면으로
 async function useSession(key, remember, member = null) {
   state.server.key = key.trim();
   if (!member) {
-    state.server.loading = true;
-    render();
     const me = await adminApi().me();
-    state.server.loading = false;
     if (!me.ok) {
       state.server.key = '';
       forgetKey();
-      flash(me.error.kind === 'auth' ? 'warn' : 'error', me.error.kind === 'auth' ? '로그인이 만료됐습니다. 다시 로그인해 주세요.' : `서버에 연결하지 못했습니다: ${me.error.message}`);
-      render();
+      showGate(me.error.kind === 'auth' ? '로그인이 만료됐습니다. 다시 로그인해 주세요.' : `서버에 연결하지 못했습니다: ${me.error.message}`);
       return false;
     }
     member = me.data.member;
   }
   state.server.member = member;
   writeKey(state.server.key, remember);
+  state.source = 'server';
+  useSettings();
+  showApp();
   await loadServer();
   return true;
 }
@@ -255,8 +273,12 @@ function logout(clearMsg = true) {
   forgetKey();
   state.server = { key: '', member: null, members: [], records: [], loading: false, loaded: false };
   state.history.clear();
-  if (isServer()) useSettings();
-  if (clearMsg) flash('', '로그아웃했습니다(이 브라우저에 기억해 둔 로그인도 지웠습니다).');
+  state.open.clear();
+  state.reveal.clear();
+  state.msg = null;
+  useSettings();
+  render(); // 감춘 화면에도 신청자 정보가 남지 않게 비운다
+  showGate(clearMsg ? '로그아웃했습니다.' : '', 'info');
 }
 
 // 출처에 맞는 설정 — 서버면 3명이 같이 쓰는 공용 설정, 아니면 이 브라우저 설정
@@ -291,15 +313,8 @@ function renderToolbar() {
   $('count-server').textContent = state.server.loaded ? String(state.server.records.length) : '—';
   for (const s of ['server', 'browser', 'file']) $(`src-${s}`).setAttribute('aria-selected', String(state.source === s));
   $('src-file').disabled = !state.file;
-  $('src-server').disabled = !CONFIG.apiBaseUrl;
   $('btn-clear').hidden = state.source !== 'browser';
   $('btn-sample').hidden = state.source !== 'browser';
-
-  const bar = $('server-bar');
-  bar.hidden = !isServer();
-  $('server-login').hidden = !!state.server.member;
-  $('server-session').hidden = !state.server.member;
-  $('server-who').textContent = state.server.member ? `${state.server.member.name} 님 · 서버 DB` : '';
   $('server-refresh').disabled = state.server.loading;
 
   // 우선순위: 깨진 데이터 > 방금 한 동작의 결과 > 출처별 기본 안내
@@ -310,7 +325,7 @@ function renderToolbar() {
   } else if (state.msg) {
     note(state.msg.kind, state.msg.text);
   } else if (isServer()) {
-    note('', state.server.member ? '서버 DB 의 신청입니다. 상태·재고 확인·설정을 바꾸면 3명 모두에게 바로 반영됩니다.' : '아이디·비밀번호로 로그인하면 서버 DB 의 신청을 보고 고칠 수 있습니다.');
+    note('', '서버 DB 의 신청입니다. 상태·재고 확인·설정을 바꾸면 3명 모두에게 바로 반영됩니다.');
   } else if (state.source === 'file' && state.file) {
     note(state.file.dirty ? 'warn' : '', `파일: ${state.file.name}` + (state.file.dirty ? ' — 바꾼 내용은 파일에 저장되지 않았습니다. 「JSON 내보내기」로 받아 두세요.' : ' — 바꾼 내용은 「JSON 내보내기」로 저장합니다.'));
   } else {
@@ -619,24 +634,34 @@ function initFilters() {
   $('f-stock').addEventListener('change', (e) => { state.filter.stock = e.target.value; render(); });
 }
 
-function initServer() {
-  $('src-server').addEventListener('click', () => { if (CONFIG.apiBaseUrl) setSource('server'); });
-  if (!CONFIG.apiBaseUrl) $('src-server').title = '신청 API 주소(config.js)가 없어 서버에 연결할 수 없습니다.';
-
-  $('server-login').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const ok = await loginWithPassword($('server-id').value, $('server-pw').value, $('server-remember').checked);
-    $('server-pw').value = ''; // 비밀번호는 성공·실패와 상관없이 지운다
-    if (ok) $('server-id').value = '';
-  });
+// 들어올 때 — 기억해 둔 로그인이 살아 있으면 바로 관리자 화면, 아니면 로그인 화면
+function initGate() {
+  $('src-server').addEventListener('click', () => setSource('server'));
   $('server-refresh').addEventListener('click', () => loadServer());
-  $('server-logout').addEventListener('click', () => { logout(); render(); });
+  $('server-logout').addEventListener('click', () => logout());
 
-  // 기억해 둔 로그인이 있으면 서버 출처로 바로 연다(만료됐으면 로그인 칸)
+  $('gate-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('gate-submit');
+    btn.disabled = true;
+    gateMsg('확인 중…', 'info');
+    const ok = await loginWithPassword($('gate-id').value, $('gate-pw').value, $('gate-remember').checked);
+    $('gate-pw').value = ''; // 비밀번호는 성공·실패와 상관없이 지운다
+    if (ok) $('gate-id').value = '';
+    btn.disabled = false;
+  });
+
+  if (!CONFIG.apiBaseUrl) {
+    showGate('서버 주소가 설정되지 않아 로그인할 수 없습니다(assets/js/config.js).');
+    $('gate-submit').disabled = true;
+    return;
+  }
   const saved = readKey();
-  if (CONFIG.apiBaseUrl && looksLikeKey(saved)) {
-    state.source = 'server';
+  if (looksLikeKey(saved)) {
+    showGate('로그인 상태를 확인하는 중…', 'info');
     useSession(saved, (() => { try { return localStorage.getItem(KEY_STORAGE) === saved; } catch { return false; } })());
+  } else {
+    showGate();
   }
 }
 
@@ -695,5 +720,5 @@ function initToolbar() {
 initSettings();
 initFilters();
 initToolbar();
-initServer();
+initGate();
 render();

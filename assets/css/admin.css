@@ -24,13 +24,22 @@
 .btn-sm.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 .src-note { margin: 10px 0 0; font-size: .84rem; color: var(--ink-3); min-height: 1.3em; }
 
-/* 서버 로그인 */
-.server-bar { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; }
-.server-login, .server-session { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.server-login label { margin: 0; font-size: .86rem; }
-.server-login input[type="password"], .server-login input[type="text"] { font: inherit; font-size: .86rem; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); min-width: 0; flex: 1 1 140px; max-width: 200px; }
-.server-login .remember { display: inline-flex; align-items: center; gap: 4px; font-weight: 500; color: var(--ink-2); }
-.server-session #server-who { font-weight: 700; font-size: .9rem; margin-right: 4px; }
+/* 로그인 화면(관리자 화면 전체를 막는다) */
+.gate { min-height: calc(100vh - 61px); display: grid; place-items: center; padding: 32px 16px; }
+.gate-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 28px 24px; display: grid; gap: 6px; }
+.gate-card h1 { margin: 0; font-size: 1.35rem; letter-spacing: -0.03em; }
+.gate-sub { margin: 0 0 12px; color: var(--ink-3); font-size: .9rem; }
+.gate-card label { margin: 6px 0 0; font-size: .86rem; }
+.gate-card input[type="text"], .gate-card input[type="password"] { padding: 11px 12px; }
+.gate-card .remember { display: flex; align-items: center; gap: 6px; font-weight: 500; color: var(--ink-2); margin: 8px 0 10px; }
+.gate-msg { margin: 6px 0 0; font-size: .86rem; color: var(--error); min-height: 1.2em; }
+.gate-msg[data-kind="info"] { color: var(--ink-3); }
+.gate-help { margin: 4px 0 0; font-size: .8rem; color: var(--ink-3); }
+
+/* 헤더의 로그인 상태 */
+.server-session { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.server-session #server-who { font-weight: 700; font-size: .86rem; color: var(--hero-ink); margin-right: 4px; }
+.site-header .server-session .btn-sm { background: transparent; color: var(--hero-ink); border-color: #343842; }
 .assignee-sel { font: inherit; font-size: .84rem; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); }
 .history { margin: 0; padding-left: 18px; font-size: .84rem; font-weight: 500; }
 .history li { margin: 2px 0; }
