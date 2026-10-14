@@ -116,3 +116,14 @@ test('로그아웃 — POST /admin/logout(세션 키 헤더)', async () => {
   assert.equal(f.calls[0].init.method, 'POST');
   assert.equal(f.calls[0].init.headers['X-TwoFlip-Key'], KEY);
 });
+
+test('사례 공개 — PUT {result} · 끄기 DELETE(개편 A-3)', async () => {
+  const f = fakeFetch(() => json(200, { application: { id: 'ab12' } }));
+  const api = createAdminClient({ baseUrl: 'https://a', key: KEY, fetchImpl: f });
+  await api.setCase('ab12', 'found_store');
+  await api.deleteCase('ab12');
+  assert.deepEqual(f.calls.map((c) => [c.init.method, c.url, c.init.body ?? null]), [
+    ['PUT', 'https://a/admin/applications/ab12/case', JSON.stringify({ result: 'found_store' })],
+    ['DELETE', 'https://a/admin/applications/ab12/case', null],
+  ]);
+});

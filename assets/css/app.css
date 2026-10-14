@@ -404,6 +404,20 @@ textarea { resize: vertical; min-height: 88px; }
   .strip-item:nth-child(n+4) { display: none; } /* 좁은 화면은 3장까지 */
 }
 
+/* ── 최근 진행 사례(cases.js · 개편 A-3) — 첫 페이지 사진 줄 아래 · 소개 페이지 ── */
+.cases { padding: 32px 0 8px; }
+.cases-title { margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -0.03em; }
+.cases-sub { margin: 4px 0 12px; color: var(--ink-3); font-size: .86rem; }
+.case-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-width: 640px; }
+.case { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); gap: 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.case-date { color: var(--ink-3); font-size: .8rem; padding-top: 2px; }
+.case-body { display: grid; gap: 4px; min-width: 0; }
+.case-title { font-weight: 600; font-size: .92rem; line-height: 1.35; overflow-wrap: anywhere; }
+/* 결과 칩 — 찾음은 「가능」 색(§3), 못 찾음은 끝·없음 색. 색만으로 가르지 않고 글자로 말한다 */
+.case-result { justify-self: start; font-size: .76rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); }
+.case-result.is-found { color: var(--ok); background: var(--ok-bg); border-color: transparent; }
+.about-sec + .cases { padding-top: 40px; }
+
 /* ── 소개 페이지(about.html · 개편 A-2) ───────────────── */
 .page-hero h1 em { font-style: normal; color: var(--lime); }
 .about-band { background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 40px 0 36px; }

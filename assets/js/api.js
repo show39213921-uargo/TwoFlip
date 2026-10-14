@@ -76,7 +76,12 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, timeout
     return r;
   }
 
-  return { submitApplication, preview, health, items, requestItem };
+  // 최근 진행 사례(개편 A-3) — 운영자가 고른 것만, 공개용 칸만. 실패하면 화면은 구역을 숨긴다
+  function cases() {
+    return request('GET', '/cases');
+  }
+
+  return { submitApplication, preview, health, items, requestItem, cases };
 }
 
 function fail(kind, message, status) {

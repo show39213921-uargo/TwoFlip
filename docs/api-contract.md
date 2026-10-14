@@ -136,6 +136,22 @@ DB 저장일 때만 열린다 — 서버에 표(`twoflip_items`)가 아직 없�
 
 요청은 다 받고, 운영자가 관리자 화면에서 하나를 골라 「예약 중」으로 바꾼다(`PATCH /admin/items/{id}` `{ status: 'reserved', reservedApplicationId }`). 관리자 API 전체는 `twoflip_backend` README.
 
+## 최근 진행 사례 — 10-14(개편 A-3)
+
+### `GET /cases`
+
+```json
+{ "cases": [
+  { "date": "2026-10-12", "brand": "Salomon", "name": "살로몬 UNI 크로스 인슐레이션 자켓", "size": "L", "result": "found_store" }
+] }
+```
+
+- 운영자가 관리자 화면 「사례 공개」를 켠 완료·취소 신청만, 최근 5건. **자동 공개는 없다.**
+- `result`: `found_store`(매장에서 찾음 · 연락 완료) · `found_online`(공식몰에서 찾음 · 연락 완료) · `not_found`(이번엔 못 찾았어요). 화면 문구는 `assets/js/cases-view.js`.
+- **이름 · 번호 · 가격 · 접수번호는 응답에 절대 없다** — 서버가 켤 때 공개용 칸만 따로 떠 두고 그것만 읽는다. `date` 는 완료·취소로 바뀐 한국 날짜.
+- 제한·캐시는 `GET /items` 와 같다(같은 IP 10분 600회 · 200 은 60초 캐시). 사례 표가 아직 없으면 `{ cases: [] }`. 0건이거나 실패하면 화면은 구역을 숨긴다.
+- 관리자: `PUT /admin/applications/{id}/case` `{ result }` 켜기 · `DELETE` 끄기(완료 = 찾음 둘, 취소 = 못 찾음). 신청 목록 각 건에 `case: { result, date } | null`.
+
 ## 보안 — API 쪽에서 반드시
 
 1. **CORS**: `Access-Control-Allow-Origin` 에 신청 페이지 주소(서브도메인)만 허용한다. `*` 금지. `OPTIONS` 사전 요청에 `Content-Type` 헤더를 허용한다.

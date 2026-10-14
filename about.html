@@ -23,9 +23,11 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="assets/css/app.css">
+  <!-- 최근 진행 사례만 스크립트로 채운다(개편 A-3) — 나머지는 정적 -->
+  <script type="module" src="assets/js/cases.js"></script>
 </head>
 <body>
-  <!-- 소개 페이지(개편 A-2) — 첫 페이지에서 옮겨 온 진행 설명 · 누가 하나요 · 자주 묻는 질문. 스크립트 없음.
+  <!-- 소개 페이지(개편 A-2) — 첫 페이지에서 옮겨 온 진행 설명 · 누가 하나요 · 자주 묻는 질문 · 최근 사례(사례만 cases.js).
        정해지지 않은 사업 결정은 화면에 쓰지 않는다(TODO 주석만) -->
   <header class="site-header">
     <div class="wrap header-row">
@@ -100,6 +102,15 @@
           </details>
         </div>
         <!-- TODO(결정 대기): 문의 창구가 정해지면 여기와 푸터에 -->
+      </div>
+    </section>
+
+    <!-- 최근 진행 사례(개편 A-3 · cases.js) — 운영자가 고른 실제 건만, 이름·번호·가격 없이. 0건이면 구역째 숨김 -->
+    <section class="cases" id="cases" aria-labelledby="cases-title" hidden>
+      <div class="wrap">
+        <h2 class="section-title" id="cases-title">최근 이렇게 진행됐어요</h2>
+        <p class="cases-sub">운영자가 고른 실제 신청이에요. 이름·연락처·가격은 싣지 않아요.</p>
+        <ul class="case-list" id="cases-list"></ul>
       </div>
     </section>
 

@@ -40,6 +40,9 @@ export function createAdminClient({ baseUrl, key, fetchImpl = globalThis.fetch, 
     patchCheck: (checkId, patch) => call('PATCH', `/admin/stock-checks/${enc(checkId)}`, patch),
     touchCheck: (checkId) => call('PATCH', `/admin/stock-checks/${enc(checkId)}`, { touch: true }),
     deleteCheck: (checkId) => call('DELETE', `/admin/stock-checks/${enc(checkId)}`),
+    // 최근 진행 사례(개편 A-3) — 완료·취소 신청만. result: found_store · found_online · not_found
+    setCase: (id, result) => call('PUT', `/admin/applications/${enc(id)}/case`, { result }),
+    deleteCase: (id) => call('DELETE', `/admin/applications/${enc(id)}/case`),
     getSettings: () => call('GET', '/admin/settings'),
     putSettings: (s) => call('PUT', '/admin/settings', s),
     // 바로 구매(확보 상품)

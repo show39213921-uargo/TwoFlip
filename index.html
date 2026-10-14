@@ -28,6 +28,7 @@
   <script type="module" src="assets/js/splash.js"></script>
   <script type="module" src="assets/js/app.js"></script>
   <script type="module" src="assets/js/home.js"></script>
+  <script type="module" src="assets/js/cases.js"></script>
 </head>
 <body>
   <!-- 처음 진입 스플래시 — 가운데 TWOFLIP 이 헤더 로고 자리로 옮겨 간다(splash.js). JS 가 안 돌아도 1.5초 뒤 CSS 로 사라진다 -->
@@ -205,6 +206,15 @@
         </div>
         <p class="strip-sub">바로 결제가 아니라, 먼저 구매 요청을 받아요</p>
         <div class="strip-row" id="strip-row"></div>
+      </div>
+    </section>
+
+    <!-- 최근 진행 사례(개편 A-3 · cases.js) — 운영자가 고른 실제 건만, 이름·번호·가격 없이. 0건이면 구역째 숨김 -->
+    <section class="cases" id="cases" aria-labelledby="cases-title" hidden>
+      <div class="wrap">
+        <h2 class="cases-title" id="cases-title">최근 이렇게 진행됐어요</h2>
+        <p class="cases-sub">운영자가 고른 실제 신청이에요. 이름·연락처·가격은 싣지 않아요.</p>
+        <ul class="case-list" id="cases-list"></ul>
       </div>
     </section>
   </main>
