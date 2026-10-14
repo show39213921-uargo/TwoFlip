@@ -48,9 +48,27 @@ async function load() {
     return;
   }
   render(r.data.items || []);
+  // 첫 페이지 미리보기에서 눌러 왔으면(shop.html#i-<id>) 그 카드로
+  const target = location.hash.startsWith('#i-') ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+  if (target) { target.scrollIntoView({ block: 'center' }); target.classList.add('is-target'); }
 }
 
+// 이 탭에서 이미 보낸 구매 요청 — 같은 상품을 또 누르면 알려 주기만 한다(결정 ④ — 막지 않음, 계정이 없어서)
+const REQ_KEY = 'twoflip.item.requests';
+function requestedIds(itemId) {
+  try { return (JSON.parse(sessionStorage.getItem(REQ_KEY) || '{}')[itemId]) || []; } catch { return []; }
+}
+function rememberRequest(itemId, receipt) {
+  try {
+    const all = JSON.parse(sessionStorage.getItem(REQ_KEY) || '{}');
+    all[itemId] = [...(all[itemId] || []), receipt];
+    sessionStorage.setItem(REQ_KEY, JSON.stringify(all));
+  } catch { /* 저장 못 하면 알림만 못 한다 */ }
+}
+
+let shown = [];
 function render(items) {
+  shown = items;
   if (!items.length) {
     notice('지금 바로 구매할 수 있는 상품이 없어요. 원하는 상품은 KREAM 링크로 신청해 주세요.', false);
     return;
@@ -60,6 +78,8 @@ function render(items) {
 
 function card(m) {
   const box = el('article', 'shop-card' + (m.reserved ? ' is-reserved' : ''));
+  box.id = `i-${m.id}`;
+  const mine = requestedIds(m.id);
   const imgBox = el('div', 'shop-img');
   if (m.image) {
     const img = Object.assign(document.createElement('img'), { src: m.image, alt: m.title, loading: 'lazy' });
@@ -84,10 +104,15 @@ function card(m) {
     body.append(chipsBox);
   } else if (m.note) body.append(el('p', 'shop-note', m.note));
 
-  const btn = el('button', 'btn ' + (m.reserved ? 'btn-outline' : 'btn-primary'), m.reserved ? '예약 중' : '구매 요청');
+  if (mine.length) body.append(el('p', 'shop-mine', `요청함 · 접수번호 ${mine.join(', ')}`));
+  const btn = el('button', 'btn ' + (m.reserved ? 'btn-outline' : (mine.length ? 'btn-outline' : 'btn-primary')), m.reserved ? '예약 중' : (mine.length ? '다시 요청' : '구매 요청'));
   btn.type = 'button';
   btn.disabled = m.reserved;
-  btn.addEventListener('click', () => openSheet(m));
+  btn.addEventListener('click', () => {
+    const ids = requestedIds(m.id);
+    if (ids.length && !confirm(`이미 요청하셨어요(접수번호 ${ids.join(', ')}).\n새로 보낼까요?`)) return;
+    openSheet(m);
+  });
   box.append(imgBox, body, btn);
   return box;
 }
@@ -176,17 +201,18 @@ form.addEventListener('submit', async (e) => {
   const r = await api.requestItem(current.id, v.payload);
   btn.disabled = false;
   btn.textContent = '구매 요청 보내기';
-  if (r.ok) { done(r.data.id); return; }
+  if (r.ok) { rememberRequest(current.id, r.data.id); done(r.data.id); return; }
   setStatus('error', r.error.message);
   if (r.error.code === 'item_reserved' || r.error.code === 'item_not_found') load(); // 그 사이 예약·판매됨 — 목록을 새로
 });
 
 function done(id) {
+  if (shown.length) render(shown); // 뒤 카드에 「요청함 · 접수번호」가 바로 보이게
   form.hidden = true;
   $('item-done-id').textContent = id;
   $('item-done-msg').textContent = CONFIG.mode === 'demo'
     ? '테스트 요청이라 이 브라우저에만 저장됐어요. 관리자 화면에서 확인할 수 있어요.'
-    : '확인 후 적어 주신 번호로 연락드려요. 같은 상품에 요청이 여러 건이면 저희가 확인해 한 분께 예약을 드려요.';
+    : '확인 후 적어 주신 번호로 연락드려요. 연락 시점은 상품마다 달라요 — 접수번호를 남겨 두세요. 같은 상품에 요청이 여러 건이면 저희가 확인해 한 분께 예약을 드려요.';
   $('item-done-copy').textContent = '복사';
   $('item-done').hidden = false;
   $('item-done').focus();

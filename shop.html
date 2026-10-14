@@ -47,6 +47,7 @@
         <h1>저희가 먼저 확보해 둔 상품이에요</h1>
         <p class="lede">마음에 드는 상품이 있으면 구매 요청을 남겨 주세요. 확인 후 연락드려요. 찾는 상품이 없으면 <a href="./#apply">KREAM 링크로 신청</a>할 수 있어요.</p>
         <ul class="trust">
+          <li><strong>바로 결제가 아니라, 먼저 구매 요청을 받아요</strong></li>
           <li>가격을 정하지 않은 상품은 연락드릴 때 안내해요</li>
           <li>요청이 여러 건이면 저희가 확인해 한 분께 예약을 드려요</li>
           <li>번호는 구매 요청 처리와 연락에만 사용해요</li>
@@ -77,6 +78,7 @@
     </div>
 
     <form id="item-form" novalidate>
+      <p class="hint fieldset-note">이름·번호는 구매 요청 처리와 연락에만 써요.</p>
       <div class="field">
         <label for="it-name">이름</label>
         <input id="it-name" name="name" type="text" maxlength="30" autocomplete="name" enterkeyhint="next" required>
@@ -104,8 +106,12 @@
         </label>
         <p class="error" data-error-for="consent" aria-live="polite"></p>
       </div>
-      <button class="btn btn-primary btn-block" type="submit" id="item-submit">구매 요청 보내기</button>
-      <div id="item-status" class="status" role="status" hidden></div>
+      <!-- 보내기는 시트 아래에 고정(결정 ⑤) — 큰 글자·작은 화면·키보드에서도 보이게. 보내기 전에 기대치 한 줄(4차 QA D-2) -->
+      <div class="sheet-foot">
+        <div id="item-status" class="status" role="status" hidden></div>
+        <button class="btn btn-primary btn-block" type="submit" id="item-submit">구매 요청 보내기</button>
+        <p class="sheet-note">요청해도 바로 확정은 아니에요 — 확인 후 한 분께 예약을 드려요.</p>
+      </div>
     </form>
 
     <div class="apply-done" id="item-done" role="status" tabindex="-1" hidden>
