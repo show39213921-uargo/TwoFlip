@@ -51,6 +51,24 @@ function showErrors(errors) {
   if (el && el.focus) el.focus();
 }
 
+// 칸마다 오류 문구 연결(aria-describedby) · 오류가 떠 있는 칸은 고칠 때마다 다시 검사해 바꾸거나 지운다(U-10)
+for (const el of form.querySelectorAll('[data-error-for]')) {
+  const key = el.dataset.errorFor;
+  const input = form.elements[key];
+  if (!input || !input.setAttribute) continue;
+  if (!el.id) el.id = `err-${key}`;
+  const ids = new Set((input.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+  ids.add(el.id);
+  input.setAttribute('aria-describedby', [...ids].join(' '));
+  const recheck = () => {
+    if (!el.textContent) return; // 아직 오류가 없는 칸은 입력 중에 다그치지 않는다
+    const msg = validateApplication(readForm()).errors[key] || '';
+    el.textContent = msg;
+    input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+  };
+  for (const ev of ['input', 'change', 'blur']) input.addEventListener(ev, recheck);
+}
+
 function setStatus(kind, parts) {
   statusBox.replaceChildren();
   statusBox.hidden = !parts;
@@ -208,7 +226,10 @@ async function loadPreview() {
 function tidyUrlInput() {
   const ex = extractKreamUrl(urlInput.value);
   if (!ex) return;
-  if (!parseKreamUrl(urlInput.value).ok) urlInput.value = ex.url;
+  if (!parseKreamUrl(urlInput.value).ok) {
+    urlInput.value = ex.url;
+    urlInput.dispatchEvent(new Event('change')); // 떠 있던 주소 오류를 다시 검사
+  }
   if (ex.size && !sizeInput.value.trim()) {
     sizeInput.value = ex.size;
     sizeInput.dispatchEvent(new Event('input'));
