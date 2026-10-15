@@ -298,7 +298,7 @@ textarea { resize: vertical; min-height: 88px; }
   border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; font-family: var(--mono); font-size: .9rem; font-weight: 600;
 }
 .size-quick-chip:hover { border-color: var(--line-strong); }
-.size-quick-chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.size-quick-chip[aria-checked="true"] { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
 .size-quick-sep { flex: none; width: 1px; margin: 10px 2px; background: var(--line); }
 @media (min-width: 561px) { .size-quick { flex-wrap: wrap; overflow: visible; margin-right: 0; padding-right: 0; } }
 

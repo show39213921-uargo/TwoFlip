@@ -8,7 +8,7 @@ import { createLocalStore, browserStorage } from './local-store.js';
 import { validateApplication, applicationKey } from './validate.js';
 import { parseKreamUrl, extractKreamUrl } from './kream-url.js';
 import { buildPreviewModel, previewFailText } from './preview-view.js';
-import { linkCheckText, QUICK_SIZES, showQuickSizes, readClipboardText, PASTE_NOTES } from './link-check.js';
+import { linkCheckText, QUICK_SIZES, showQuickSizes, readClipboardText, PASTE_NOTES, rovingIndex } from './link-check.js';
 
 // demo: 서버 대신 이 브라우저에 저장(?demo=1 로만 켜진다) · api: 백엔드 · closed: 「준비 중」
 const api = CONFIG.mode === 'demo'
@@ -288,11 +288,12 @@ function renderPreview(model) {
 }
 
 // 서버가 KREAM 을 읽지 않는 설정(KREAM_SERVER=off) — 미리보기 자리를 접고 주소 칸 아래 안내 한 줄만. 이 화면에서는 다시 묻지 않는다.
+// 테스트 모드도 같은 한 줄로(11차 QA U-2) — 미리보기 상자가 신청 버튼을 첫 화면 밖으로 밀었다
 let previewDisabled = false;
-function previewOff() {
+function previewOff(text = '상품명·가격은 접수 후 저희가 확인해요.') {
   previewDisabled = true;
   resetPreview();
-  $('url-hint').textContent = '상품명·가격은 접수 후 저희가 확인해요.';
+  $('url-hint').textContent = text;
   updateLinkUi(); // 링크가 맞을 때만 칩 아래에 보인다
 }
 
@@ -311,6 +312,7 @@ async function loadPreview() {
   const r = await api.preview(k.url);
   if (seq !== previewSeq) return; // 그 사이 주소가 바뀌었다
   if (!r.ok && r.error.code === 'kream_off') { previewOff(); return; }
+  if (!r.ok && r.error.kind === 'demo') { previewOff('테스트 모드라 상품 정보는 불러오지 않아요.'); return; }
   const model = r.ok ? buildPreviewModel(r.data) : null;
   if (model) {
     renderPreview(model);
@@ -434,6 +436,8 @@ clearBtn.addEventListener('click', () => {
   urlInput.focus();
 });
 
+// 칩 줄은 라디오 묶음(11차 QA U-1) — Tab 정지점은 하나(고른 칩, 없으면 첫 칩)이고 ←→ · Home · End 로 옮기며 고른다
+const quickBtns = [];
 for (const [i, group] of QUICK_SIZES.entries()) {
   if (i) {
     const sep = Object.assign(document.createElement('span'), { className: 'size-quick-sep' });
@@ -441,21 +445,39 @@ for (const [i, group] of QUICK_SIZES.entries()) {
     quick.append(sep);
   }
   for (const size of group) {
-    const b = Object.assign(document.createElement('button'), { type: 'button', className: 'size-quick-chip', textContent: size });
-    b.setAttribute('aria-pressed', 'false');
+    const b = Object.assign(document.createElement('button'), { type: 'button', className: 'size-quick-chip', textContent: size, tabIndex: -1 });
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', 'false');
     b.addEventListener('click', () => {
       sizeInput.value = size;
       autoSize = null;
       sizeInput.dispatchEvent(new Event('input'));
       sizeInput.dispatchEvent(new Event('change')); // 떠 있던 사이즈 오류를 지운다
     });
+    b.addEventListener('keydown', (e) => {
+      const j = rovingIndex(quickBtns.indexOf(b), e.key, quickBtns.length);
+      if (j === null) return;
+      e.preventDefault();
+      quickBtns[j].focus();
+      quickBtns[j].click();
+      quickBtns[j].scrollIntoView({ block: 'nearest', inline: 'nearest' }); // 가로로 넘기는 줄에서 가려진 칩도 보이게
+    });
+    quickBtns.push(b);
     quick.append(b);
   }
 }
 
 function syncQuick() {
   const v = sizeInput.value.trim().toUpperCase();
-  for (const b of quick.querySelectorAll('.size-quick-chip')) b.setAttribute('aria-pressed', String(b.textContent === v));
+  let picked = false;
+  for (const b of quickBtns) {
+    const on = b.textContent === v;
+    b.setAttribute('aria-checked', String(on));
+    b.tabIndex = on ? 0 : -1;
+    picked ||= on;
+  }
+  if (!picked && quickBtns[0]) quickBtns[0].tabIndex = 0;
 }
+syncQuick();
 
 updateLinkUi();
