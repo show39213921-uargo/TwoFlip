@@ -8,6 +8,7 @@ import { createLocalStore, browserStorage } from './local-store.js';
 import { validateApplication, applicationKey } from './validate.js';
 import { parseKreamUrl, extractKreamUrl } from './kream-url.js';
 import { buildPreviewModel, previewFailText } from './preview-view.js';
+import { linkCheckText, QUICK_SIZES, showQuickSizes, readClipboardText, PASTE_NOTES } from './link-check.js';
 
 // demo: 서버 대신 이 브라우저에 저장(?demo=1 로만 켜진다) · api: 백엔드 · closed: 「준비 중」
 const api = CONFIG.mode === 'demo'
@@ -23,6 +24,10 @@ const sizeInput = $('size');
 const preview = $('preview');
 const chips = $('size-chips');
 const sizeHint = $('size-hint');
+const urlBox = $('url-box');
+const pasteBtn = $('url-paste');
+const clearBtn = $('url-clear');
+const quick = $('size-quick');
 
 // ── 신청서 ─────────────────────────────────────────────
 function readForm() {
@@ -140,6 +145,8 @@ form.addEventListener('submit', async (e) => {
     resetPreview();
     autoSize = null;
     renderSizeHint();
+    syncQuick();
+    updateLinkUi();
     showDone(r.data.id);
   } else {
     setStatus('error', r.error.message);
@@ -206,16 +213,15 @@ function resetPreview() {
   chips.replaceChildren();
   chipsNote = '';
   renderSizeHint();
+  updateLinkUi();
 }
 
-// 사이즈 칸 아래 안내 한 줄 — 우선순위: 주소에서 가져온 사이즈 확인 > 시세 칩 안내 > (미리보기 꺼짐) 직접 확인 안내(2차 QA U-2)
+// 사이즈 칸 아래 안내 한 줄 — 시세 칩 안내만. 주소에서 넣은 사이즈는 링크 확인 칩(「· 사이즈 270」)으로, 미리보기가 꺼졌을 때의
+// 「사이즈는 직접 확인」 안내는 사이즈 빠른 선택으로 바꿨다(1단계 1-1)
 let chipsNote = '';
-let autoSize = null; // 주소의 ?size= 로 채운 값 — 사람이 바꾸면 안내를 거둔다
+let autoSize = null; // 주소의 ?size= 로 채운 값 — 사람이 바꾸면 칩에서 사이즈를 뺀다
 function renderSizeHint() {
-  let text = '';
-  if (autoSize && sizeInput.value.trim().toUpperCase() === autoSize) text = `주소에 있던 사이즈(${autoSize})를 넣었어요. 맞는지 확인해 주세요.`;
-  else if (chipsNote) text = chipsNote;
-  else if (previewDisabled) text = '사이즈는 KREAM 상품 페이지에서 확인해 적어 주세요.';
+  const text = chipsNote;
   sizeHint.textContent = text;
   sizeHint.hidden = !text;
 }
@@ -249,6 +255,7 @@ function renderChips(model) {
   }
   chipsNote = usable.length ? model.note + ' · 목록에 없는 사이즈는 직접 적어 주세요.' : '';
   renderSizeHint();
+  updateLinkUi(); // 시세 칩이 있으면 사이즈 빠른 선택은 접는다
 }
 
 function syncChips() {
@@ -285,8 +292,8 @@ let previewDisabled = false;
 function previewOff() {
   previewDisabled = true;
   resetPreview();
-  $('url-hint').textContent = '상품 정보는 접수 후 저희가 확인해요.';
-  $('url-hint').hidden = false;
+  $('url-hint').textContent = '상품명·가격은 접수 후 저희가 확인해요.';
+  updateLinkUi(); // 링크가 맞을 때만 칩 아래에 보인다
 }
 
 async function loadPreview() {
@@ -319,6 +326,8 @@ async function loadPreview() {
 
 // 찾은 주소를 칸에 넣고, 주소의 ?size= 는 사이즈 칸이 비었을 때만 채운다
 function applyExtracted(ex, raw) {
+  // 같은 상품을 다시 정리할 때(칸에는 ?size= 가 지워져 있다) 처음 찾은 사이즈를 잃지 않게
+  if (linkInfo.productId !== ex.productId || ex.size) linkInfo = { productId: ex.productId, size: ex.size };
   if (!parseKreamUrl(raw).ok) {
     urlInput.value = ex.url;
     urlInput.dispatchEvent(new Event('change')); // 떠 있던 주소 오류를 다시 검사
@@ -337,6 +346,8 @@ function tidyUrlInput() {
 }
 
 urlInput.addEventListener('input', () => {
+  showUrlNote('');
+  updateLinkUi();
   clearTimeout(debounce);
   debounce = setTimeout(() => { tidyUrlInput(); loadPreview(); }, 450);
 });
@@ -350,6 +361,101 @@ urlInput.addEventListener('paste', (e) => {
     applyExtracted(ex, '');
   }
   clearTimeout(debounce);
-  debounce = setTimeout(() => { tidyUrlInput(); loadPreview(); }, 0);
+  debounce = setTimeout(() => { tidyUrlInput(); loadPreview(); updateLinkUi(); }, 0);
 });
-sizeInput.addEventListener('input', () => { syncChips(); renderSizeHint(); });
+sizeInput.addEventListener('input', () => { syncChips(); syncQuick(); renderSizeHint(); updateLinkUi(); });
+
+// ── 링크 칸 보조(1단계 1-1) — 붙여넣기 버튼 · 링크 확인 칩 · 사이즈 빠른 선택 ──────────
+// 클립보드 읽기가 없는 브라우저는 버튼을 숨긴다. 막히면(권한 거절 · 카카오톡 등 인앱) 오류창 없이 칸 아래 안내만
+const canPaste = Boolean(navigator.clipboard && typeof navigator.clipboard.readText === 'function');
+// 버튼이 칸 오른쪽을 차지하니 긴 안내 문구는 줄인다(버튼에 「붙여넣기」가 이미 있다)
+if (canPaste) urlInput.placeholder = '「공유 → 링크 복사」 주소';
+let linkInfo = { productId: null, size: null }; // 마지막으로 찾은 주소의 상품 번호 · ?size= (붙여 넣으면 칸에서는 ?size= 가 지워진다)
+
+function showUrlNote(text) {
+  $('url-note').textContent = text;
+  $('url-note').hidden = !text;
+}
+
+function updateLinkUi() {
+  const has = urlInput.value.trim() !== '';
+  pasteBtn.hidden = !canPaste || has;
+  clearBtn.hidden = !has;
+  urlBox.classList.toggle('has-paste', !pasteBtn.hidden);
+  urlBox.classList.toggle('has-clear', has);
+  const k = parseKreamUrl(urlInput.value);
+  if (!k.ok) linkInfo = { productId: null, size: null };
+  else if (linkInfo.productId !== k.productId) {
+    const ex = extractKreamUrl(urlInput.value); // 붙여넣기 없이 직접 친 주소
+    linkInfo = { productId: k.productId, size: ex ? ex.size : null };
+  }
+  const shownSize = autoSize && sizeInput.value.trim().toUpperCase() === autoSize ? autoSize : null;
+  $('url-check-text').textContent = k.ok ? linkCheckText(k.productId, shownSize) : '';
+  $('url-check').hidden = !k.ok;
+  $('url-hint').hidden = !(k.ok && previewDisabled);
+  quick.hidden = !showQuickSizes({ linkOk: k.ok, linkSize: linkInfo.size, priceChips: !chips.hidden });
+}
+
+pasteBtn.addEventListener('click', async () => {
+  const r = await readClipboardText(navigator.clipboard);
+  if (!r.ok) {
+    showUrlNote(PASTE_NOTES[r.reason]);
+    urlInput.focus(); // 바로 길게 눌러 붙여 넣을 수 있게
+    return;
+  }
+  showUrlNote('');
+  // 칸에 붙여 넣을 때(paste)와 같은 처리 — 공유 문구에서 주소만 뽑고 ?size= 는 빈 사이즈 칸에만
+  const ex = extractKreamUrl(r.text);
+  if (ex) {
+    urlInput.value = '';
+    applyExtracted(ex, '');
+  } else {
+    urlInput.value = r.text.trim();
+    urlInput.dispatchEvent(new Event('change')); // 주소가 아니면 원래 오류 문구
+  }
+  clearTimeout(debounce);
+  tidyUrlInput();
+  loadPreview();
+  updateLinkUi();
+  clearBtn.focus(); // 누른 버튼이 사라지니 같은 자리(지우기)로 — 키보드를 띄우지 않는다
+});
+
+clearBtn.addEventListener('click', () => {
+  // 주소에서 넣은 사이즈는 그 주소와 같이 지운다(사람이 고친 사이즈는 남긴다)
+  if (autoSize && sizeInput.value.trim().toUpperCase() === autoSize) sizeInput.value = '';
+  autoSize = null;
+  urlInput.value = '';
+  showUrlNote('');
+  clearTimeout(debounce);
+  resetPreview();
+  syncChips();
+  syncQuick();
+  updateLinkUi();
+  urlInput.focus();
+});
+
+for (const [i, group] of QUICK_SIZES.entries()) {
+  if (i) {
+    const sep = Object.assign(document.createElement('span'), { className: 'size-quick-sep' });
+    sep.setAttribute('aria-hidden', 'true');
+    quick.append(sep);
+  }
+  for (const size of group) {
+    const b = Object.assign(document.createElement('button'), { type: 'button', className: 'size-quick-chip', textContent: size });
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', () => {
+      sizeInput.value = size;
+      autoSize = null;
+      sizeInput.dispatchEvent(new Event('input'));
+      sizeInput.dispatchEvent(new Event('change')); // 떠 있던 사이즈 오류를 지운다
+    });
+    quick.append(b);
+  }
+}
+
+function syncQuick() {
+  const v = sizeInput.value.trim().toUpperCase();
+  for (const b of quick.querySelectorAll('.size-quick-chip')) b.setAttribute('aria-pressed', String(b.textContent === v));
+}
+
+updateLinkUi();
