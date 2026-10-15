@@ -14,6 +14,18 @@ export const QUICK_SIZES = [
   ['FREE'],
 ];
 
+// 사이즈 칩 줄은 라디오 묶음(11차 QA U-1) — Tab 한 번으로 들어가 ←→(↑↓) · Home · End 로 옮긴다. 끝에서 처음으로 돈다.
+// 다른 키면 null(기본 동작 그대로)
+export function rovingIndex(current, key, count) {
+  if (!count) return null;
+  const i = current < 0 ? 0 : current;
+  if (key === 'ArrowRight' || key === 'ArrowDown') return (i + 1) % count;
+  if (key === 'ArrowLeft' || key === 'ArrowUp') return (i - 1 + count) % count;
+  if (key === 'Home') return 0;
+  if (key === 'End') return count - 1;
+  return null;
+}
+
 // 링크가 맞고, 주소에 사이즈가 없고, KREAM 시세 칩도 없을 때만 보인다
 export function showQuickSizes({ linkOk, linkSize, priceChips }) {
   return Boolean(linkOk && !linkSize && !priceChips);
