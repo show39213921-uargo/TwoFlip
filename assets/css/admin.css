@@ -68,6 +68,21 @@
 .filters { display: flex; gap: 8px; margin-bottom: 14px; }
 .filters select, .filters input { font: inherit; font-size: .9rem; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
 .filters input { flex: 1; }
+/* 거르기 알약 · 기다린 시간 · 카드 고정 줄(3단계 B3 · 가이드 §6) */
+.stock-pills { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 10px; padding-bottom: 2px; }
+.pill { flex: none; min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: .84rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.pill[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.pill-n { font-family: var(--mono); font-weight: 700; }
+.tag.wait { margin-left: 6px; }
+.card-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px 14px; border-top: 1px solid var(--line); background: var(--surface); }
+.card-bar-k { display: flex; align-items: center; gap: 6px; margin: 0; font-size: .84rem; color: var(--ink-3); }
+.card-bar .status-sel { min-height: 40px; }
+.card-next { min-height: 40px; }
+/* 카드의 overflow:hidden 은 sticky 를 막는다 — 펼친 카드는 clip(모서리는 그대로 자르고 sticky 는 된다. 못 쓰는 옛 브라우저는 고정만 빠진다) */
+@media (max-width: 560px) {
+  .app-card[open] { overflow: clip; }
+  .app-card[open] > .card-bar { position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -6px 16px rgba(0, 0, 0, .12); }
+}
 
 .app-list { display: grid; gap: 10px; }
 .empty { text-align: center; padding: 48px 16px; color: var(--ink-3); background: var(--surface); border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); }

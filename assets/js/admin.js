@@ -11,11 +11,11 @@ import { createAdminClient, looksLikeKey, loginAdmin } from './admin-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
 import {
   STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest,
-  sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes,
+  sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes, sortRecords, waitText, waitIsLong,
 } from './admin-view.js';
 import { brandLinks } from './brands.js';
 import { CANDIDATE_TYPES, CURRENCIES, checkRate, compareToKream, parseRates, toKrw } from './sourcing.js';
-import { STOCK_STATES, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from './stock.js';
+import { STOCK_STATES, STOCK_PILLS, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from './stock.js';
 import { formatWon } from './preview-view.js';
 import { createItemsView } from './admin-items.js';
 import { CASE_RESULTS, caseChoices } from './cases-view.js';
@@ -29,7 +29,7 @@ const state = {
   source: 'browser',
   file: null, // { name, records, dirty }
   server: { key: '', member: null, members: [], records: [], loading: false, loaded: false },
-  filter: { status: '', q: '', stock: '' },
+  filter: { status: '', q: '', stock: '', sort: 'oldest' }, // sort: oldest(오래 기다린 순, 기본) | newest — 3단계 B3
   msg: null, // 방금 한 동작의 결과 한 줄 { kind, text }
   open: new Set(),
   reveal: new Set(),
@@ -390,10 +390,42 @@ function emptyText() {
   return state.source === 'browser' ? '이 브라우저에 저장된 신청이 없습니다.' : '파일에 신청이 없습니다.';
 }
 
-function renderList(all) {
+// 지금 거르기 · 정렬로 보이는 신청들(목록 · 「다음 신청」이 같은 순서를 쓴다)
+function visibleRows(all) {
   const opts = stockOpts();
   // 바로 구매 요청은 재고 확인 대상이 아니다 — 재고 필터를 걸면 뺀다(3차 QA B-1)
-  const rows = sortNewest(filterRecords(all, state.filter).filter((r) => !(state.filter.stock && r.itemId) && matchesStockFilter(r, state.filter.stock, opts)));
+  return sortRecords(filterRecords(all, state.filter).filter((r) => !(state.filter.stock && r.itemId) && matchesStockFilter(r, state.filter.stock, opts)), state.filter.sort);
+}
+
+// 거르기 알약(3단계 B3) — 상태 · 검색으로 거른 뒤의 건수
+function renderPills(all) {
+  const opts = stockOpts();
+  const base = filterRecords(all, state.filter);
+  $('stock-pills').replaceChildren(...STOCK_PILLS.map((p) => {
+    const n = p.key ? base.filter((r) => !r.itemId && matchesStockFilter(r, p.key, opts)).length : base.length;
+    return h('button', {
+      type: 'button', class: 'pill', 'aria-pressed': String(state.filter.stock === p.key),
+      onclick: () => { state.filter.stock = p.key; render(); },
+    }, p.label, h('span', { class: 'pill-n', text: ` ${n}` }));
+  }));
+}
+
+// 펼친 카드 아래 「다음 신청」 — 지금 목록에서 바로 다음 카드를 열고 그리로(3단계 B3)
+function openNext(id) {
+  const rows = visibleRows(records());
+  const i = rows.findIndex((r) => r.id === id);
+  const next = i >= 0 ? rows[i + 1] : null;
+  if (!next) { flash('', '다음 신청이 없습니다.'); render(); return; }
+  state.open.delete(id);
+  state.open.add(next.id);
+  render();
+  const el = document.querySelector(`details.app-card[data-id="${CSS.escape(next.id)}"]`);
+  if (el) { el.scrollIntoView({ block: 'start' }); el.querySelector('summary').focus({ preventScroll: true }); }
+}
+
+function renderList(all) {
+  renderPills(all);
+  const rows = visibleRows(all);
   const list = $('list');
   if (!all.length) {
     list.replaceChildren(h('div', { class: 'empty' },
@@ -431,7 +463,8 @@ function renderCard(r) {
   const summary = h('summary', {},
     h('div', { class: 'thumb' }, img ? h('img', { src: img, alt: '', referrerpolicy: 'no-referrer', loading: 'lazy' }) : '이미지 없음'),
     h('div', { class: 'sum-prod' },
-      h('div', { class: 'cell-k clip' }, brand || '브랜드 미상', r.source === 'sample' ? h('span', { class: 'tag', text: '샘플' }) : null, r.source === 'demo' ? h('span', { class: 'tag', text: '테스트' }) : null,
+      h('div', { class: 'cell-k clip' }, brand || '브랜드 미상', waitText(r) ? h('span', { class: 'tag wait' + (waitIsLong(r, Date.now(), state.settings.staleHours) ? ' warn' : ''), title: '접수 뒤 기다린 시간', text: waitText(r) }) : null,
+        r.source === 'sample' ? h('span', { class: 'tag', text: '샘플' }) : null, r.source === 'demo' ? h('span', { class: 'tag', text: '테스트' }) : null,
         r.itemId ? h('span', { class: 'tag buy-tag', text: '바로 구매' }) : null,
         assignee ? h('span', { class: 'tag', text: `담당 ${assignee.name}` }) : null),
       h('div', { class: 'cell-v clip', text: title }),
@@ -461,7 +494,14 @@ function renderCard(r) {
       onclick: (e) => { e.preventDefault(); e.stopPropagation(); state.open.add(r.id); state.jumpToRecord = r.id; render(); },
     }));
 
-  const det = h('details', { class: 'app-card', 'data-id': r.id, open: state.open.has(r.id) }, summary, renderDetail(r, { k, brand, modelNo, revealed, stock }));
+  // 펼친 카드 아래 고정 줄(3단계 B3) — 상태 바꾸기 + 다음 신청. 좁은 화면은 화면 아래에 붙는다
+  const bar = h('div', { class: 'card-bar' },
+    h('label', { class: 'card-bar-k' }, '상태 ', h('select', {
+      class: 'status-sel', 'data-status': r.status, 'aria-label': '상태 바꾸기',
+      onchange: (e) => ops.setStatus(r, e.target.value),
+    }, ...STATUSES.map((s) => h('option', { value: s.key, selected: s.key === r.status }, s.label)))),
+    h('button', { type: 'button', class: 'btn-sm primary card-next', text: '다음 신청 →', onclick: () => openNext(r.id) }));
+  const det = h('details', { class: 'app-card', 'data-id': r.id, open: state.open.has(r.id) }, summary, renderDetail(r, { k, brand, modelNo, revealed, stock }), bar);
   det.addEventListener('toggle', () => { if (det.open) state.open.add(r.id); else state.open.delete(r.id); });
   return det;
 }
@@ -805,7 +845,7 @@ function initFilters() {
   sel.replaceChildren(h('option', { value: '' }, '모든 상태'), ...STATUSES.map((s) => h('option', { value: s.key }, s.label)));
   sel.addEventListener('change', () => { state.filter.status = sel.value; render(); });
   $('f-q').addEventListener('input', (e) => { state.filter.q = e.target.value; render(); });
-  $('f-stock').addEventListener('change', (e) => { state.filter.stock = e.target.value; render(); });
+  $('f-sort').addEventListener('change', (e) => { state.filter.sort = e.target.value; render(); });
 }
 
 // 들어올 때 — 기억해 둔 로그인이 살아 있으면 바로 관리자 화면, 아니면 로그인 화면
