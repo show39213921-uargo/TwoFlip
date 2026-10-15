@@ -135,7 +135,8 @@ form.addEventListener('submit', async (e) => {
 
   if (r.ok) {
     rememberApplied(key, r.data.id);
-    form.reset();
+    // 10차 QA U-2 — 「다른 상품 신청하기」로 이어 신청할 때 이름·휴대폰·동의는 다시 쓰지 않게 상품 칸만 비운다(이 화면 안에서만, 저장하지 않음)
+    for (const n of ['kreamUrl', 'size', 'memo']) form.elements[n].value = '';
     resetPreview();
     autoSize = null;
     renderSizeHint();

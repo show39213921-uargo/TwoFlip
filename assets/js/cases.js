@@ -10,6 +10,12 @@ import { caseCards } from './cases-view.js';
 
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), cls ? { className: cls } : {}, text != null ? { textContent: text } : {});
 
+// 소개 페이지는 이 스크립트만 쓴다 — 테스트 모드 띠도 여기서 켠다(10차 QA B-1). 첫 페이지는 app.js 도 켜지만 같은 동작이라 겹쳐도 된다
+if (CONFIG.mode === 'demo') {
+  const banner = document.getElementById('demo-banner');
+  if (banner) banner.hidden = false;
+}
+
 async function load() {
   const box = document.getElementById('cases');
   const list = document.getElementById('cases-list');
