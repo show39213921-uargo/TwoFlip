@@ -68,8 +68,22 @@ export function brandLinks({ brand, modelNo, name, area } = {}) {
   if (b && b.storeFinder) offline.push({ label: `${b.ko} 공식 매장 찾기`, url: b.storeFinder });
 
   const overseas = b && term
-    ? b.overseas.map((o) => ({ country: o.country, label: `${o.site} 에서 「${term}」 검색`, url: google(`"${term}" site:${o.site}`) }))
+    ? b.overseas.map((o) => ({ country: o.country, site: o.site, label: `${o.site} 에서 「${term}」 검색`, url: google(`"${term}" site:${o.site}`) }))
     : [];
 
   return { known: !!b, brandKo: b ? b.ko : null, official, offline, overseas };
+}
+
+// 3단계 B1 — 찾아보기 링크를 누르면 05 재고 기록 칸에 미리 채울 값. 매장 이름은 지도를 봐야 알아서 비운다.
+// 해외 통화는 나라로 정한다(목록에 없는 나라 — 캐나다 등 — 는 통화를 건드리지 않는다)
+const COUNTRY_CURRENCY = { US: 'USD', JP: 'JPY', GB: 'GBP', CN: 'CNY', HK: 'HKD', DE: 'EUR', FR: 'EUR', IT: 'EUR', ES: 'EUR', NL: 'EUR' };
+export function findPrefill(kind, { brand, overseas } = {}) {
+  const b = findBrand(brand);
+  const label = b ? b.ko : String(brand || '').trim();
+  if (kind === 'official') return { type: 'official', name: label ? `${label} 공식몰` : '', currency: 'KRW' };
+  if (kind === 'offline') return { type: 'offline', name: '', currency: 'KRW' };
+  if (kind === 'overseas' && overseas && overseas.site) {
+    return { type: 'overseas', name: `${overseas.site} (${overseas.country})`, currency: COUNTRY_CURRENCY[overseas.country] || null };
+  }
+  return null;
 }
