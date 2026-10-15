@@ -6,13 +6,13 @@ const BUYABLE = new Set(['in', 'low']);
 const PLACE = { offline: '매장', official: '공식몰', overseas: '해외몰', other: '판매처' };
 export const PRICE_BLANK = '[가격을 적어 주세요]';
 
-// 받침이 있으면 「을」, 없으면 「를」 — 한글이나 숫자로 끝날 때만 고르고, 나머지는 「을(를)」
+// 받침이 있으면 「을」, 없으면 「를」 — 한글이나 숫자로 끝날 때만 고르고, 모르면 null(문장을 「~, 매장에서 찾았어요」로 바꾼다 · 13차 QA U-1)
 function eulReul(word) {
   const ch = String(word || '').trim().slice(-1);
   const code = ch.charCodeAt(0);
   if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 ? '을' : '를';
   if (/[0-9]/.test(ch)) return '013678'.includes(ch) ? '을' : '를';
-  return '을(를)';
+  return null;
 }
 
 /** 가장 최근 「재고 있음 · 소량」 기록. 없으면 null */
@@ -27,10 +27,12 @@ export function contactDraft(record, { title = '' } = {}) {
   if (!hit) return null;
   const name = String(title || '').trim() || '상품';
   const size = String(record.size || '').trim();
-  const thing = size ? `${name}(${size})` : name;
+  const thing = size ? `${name}(사이즈 ${size})` : name; // 「자켓(L)」은 사이즈인지 모른다 — 「(사이즈 L)」
+  const josa = eulReul(name); // 괄호 뒤 조사는 괄호 앞 낱말 받침을 따른다
+  const place = PLACE[hit.type] || PLACE.other;
   return [
     '안녕하세요, TWOFLIP이에요.',
-    `신청하신 ${thing}${eulReul(name)} ${PLACE[hit.type] || PLACE.other}에서 찾았어요.`,
+    josa ? `신청하신 ${thing}${josa} ${place}에서 찾았어요.` : `신청하신 ${thing}, ${place}에서 찾았어요.`,
     `가격: ${PRICE_BLANK}`,
     '구매를 원하시면 이 메시지에 답장 주세요.',
     `접수번호 ${record.id}`,

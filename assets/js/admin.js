@@ -53,15 +53,32 @@ narrowMq.addEventListener('change', () => render());
 // 칸은 그릴 때마다 새로 만들어지므로 신청 id 로 지금 칸을 찾고, 다시 그려져도 채운 값이 남게 기다리는 값도 둔다(기록하면 지운다)
 const stockForms = new Map(); // 신청 id → { f, hint }
 const pendingPrefill = new Map(); // 신청 id → findPrefill() 값 + label
+let prefilling = false; // 미리 채우는 동안 보낸 change 는 운영자 선택이 아니다(13차 QA B-1)
 function applyPrefill(id) {
   const s = stockForms.get(id);
   const p = pendingPrefill.get(id);
   if (!s || !p) return;
-  s.f.type.value = p.type;
-  s.f.type.dispatchEvent(new Event('change')); // 국내면 통화 KRW · 「더 적기」 요약 갱신
-  if (p.name) s.f.name.value = p.name;
-  if (p.currency) { s.f.currency.value = p.currency; s.f.currency.dispatchEvent(new Event('change')); }
-  s.hint.textContent = `「${p.label}」을 열었습니다 — ${p.name ? '판매처 · ' : ''}종류${p.currency ? ' · 통화' : ''}를 미리 채웠습니다.${p.name ? '' : ' 매장 이름은 직접 적어 주세요.'}`;
+  const { type, name, currency } = s.f;
+  // 13차 QA B-1 — 미리 채운 값은 data-autofill 로 표시한다. 다른 링크를 누르면 표시된 값 그대로(또는 빈칸)일 때만 바꾸고
+  // (매장 = 비움 · 외화 → KRW), 운영자가 고친 판매처 · 직접 고른 통화는 둔다. 국내 통화 막기는 그대로
+  const nameFree = !name.value.trim() || name.value === name.dataset.autofill;
+  const curFree = !currency.dataset.manual;
+  type.value = p.type;
+  type.dispatchEvent(new Event('change')); // 국내면 통화 KRW · 「더 적기」 요약 갱신
+  if (nameFree) {
+    name.value = p.name || '';
+    if (p.name) name.dataset.autofill = p.name; else delete name.dataset.autofill;
+  }
+  let curFilled = false;
+  if (curFree && p.currency) { currency.value = p.currency; currency.dataset.autofill = p.currency; curFilled = true; }
+  else if (curFree && currency.dataset.autofill && currency.value === currency.dataset.autofill) { currency.value = 'KRW'; delete currency.dataset.autofill; }
+  else if (curFree) delete currency.dataset.autofill;
+  prefilling = true;
+  try { currency.dispatchEvent(new Event('change')); } finally { prefilling = false; }
+  const filled = [nameFree && p.name ? '판매처' : '', '종류', curFilled ? '통화' : ''].filter(Boolean).join(' · ');
+  const kept = [!nameFree ? '직접 고친 판매처' : '', !curFree && p.currency && currency.value !== p.currency ? `고른 통화(${currency.value})` : ''].filter(Boolean).join(' · ');
+  s.hint.textContent = `「${p.label}」 링크를 열었습니다 — ${filled}를 미리 채웠습니다.`
+    + (kept ? ` ${kept}는 그대로 뒀습니다.` : (nameFree && !p.name ? ' 매장 이름은 직접 적어 주세요.' : ''));
   s.hint.hidden = false;
 }
 
@@ -256,6 +273,7 @@ function showGate(text = '', kind = 'error') {
 }
 
 function showApp() {
+  gateMsg(''); // 「로그인 상태를 확인하는 중…」이 숨은 알림 칸에 남지 않게(13차 QA 정리 1)
   $('gate').hidden = true;
   $('admin-app').hidden = false;
   $('server-session').hidden = false;
@@ -691,7 +709,12 @@ function stockPanel(r, kPrice, stock) {
   const err = h('p', { class: 'form-err', 'aria-live': 'polite' });
   // 국내(공식몰·오프라인)를 고르면 통화를 원화로 — 해외(EUR) 기록 뒤 이어 적을 때 통화가 남지 않게(3차 QA U-6)
   const domestic = () => f.type.value === 'official' || f.type.value === 'offline';
-  for (const ev of ['change', 'input']) f.type.addEventListener(ev, () => { if (domestic()) f.currency.value = 'KRW'; });
+  for (const ev of ['change', 'input']) f.type.addEventListener(ev, () => {
+    if (domestic() && f.currency.value !== 'KRW') { f.currency.value = 'KRW'; delete f.currency.dataset.autofill; delete f.currency.dataset.manual; }
+  });
+  // 13차 QA B-1 — 운영자가 직접 고른 통화 · 비운 판매처를 기억한다(미리 채움이 덮지 않게 · 빈칸이면 표시 지움)
+  f.currency.addEventListener('change', () => { if (!prefilling) { f.currency.dataset.manual = '1'; delete f.currency.dataset.autofill; } });
+  f.name.addEventListener('input', () => { if (!f.name.value.trim()) delete f.name.dataset.autofill; });
   const add = h('button', {
     type: 'button', class: 'btn-sm primary', text: '기록',
     onclick: () => {
@@ -699,7 +722,8 @@ function stockPanel(r, kPrice, stock) {
       const v = validateCheck({ type: f.type.value, name: f.name.value, size: f.size.value, stock: f.stock.value, price: f.price.value, currency: f.currency.value, url: f.url.value, note: f.note.value });
       if (!v.ok) { err.textContent = Object.values(v.errors).join(' '); return; }
       state.checkForm.set(r.id, { type: v.value.type, currency: v.value.currency, size: v.value.size, focus: true });
-      pendingPrefill.delete(r.id); // 미리 채운 값은 한 번 기록하면 끝(3단계 B1)
+      pendingPrefill.delete(r.id); // 미리 채운 값은 한 번 기록하면 끝(3단계 B1) — 표시도 지운다(13차 QA B-1)
+      for (const el of [f.name, f.currency]) { delete el.dataset.autofill; delete el.dataset.manual; }
       ops.addCheck(r, v.value);
     },
   });

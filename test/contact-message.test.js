@@ -23,7 +23,7 @@ test('연락 문구 — 가장 최근 「재고 있음 · 소량」 기록의 �
   const t = contactDraft(r, { title: '살로몬 크로스 인슐레이션 자켓' });
   assert.equal(t, [
     '안녕하세요, TWOFLIP이에요.',
-    '신청하신 살로몬 크로스 인슐레이션 자켓(L)을 매장에서 찾았어요.',
+    '신청하신 살로몬 크로스 인슐레이션 자켓(사이즈 L)을 매장에서 찾았어요.',
     `가격: ${PRICE_BLANK}`,
     '구매를 원하시면 이 메시지에 답장 주세요.',
     '접수번호 a3f9c210',
@@ -37,13 +37,20 @@ test('연락 문구 — 판매처 이름 · 기록한 가격 · 메모 · 고객
   for (const leak of ['하남점', '289', '직원', '비밀', '홍길동', '01012345678']) assert.ok(!t.includes(leak), leak);
 });
 
-test('연락 문구 — 받침에 맞춰 을/를, 상품명이 없으면 「상품」, 판매처 종류', () => {
-  const one = (type, title) => contactDraft(rec([{ type, name: 'x', stock: 'in', at: '2026-10-15T00:00:00Z' }]), { title }).split('\n')[1];
-  assert.equal(one('official', '나이키 에어 포스 1'), '신청하신 나이키 에어 포스 1(L)을 공식몰에서 찾았어요.');
-  assert.equal(one('overseas', '뉴발란스 2002'), '신청하신 뉴발란스 2002(L)를 해외몰에서 찾았어요.');
-  assert.equal(one('other', '볼캡 블루'), '신청하신 볼캡 블루(L)를 판매처에서 찾았어요.');
-  assert.equal(one('offline', 'Cap'), '신청하신 Cap(L)을(를) 매장에서 찾았어요.');
-  assert.equal(one('offline', ''), '신청하신 상품(L)을 매장에서 찾았어요.');
+test('연락 문구 — 「(사이즈 X)」, 받침에 맞춰 을/를, 상품명이 없으면 「상품」, 판매처 종류', () => {
+  const one = (type, title, size = 'L') => contactDraft({ ...rec([{ type, name: 'x', stock: 'in', at: '2026-10-15T00:00:00Z' }]), size }, { title }).split('\n')[1];
+  assert.equal(one('official', '나이키 에어 포스 1'), '신청하신 나이키 에어 포스 1(사이즈 L)을 공식몰에서 찾았어요.');
+  assert.equal(one('overseas', '뉴발란스 2002'), '신청하신 뉴발란스 2002(사이즈 L)를 해외몰에서 찾았어요.');
+  assert.equal(one('other', '볼캡 블루'), '신청하신 볼캡 블루(사이즈 L)를 판매처에서 찾았어요.');
+  assert.equal(one('offline', ''), '신청하신 상품(사이즈 L)을 매장에서 찾았어요.');
+  assert.equal(one('offline', '자켓', ''), '신청하신 자켓을 매장에서 찾았어요.');
+});
+
+test('연락 문구 — 받침을 모르는 이름(영문 등)은 「을(를)」 대신 쉼표로 이어 쓴다(13차 QA U-1)', () => {
+  const one = (title) => contactDraft(rec([{ type: 'offline', name: 'x', stock: 'in', at: '2026-10-15T00:00:00Z' }]), { title }).split('\n')[1];
+  assert.equal(one('Cap'), '신청하신 Cap(사이즈 L), 매장에서 찾았어요.');
+  assert.equal(one('XT-6 GTX'), '신청하신 XT-6 GTX(사이즈 L), 매장에서 찾았어요.');
+  for (const t of ['Cap', 'XT-6 GTX', '자켓', '']) assert.doesNotMatch(one(t), /\(를\)|을\(/);
 });
 
 test('문자로 열기 주소 — 숫자만, 글은 인코딩, 번호가 없으면 null', () => {

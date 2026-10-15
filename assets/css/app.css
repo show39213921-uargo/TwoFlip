@@ -498,7 +498,10 @@ textarea { resize: vertical; min-height: 88px; }
 .case.no-thumb { grid-template-columns: minmax(0, 1fr); }
 .case-thumb { width: 64px; height: 64px; box-sizing: border-box; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 .case-thumb img { width: 100%; height: 100%; object-fit: contain; }
-.case-thumb .strip-fallback { width: 40%; height: 40%; }
+/* 13차 QA U-3 — 12px 두 줄 「사진 / 준비 중」. 칸은 64px 고정이라 글자 확대(200%)에서도 넘치지 않게 15px 에서 멈추고(꾸밈 글자 · aria-hidden),
+   아이콘은 남는 높이만큼 줄어든다(min-height:0) */
+.case-thumb .strip-fallback { width: 22px; height: 22px; flex: 0 1 22px; min-height: 0; }
+.case-thumb .case-fallback-k { flex: none; font-size: min(var(--fs-cap, .75rem), 15px); line-height: 1.2; text-align: center; white-space: nowrap; }
 .case-date { color: var(--ink-3); font-size: var(--fs-cap); }
 .case-body { display: grid; gap: 3px; min-width: 0; }
 .case-title { font-weight: 600; font-size: var(--fs-body); line-height: 1.35; overflow-wrap: anywhere; }
@@ -586,5 +589,8 @@ textarea { resize: vertical; min-height: 88px; }
 .case-brand { font-size: var(--fs-cap, .75rem); font-weight: 700; color: var(--ink-2); overflow-wrap: anywhere; }
 .case-when { margin-left: auto; font-size: var(--fs-cap, .75rem); color: var(--ink-3); white-space: nowrap; }
 .case-size { font-weight: 700; color: var(--ink-2); white-space: nowrap; }
-.apply-promise { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-1, 4px) var(--sp-2, 8px); font-weight: 600; color: var(--hero-ink); text-align: center; }
-.apply-promise .dot { color: var(--hero-ink-2); }
+/* 13차 QA U-2 — 점은 다음 항목 앞(span::before)에 붙이고 그 폭만큼 왼쪽으로 당긴다. 줄 첫 항목의 점은 칸 왼쪽 바깥이라
+   overflow 로 잘린다 → 줄 끝 · 줄 머리에 「·」가 남지 않는다. 항목은 줄바꿈 안 함. 아래 「처음이세요?」와 같이 왼쪽 정렬 */
+.apply-promise { --dot-w: 1.25em; display: flex; flex-wrap: wrap; row-gap: var(--sp-1, 4px); overflow: hidden; font-weight: 600; color: var(--hero-ink); text-align: left; }
+.apply-promise > span { white-space: nowrap; margin-left: calc(-1 * var(--dot-w)); margin-right: var(--dot-w); }
+.apply-promise > span::before { content: "·"; content: "·" / ""; display: inline-block; width: var(--dot-w); text-align: center; color: var(--hero-ink-2); }

@@ -68,7 +68,10 @@ function fallback() {
     p.setAttribute('d', d);
     svg.append(p);
   }
-  return [svg, el('span', 'strip-fallback-k', '사진 준비 중')];
+  // 64px 칸에 12px 두 줄 「사진 / 준비 중」(13차 QA U-3) — 사진 줄(home.js)의 큰 칸은 그대로 한 줄
+  const k = el('span', 'strip-fallback-k case-fallback-k', '사진');
+  k.append(document.createElement('br'), '준비 중');
+  return [svg, k];
 }
 
 load();
