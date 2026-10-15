@@ -51,7 +51,7 @@ assets/js/shop.js          바로 구매 — 확보 상품 목록 · 구매 요�
 assets/js/admin-items.js   관리자 「확보 상품」 — 등록 · 공개 상태 · 판매가 · 구매 요청 중 하나를 골라 예약
 assets/js/items-view.js    바로 구매 화면 값 · 입력 검증(순수, 백엔드 validateItem 과 같은 규칙)
 assets/demo/sample-items.json  테스트 모드(?demo=1) 바로 구매 샘플 3개(판매 중 · 가격 문의 · 예약 중)
-assets/demo/sample-cases.json  테스트 모드 최근 진행 사례 샘플 3개(「[샘플]」 — 찾음 둘 · 못 찾음 하나)
+assets/demo/sample-cases.json  테스트 모드 최근 진행 사례 샘플 3개(「[샘플]」 — 찾음 둘(사진 있음 · 사진 없음) · 못 찾음 하나)
 assets/js/cases.js · cases-view.js  최근 진행 사례(개편 A-3) — 첫 페이지 · 소개 페이지 구역 채우기 · 화면 값(순수). 관리자 「사례 공개」는 admin.js
 assets/js/splash.js        처음 진입 스플래시 → 헤더 로고로 이동(이 탭 첫 진입만 · 움직임 줄이기면 건너뜀)
 ```
