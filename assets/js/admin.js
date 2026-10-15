@@ -19,6 +19,7 @@ import { STOCK_STATES, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockS
 import { formatWon } from './preview-view.js';
 import { createItemsView } from './admin-items.js';
 import { CASE_RESULTS, caseChoices } from './cases-view.js';
+import { contactDraft, smsHref } from './contact-message.js';
 
 const store = createLocalStore(browserStorage());
 const SETTINGS_KEY = 'twoflip.admin.settings.v1';
@@ -759,9 +760,38 @@ function caseRow(r) {
     h('p', { class: 'muted', style: 'margin:4px 0 0', text: '이름·번호·가격은 나가지 않습니다 — 날짜·브랜드·상품명·사이즈·결과만.' }))];
 }
 
+// 연락 문구(3단계 B2) — 「재고 있음 · 소량」 기록이 있으면 초안을 채운다. 고친 글은 다시 그려져도 남는다(이 화면 안에서만)
+const contactEdits = new Map(); // 신청 id → 운영자가 고친 글
+function contactBox(r) {
+  if (r.itemId) return null; // 바로 구매 요청은 확보 상품 화면에서 연락 · 예약
+  const k = r.kream || null;
+  const draft = contactDraft(r, { title: (k && (k.nameKo || k.name)) || '' });
+  if (!draft) return h('p', { class: 'muted contact-empty', text: '05 에 「재고 있음」을 기록하면 연락 문구를 채웁니다.' });
+  const status = h('p', { class: 'sub contact-status', role: 'status' });
+  const text = h('textarea', { class: 'contact-text', rows: '6', 'aria-label': '연락 문구', oninput: (e) => contactEdits.set(r.id, e.target.value) });
+  text.value = contactEdits.get(r.id) ?? draft;
+  const copy = async (value, done) => {
+    let ok = false;
+    try { await navigator.clipboard.writeText(value); ok = true; } catch { /* 권한 없음 */ }
+    status.textContent = ok ? done : '복사하지 못했습니다 — 글을 길게 눌러 복사하세요.';
+  };
+  const sms = smsHref(r.phone, text.value);
+  const smsLink = sms ? h('a', { class: 'contact-btn', href: sms, text: '문자로 열기', onclick: (e) => { e.currentTarget.href = smsHref(r.phone, text.value); } }) : null;
+  return h('div', { class: 'contact-box' },
+    h('p', { class: 'contact-k' }, h('strong', { text: '연락 문구' }), h('span', { class: 'sub', text: ' — 「재고 있음」 기록으로 채웠습니다. 가격은 직접 적어 주세요.' })),
+    text,
+    h('p', { class: 'sub', text: '상품명 · 사이즈 · 판매처 종류 · 접수번호만 넣습니다. 판매처 이름 · 기록한 가격(매입가) · 메모는 넣지 않습니다.' }),
+    h('div', { class: 'contact-actions' },
+      h('button', { type: 'button', class: 'contact-btn primary', text: '문구 복사', onclick: () => copy(text.value, '연락 문구를 복사했습니다.') }),
+      smsLink,
+      r.phone ? h('button', { type: 'button', class: 'btn-sm', text: '번호 복사', onclick: () => copy(String(r.phone).replace(/\D/g, ''), '번호를 복사했습니다.') }) : null),
+    status);
+}
+
 function customerPanel(r, revealed) {
   return h('div', { class: 'panel full' },
     h('h3', {}, h('span', { class: 'n', text: '06' }), '신청자'),
+    contactBox(r),
     h('dl', { class: 'kv' },
       h('dt', { text: '접수번호' }), h('dd', { class: 'mono', text: r.id }),
       h('dt', { text: '접수 시각' }), h('dd', { text: formatKst(r.receivedAt) + ' (KST)' }),

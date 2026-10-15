@@ -311,3 +311,15 @@
 
 /* 저장 버튼 옆 안내(5차 QA U-3) */
 .row-actions .saved-msg { display: inline-flex; align-items: center; min-height: 0; margin: 0 8px 0 0; }
+
+/* 연락 문구(3단계 B2 · 가이드 §6) — 06 신청자 맨 위 */
+.contact-box { display: grid; gap: 8px; margin: 0 0 14px; padding: 12px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface-2); }
+.contact-k { margin: 0; font-size: .9rem; }
+.contact-text { font: inherit; font-size: 1rem; line-height: 1.55; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); resize: vertical; }
+.contact-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.contact-btn { min-height: 44px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid var(--line-strong); background: transparent; color: var(--ink); font: inherit; font-size: .95rem; font-weight: 800; text-decoration: none; cursor: pointer; }
+.contact-btn.primary { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.contact-status { margin: 0; color: var(--ok); }
+.contact-status:empty { display: none; }
+.contact-empty { margin: 0 0 10px; }
+@media (max-width: 560px) { .contact-actions .contact-btn { flex: 1 1 8rem; } }
