@@ -569,3 +569,12 @@ textarea { resize: vertical; min-height: 88px; }
    라이트는 지금과 같은 값(회백 + 흰 카드), 다크는 한 단계 밝은 면. 경계는 바탕 밝기 차이로만 — 선 · 그림자를 늘리지 않는다 */
 .page-low { background: var(--low); }
 .page-low .case, .page-low .about-band, .page-low .who, .page-low .faq details { background: var(--low-card); }
+
+/* ── 3단계 P2 · P3(가이드 §6) — 사례 카드 정보 순서 · 신청 버튼 아래 약속 한 줄. 토큰(#40)이 없을 때를 위해 기본값을 같이 둔다 ── */
+.case-head { display: flex; align-items: baseline; gap: var(--sp-2, 8px); min-width: 0; }
+.case-head:empty { display: none; }
+.case-brand { font-size: var(--fs-cap, .75rem); font-weight: 700; color: var(--ink-2); overflow-wrap: anywhere; }
+.case-when { margin-left: auto; font-size: var(--fs-cap, .75rem); color: var(--ink-3); white-space: nowrap; }
+.case-size { font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+.apply-promise { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-1, 4px) var(--sp-2, 8px); font-weight: 600; color: var(--hero-ink); text-align: center; }
+.apply-promise .dot { color: var(--hero-ink-2); }

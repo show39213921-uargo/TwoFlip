@@ -29,7 +29,13 @@ async function load() {
   list.replaceChildren(...cards.map((m) => {
     const li = el('li', 'case' + (m.found ? '' : ' no-thumb'));
     const body = el('span', 'case-body');
-    body.append(el('span', 'case-date mono', m.date), el('span', 'case-title', m.title), el('span', 'case-result' + (m.found ? ' is-found' : ''), m.label));
+    // 3단계 P2 — 브랜드(작고 굵게) · 오른쪽 위 상대 시각 → 상품명 · 사이즈(굵게) → 결과 칩
+    const head = el('span', 'case-head');
+    if (m.brand) head.append(el('strong', 'case-brand', m.brand));
+    if (m.when) head.append(el('span', 'case-when', m.when));
+    const title = el('span', 'case-title', m.name);
+    if (m.size) title.append(' ', el('span', 'case-size', `· ${m.size}`));
+    body.append(head, title, el('span', 'case-result' + (m.found ? ' is-found' : ''), m.label));
     if (m.found) li.append(thumb(m.image)); // 1단계 1-2 — 찾은 건만 사진 칸(못 찾은 건은 사진 없이, 흐리게 하지 않는다)
     li.append(body);
     return li;
