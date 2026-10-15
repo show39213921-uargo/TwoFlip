@@ -11,11 +11,11 @@ import { createAdminClient, looksLikeKey, loginAdmin } from './admin-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
 import {
   STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest,
-  sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes, sortRecords, waitText, waitIsLong,
+  sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes, sortRecords, waitText, waitIsLong, josa,
 } from './admin-view.js';
 import { brandLinks, findPrefill } from './brands.js';
 import { CANDIDATE_TYPES, CURRENCIES, checkRate, compareToKream, parseRates, toKrw } from './sourcing.js';
-import { STOCK_STATES, STOCK_PILLS, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from './stock.js';
+import { STOCK_STATES, stockLabel, STOCK_PILLS, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from './stock.js';
 import { formatWon } from './preview-view.js';
 import { createItemsView } from './admin-items.js';
 import { CASE_RESULTS, caseChoices } from './cases-view.js';
@@ -63,6 +63,7 @@ function applyPrefill(id) {
   // (매장 = 비움 · 외화 → KRW), 운영자가 고친 판매처 · 직접 고른 통화는 둔다. 국내 통화 막기는 그대로
   const nameFree = !name.value.trim() || name.value === name.dataset.autofill;
   const curFree = !currency.dataset.manual;
+  const curBefore = currency.value;
   type.value = p.type;
   type.dispatchEvent(new Event('change')); // 국내면 통화 KRW · 「더 적기」 요약 갱신
   if (nameFree) {
@@ -78,7 +79,9 @@ function applyPrefill(id) {
   const filled = [nameFree && p.name ? '판매처' : '', '종류', curFilled ? '통화' : ''].filter(Boolean).join(' · ');
   const kept = [!nameFree ? '직접 고친 판매처' : '', !curFree && p.currency && currency.value !== p.currency ? `고른 통화(${currency.value})` : ''].filter(Boolean).join(' · ');
   s.hint.textContent = `「${p.label}」 링크를 열었습니다 — ${filled}를 미리 채웠습니다.`
-    + (kept ? ` ${kept}는 그대로 뒀습니다.` : (nameFree && !p.name ? ' 매장 이름은 직접 적어 주세요.' : ''));
+    + (kept ? ` ${kept}는 그대로 뒀습니다.` : (nameFree && !p.name ? ' 매장 이름은 직접 적어 주세요.' : ''))
+    // 15차 QA U-1 — 운영자가 고른 외화를 국내 판매처 규칙이 KRW 로 바꿨으면 말없이 바꾸지 않는다
+    + (!curFree && curBefore !== 'KRW' && currency.value === 'KRW' ? ` 국내 판매처라 고른 통화(${curBefore})를 KRW 로 바꿨습니다.` : '');
   s.hint.hidden = false;
 }
 
@@ -165,15 +168,15 @@ function records() {
   return state.source === 'browser' ? store.list() : (state.file ? state.file.records : []);
 }
 
-// 브라우저·파일 출처의 변경
-function saveLocal(id, patch) {
+// 브라우저·파일 출처의 변경 — done = 안내 줄에 남길 결과 한 줄(15차 QA B-1)
+function saveLocal(id, patch, done) {
   try {
     if (state.source === 'browser') store.update(id, patch);
     else if (state.file) {
       state.file.records = state.file.records.map((r) => (r.id === id ? { ...r, ...patch } : r));
       state.file.dirty = true;
     }
-    state.msg = null;
+    if (done) flash('', done); else state.msg = null;
   } catch (e) { flash('error', e.message); }
   render();
 }
@@ -196,30 +199,38 @@ function replaceServerRecord(app) {
   state.history.delete(app.id); // 이력은 다음에 열 때 다시 받는다
 }
 
-// 같은 동작을 출처에 맞게 — local: 바꿀 칸 / remote: 서버 호출
-async function apply(r, local, remote) {
-  if (!isServer()) { saveLocal(r.id, local()); return; }
+// 같은 동작을 출처에 맞게 — local: 바꿀 칸 / remote: 서버 호출 / done: 성공하면 안내 줄(#src-note)에 남길 결과(15차 QA B-1)
+async function apply(r, local, remote, done) {
+  if (!isServer()) { saveLocal(r.id, local(), done); return; }
   const res = await remote(adminApi());
   if (!res.ok) { serverFail(res); return; }
   replaceServerRecord(res.data.application);
   if (r.itemId) itemsView.refresh(); // 확보 상품 카드의 요청 상태·건수도 새로(5차 QA B-2)
-  state.msg = null;
+  if (done) flash('', done); else state.msg = null;
   render();
 }
 
 const cands = (r) => (Array.isArray(r.sourcing) ? r.sourcing : []);
+const checkName = (r, checkId) => ((cands(r).find((c) => c.id === checkId) || {}).name || '판매처');
+const toLabel = (label) => `「${label}」${josa(label, '으로', '로')}`;
 const ops = {
-  setStatus: (r, status) => apply(r, () => ({ status }), (api) => api.patchApplication(r.id, { status })),
-  setManual: (r, manual) => apply(r, () => ({ manual }), (api) => api.patchApplication(r.id, { manual })),
-  setAssignee: (r, assigneeId) => apply(r, () => ({ assigneeId }), (api) => api.patchApplication(r.id, { assigneeId })),
+  setStatus: (r, status) => apply(r, () => ({ status }), (api) => api.patchApplication(r.id, { status }),
+    `${r.id} 상태를 ${toLabel(statusLabel(status))} 바꿨습니다.`),
+  setManual: (r, manual) => apply(r, () => ({ manual }), (api) => api.patchApplication(r.id, { manual }),
+    `${r.id} 브랜드 · 모델번호를 저장했습니다.`),
+  setAssignee: (r, assigneeId) => apply(r, () => ({ assigneeId }), (api) => api.patchApplication(r.id, { assigneeId }),
+    `${r.id} 담당자를 바꿨습니다.`),
   addCheck: (r, v) => apply(r,
     () => ({ sourcing: [...cands(r), { id: newId(), ...v, at: nowIso() }] }),
-    (api) => api.addCheck(r.id, { type: v.type, name: v.name, size: v.size, stock: v.stock, price: v.price ?? '', currency: v.currency, url: v.url, note: v.note })),
+    (api) => api.addCheck(r.id, { type: v.type, name: v.name, size: v.size, stock: v.stock, price: v.price ?? '', currency: v.currency, url: v.url, note: v.note }),
+    `${v.name || '판매처'} · ${stockLabel(v.stock)}${josa(stockLabel(v.stock), '을', '를')} 기록했습니다.`),
   // patch = { stock } 이면 재고 상태 변경, {} 이면 「지금 다시 확인함」 — 둘 다 확인 시각 갱신
   updateCheck: (r, checkId, patch) => apply(r,
     () => ({ sourcing: cands(r).map((c) => (c.id === checkId ? { ...c, ...patch, at: nowIso(), method: 'manual' } : c)) }),
-    (api) => (patch.stock ? api.patchCheck(checkId, { stock: patch.stock }) : api.touchCheck(checkId))),
-  removeCheck: (r, checkId) => apply(r, () => ({ sourcing: cands(r).filter((c) => c.id !== checkId) }), (api) => api.deleteCheck(checkId)),
+    (api) => (patch.stock ? api.patchCheck(checkId, { stock: patch.stock }) : api.touchCheck(checkId)),
+    patch.stock ? `${checkName(r, checkId)} 재고를 ${toLabel(stockLabel(patch.stock))} 바꿨습니다.` : `${checkName(r, checkId)} 확인 시각을 지금으로 바꿨습니다.`),
+  removeCheck: (r, checkId) => apply(r, () => ({ sourcing: cands(r).filter((c) => c.id !== checkId) }), (api) => api.deleteCheck(checkId),
+    `${checkName(r, checkId)} 기록을 지웠습니다.`),
   // 최근 진행 사례(개편 A-3) — 서버에서만. result 가 비면 끄기
   // 10차 QA U-1 — 거절 이유를 맨 위 알림만이 아니라 스위치 바로 아래에도 남긴다(다시 그려도 보이게 state 에)
   async setCase(r, result) {
@@ -231,7 +242,7 @@ const ops = {
     }
     state.caseErr.delete(r.id);
     replaceServerRecord(res.data.application);
-    state.msg = null;
+    flash('', result ? `${r.id} 사례를 공개했습니다 — 첫 페이지 · 소개에는 1분 안에 보입니다.` : `${r.id} 사례 공개를 껐습니다 — 1분 안에 사라집니다.`);
     render();
   },
   async removeApp(r) {
@@ -392,6 +403,13 @@ function renderToolbar() {
   $('btn-sample').hidden = state.source !== 'browser';
   $('server-refresh').disabled = state.server.loading;
 
+  // 안내 줄(#src-note, role=status)은 두 화면이 같이 쓰는 한 곳 — 확보 상품 화면에서는 동작 결과만(15차 QA B-1)
+  if (!state.msg) unpinNote();
+  if (state.view === 'items') {
+    note(state.msg ? state.msg.kind : '', state.msg ? state.msg.text : '');
+    if (state.msg && state.msg.fresh) pinNote();
+    return;
+  }
   // 우선순위: 깨진 데이터 > 방금 한 동작의 결과 > 출처별 기본 안내
   if (state.source === 'browser' && store.isCorrupt()) {
     note('error', '이 브라우저에 저장된 테스트 데이터가 깨져 있습니다. 「이 브라우저 데이터 비우기」로 초기화해 주세요.');
@@ -399,6 +417,7 @@ function renderToolbar() {
     note('', '서버에서 불러오는 중…');
   } else if (state.msg) {
     note(state.msg.kind, state.msg.text);
+    if (state.msg.fresh) pinNote();
   } else if (isServer()) {
     note('', '서버 DB 의 신청입니다. 상태·재고 확인·설정을 바꾸면 3명 모두에게 바로 반영됩니다.');
   } else if (state.source === 'file' && state.file) {
@@ -408,8 +427,17 @@ function renderToolbar() {
   }
 }
 
-// 동작 결과 한 줄 — 다음 동작(출처 전환·저장)까지 유지
-function flash(kind, text) { state.msg = { kind, text }; }
+// 동작 결과 한 줄 — 다음 동작(출처 전환·저장)까지 유지. 새 결과는 6초 동안 화면 위에 붙여 둔다(스크롤해 내려와 있어도 보이게 · 15차 QA B-1)
+function flash(kind, text) { state.msg = { kind, text, fresh: true }; }
+let pinTimer = 0;
+function pinNote() {
+  state.msg.fresh = false;
+  const el = $('src-note');
+  el.classList.add('is-fresh');
+  clearTimeout(pinTimer);
+  pinTimer = setTimeout(() => el.classList.remove('is-fresh'), 6000);
+}
+function unpinNote() { clearTimeout(pinTimer); $('src-note').classList.remove('is-fresh'); }
 
 function renderKpis(all) {
   const s = summarize(all);
@@ -880,7 +908,7 @@ function render() {
 
 // ── 화면 전환: 신청 | 확보 상품(바로 구매) ─────────────────
 // 확보 상품은 서버(DB)에서만 — 로그인한 세션 키로 부른다(신청 탭의 데이터 출처와 상관없이)
-const itemsView = createItemsView({ root: $('items-view'), h, ext, getApi: adminApi, onFail: serverFail, onRender: () => { renderView(); if (state.view === 'apps') renderList(records()); } }); // 신청 카드의 확보 상품 이름도 같이
+const itemsView = createItemsView({ root: $('items-view'), h, ext, getApi: adminApi, onFail: serverFail, onNotice: (kind, text) => { flash(kind, text); renderToolbar(); }, onRender: () => { renderView(); if (state.view === 'apps') renderList(records()); } }); // 신청 카드의 확보 상품 이름도 같이
 function renderView() {
   const items = state.view === 'items';
   $('view-apps').setAttribute('aria-selected', String(!items));
@@ -892,6 +920,8 @@ function renderView() {
 }
 function setView(v) {
   state.view = v;
+  state.msg = null; // 다른 화면의 결과를 끌고 가지 않는다
+  renderToolbar();
   renderView();
   if (v === 'items') itemsView.show();
 }
@@ -1051,6 +1081,9 @@ function initToolbar() {
 
 $('view-apps').addEventListener('click', () => setView('apps'));
 $('view-items').addEventListener('click', () => setView('items'));
+// 머리 높이(좁은 화면 · 글자 크기마다 다름) — 붙는 안내 줄이 머리 바로 아래에 오게(15차 QA B-1)
+const siteHead = document.querySelector('.site-header');
+if (siteHead && 'ResizeObserver' in window) new ResizeObserver(() => document.documentElement.style.setProperty('--head-h', `${siteHead.offsetHeight}px`)).observe(siteHead);
 initSettings();
 initFilters();
 initToolbar();

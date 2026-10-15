@@ -151,3 +151,18 @@ export function normalizeImported(data) {
   const records = arr.filter((r) => r && typeof r === 'object' && r.id);
   return { records, skipped: arr.length - records.length };
 }
+
+// 받침에 맞는 조사 — josa('탐색 중', '으로', '로') → '으로', josa('품절', '을', '를') → '을'. 「으로/로」는 ㄹ 받침이면 「로」.
+// 한글 · 숫자로 끝날 때만 고르고, 영문 등 모르면 「을(를)」 「(으)로」처럼 둘 다(관리자 안내 · 15차 QA B-1)
+const DIGIT_JONG = { 0: 21, 1: 8, 2: 0, 3: 16, 4: 0, 5: 0, 6: 1, 7: 8, 8: 8, 9: 0 };
+export function josa(word, withB, withoutB) {
+  const ch = String(word || '').trim().slice(-1);
+  const code = ch.charCodeAt(0);
+  let jong = null;
+  if (code >= 0xac00 && code <= 0xd7a3) jong = (code - 0xac00) % 28;
+  else if (/[0-9]/.test(ch)) jong = DIGIT_JONG[ch];
+  const ro = withB === '으로';
+  if (jong == null) return ro ? '(으)로' : `${withB}(${withoutB})`;
+  if (ro) return jong === 0 || jong === 8 ? withoutB : withB;
+  return jong ? withB : withoutB;
+}
