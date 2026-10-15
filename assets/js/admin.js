@@ -13,7 +13,7 @@ import {
   STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest,
   sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes,
 } from './admin-view.js';
-import { brandLinks } from './brands.js';
+import { brandLinks, findPrefill } from './brands.js';
 import { CANDIDATE_TYPES, CURRENCIES, checkRate, compareToKream, parseRates, toKrw } from './sourcing.js';
 import { STOCK_STATES, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from './stock.js';
 import { formatWon } from './preview-view.js';
@@ -47,6 +47,22 @@ state.settings = state.localSettings;
 // 좁은 화면(휴대폰) — 05 재고 기록 칸을 한 손 기록 모양으로(2단계 2-3). 폭이 기준을 넘나들면 다시 그린다(render 는 아래에서 정의)
 const narrowMq = window.matchMedia('(max-width: 560px)');
 narrowMq.addEventListener('change', () => render());
+
+// 3단계 B1 — 찾아보기 링크를 누르면 그 신청의 05 기록 칸에 종류 · 판매처 · 통화를 미리 채운다.
+// 칸은 그릴 때마다 새로 만들어지므로 신청 id 로 지금 칸을 찾고, 다시 그려져도 채운 값이 남게 기다리는 값도 둔다(기록하면 지운다)
+const stockForms = new Map(); // 신청 id → { f, hint }
+const pendingPrefill = new Map(); // 신청 id → findPrefill() 값 + label
+function applyPrefill(id) {
+  const s = stockForms.get(id);
+  const p = pendingPrefill.get(id);
+  if (!s || !p) return;
+  s.f.type.value = p.type;
+  s.f.type.dispatchEvent(new Event('change')); // 국내면 통화 KRW · 「더 적기」 요약 갱신
+  if (p.name) s.f.name.value = p.name;
+  if (p.currency) { s.f.currency.value = p.currency; s.f.currency.dispatchEvent(new Event('change')); }
+  s.hint.textContent = `「${p.label}」을 열었습니다 — ${p.name ? '판매처 · ' : ''}종류${p.currency ? ' · 통화' : ''}를 미리 채웠습니다.${p.name ? '' : ' 매장 이름은 직접 적어 주세요.'}`;
+  s.hint.hidden = false;
+}
 
 // ── 작은 도구 ─────────────────────────────────────────
 function h(tag, props, ...kids) {
@@ -477,8 +493,10 @@ function renderDetail(r, { k, brand, modelNo, revealed, stock }) {
   const quote = sizeQuoteFor(r);
   const kUrl = kreamUrl(r.kreamUrl);
 
-  // 1. KREAM
-  const kreamPanel = h('div', { class: 'panel' }, h('h3', {}, h('span', { class: 'n', text: '01' }), 'KREAM'),
+  // 1. KREAM — 사이즈별 시세 표가 길어(375 에서 530px) 좁은 화면은 한 줄 요약으로 접는다(3단계 B1). 정보가 없으면 직접 넣기 칸이 보이게 펼친다
+  const kreamSum = [k && k.buyNowPrice ? `즉시 구매가 ${formatWon(k.buyNowPrice)}` : null, `${r.size || '사이즈'} ${quote ? quote.price : '시세 없음'}`].filter(Boolean).join(' · ');
+  const kreamPanel = h('details', { class: 'panel kream-panel', open: !k || !narrowMq.matches },
+    h('summary', {}, h('span', { class: 'n', text: '01' }), h('strong', { text: 'KREAM' }), h('span', { class: 'sub', text: ` · ${kreamSum}` })),
     h('dl', { class: 'kv' },
       h('dt', { text: '상품 주소' }), h('dd', {}, kUrl ? ext(kUrl, kUrl.replace('https://', '')) : (r.kreamUrl || '—')),
       h('dt', { text: '즉시 구매가' }), h('dd', { text: (k && formatWon(k.buyNowPrice)) || '—' }),
@@ -496,15 +514,47 @@ function renderDetail(r, { k, brand, modelNo, revealed, stock }) {
         h('p', { class: 'muted', text: '신청 당시 KREAM 정보가 없습니다(테스트 모드 신청이거나 서버 조회 실패). 브랜드·모델번호를 넣으면 아래 링크가 만들어집니다.' }),
         manualForm(r)));
 
-  // 2~4. 공식 홈페이지 · 오프라인 · 해외
-  const officialPanel = h('div', { class: 'panel' }, h('h3', {}, h('span', { class: 'n', text: '02' }), '공식 홈페이지'),
+  // 2~4. 공식 홈페이지 · 오프라인 · 해외(링크 전부). 자주 쓰는 셋은 맨 위 「찾아보기」 줄에도 있다
+  const officialPanel = h('div', { class: 'panel link-panel' }, h('h3', {}, h('span', { class: 'n', text: '02' }), '공식 홈페이지'),
     linkList(links.official, '브랜드를 알 수 없어 링크를 만들지 못했습니다.'),
     links.known ? null : h('p', { class: 'muted', style: 'margin-top:8px', text: '등록되지 않은 브랜드 — 일반 검색으로 연결합니다.' }));
-  const offlinePanel = h('div', { class: 'panel' }, h('h3', {}, h('span', { class: 'n', text: '03' }), '근처 오프라인 판매처'),
+  const offlinePanel = h('div', { class: 'panel link-panel' }, h('h3', {}, h('span', { class: 'n', text: '03' }), '근처 오프라인 판매처'),
     linkList(links.offline, '브랜드를 알 수 없어 지도 검색을 만들지 못했습니다.'),
     h('p', { class: 'muted', style: 'margin-top:8px', text: `기준 지역: ${state.settings.area || '없음(지도에서 현재 위치 기준)'} — 위 「설정」에서 바꿉니다. 매장 재고는 전화·방문으로 확인합니다.` }));
-  const overseasPanel = h('div', { class: 'panel' }, h('h3', {}, h('span', { class: 'n', text: '04' }), '해외 공식몰'),
+  const overseasPanel = h('div', { class: 'panel link-panel' }, h('h3', {}, h('span', { class: 'n', text: '04' }), '해외 공식몰'),
     linkList(links.overseas, links.known ? '모델번호가 없어 해외 검색을 만들지 못했습니다.' : '등록된 해외 공식몰이 없는 브랜드입니다.'));
+
+  // 3단계 B1 — 「찾아보기」 줄: 자주 쓰는 세 곳(새 탭) + 모델번호 · 상품명 · 사이즈 복사. 누르면 05 칸을 미리 채운다
+  const copied = h('p', { class: 'sub find-status', role: 'status' });
+  const copyBtn = (label, text, done) => text ? h('button', {
+    type: 'button', class: 'btn-sm find-copy', text: label,
+    onclick: async () => {
+      let ok = false;
+      try { await navigator.clipboard.writeText(text); ok = true; } catch { /* 권한 없음 */ }
+      copied.textContent = ok ? done : `복사하지 못했습니다 — 길게 눌러 복사하세요: ${text}`;
+    },
+  }) : null;
+  const findLink = (link, label, kind, extra) => link ? h('a', {
+    href: link.url, target: '_blank', rel: 'noopener noreferrer', class: 'find-link',
+    onclick: () => {
+      const p = findPrefill(kind, { brand, overseas: extra });
+      if (p) { pendingPrefill.set(r.id, { ...p, label }); applyPrefill(r.id); }
+    },
+  }, label, h('span', { 'aria-hidden': 'true', text: ' ↗' })) : null;
+  const officialLink = links.official.find((l) => l.label.includes('검색')) || links.official[0];
+  const title = (k && (k.nameKo || k.name)) || '';
+  const findPanel = h('div', { class: 'panel full find-row' },
+    h('p', { class: 'find-k', text: '찾아보기 — 누르면 새 탭' }),
+    h('div', { class: 'find-links' },
+      findLink(officialLink, '공식몰', 'official'),
+      findLink(links.offline[0], `${state.settings.area || '근처'} 매장`, 'offline'),
+      findLink(links.overseas[0], links.overseas[0] ? `해외 ${links.overseas[0].country}` : '', 'overseas', links.overseas[0])),
+    links.official.length || links.offline.length ? null : h('p', { class: 'muted', text: '브랜드를 알 수 없어 찾기 링크를 만들지 못했습니다 — 01 에서 브랜드 · 모델번호를 넣어 주세요.' }),
+    h('div', { class: 'find-copies' },
+      copyBtn(modelNo ? `${modelNo} 복사` : '', modelNo, '모델번호를 복사했습니다.'),
+      copyBtn('상품명 복사', title, '상품명을 복사했습니다.'),
+      copyBtn(r.size ? `사이즈 ${r.size} 복사` : '', r.size, '사이즈를 복사했습니다.')),
+    copied);
 
   if (r.itemId) {
     // 바로 구매 요청 — 이미 확보한 상품이라 판매처 찾기(02~04)·재고 확인(05)이 필요 없다(3차 QA B-1)
@@ -513,7 +563,7 @@ function renderDetail(r, { k, brand, modelNo, revealed, stock }) {
       h('div', { class: 'row-actions', style: 'margin-top:8px' }, h('button', { type: 'button', class: 'btn-sm primary', text: '확보 상품 화면에서 열기', onclick: () => openItem(r.itemId) })));
     return h('div', { class: 'detail' }, kreamPanel, itemPanel, customerPanel(r, revealed));
   }
-  return h('div', { class: 'detail' }, kreamPanel, officialPanel, offlinePanel, overseasPanel, stockPanel(r, kPrice, stock), customerPanel(r, revealed));
+  return h('div', { class: 'detail' }, findPanel, kreamPanel, officialPanel, offlinePanel, overseasPanel, stockPanel(r, kPrice, stock), customerPanel(r, revealed));
 }
 
 function manualForm(r) {
@@ -606,6 +656,7 @@ function stockPanel(r, kPrice, stock) {
       const v = validateCheck({ type: f.type.value, name: f.name.value, size: f.size.value, stock: f.stock.value, price: f.price.value, currency: f.currency.value, url: f.url.value, note: f.note.value });
       if (!v.ok) { err.textContent = Object.values(v.errors).join(' '); return; }
       state.checkForm.set(r.id, { type: v.value.type, currency: v.value.currency, size: v.value.size, focus: true });
+      pendingPrefill.delete(r.id); // 미리 채운 값은 한 번 기록하면 끝(3단계 B1)
       ops.addCheck(r, v.value);
     },
   });
@@ -643,8 +694,12 @@ function stockPanel(r, kPrice, stock) {
     err);
 
   const bestCmp = stock.cheapest ? compareToKream(stock.cheapest.krw, kPrice) : null;
-  return h('div', { class: 'panel full' },
+  const prefillHint = h('p', { class: 'find-hint', role: 'status', hidden: true });
+  stockForms.set(r.id, { f, hint: prefillHint });
+  if (pendingPrefill.has(r.id)) setTimeout(() => applyPrefill(r.id), 0); // 다시 그려진 칸에도 채운다
+  return h('div', { class: 'panel full stock-panel' },
     h('h3', {}, h('span', { class: 'n', text: '05' }), `재고 확인 — 신청 사이즈 ${want || '미지정'}`),
+    prefillHint,
     h('p', { class: 'stock-line' },
       h('span', { class: `stock-badge ${stock.buyable ? 'ok' : (stock.needsCheck ? 'warn' : 'none')}`, text: stock.label }),
       bestCmp ? h('span', { class: bestCmp.cheaper ? 'diff-neg' : 'diff-pos', text: ` ${bestCmp.label}(KREAM 수수료·배송비 전)` })

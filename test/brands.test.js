@@ -1,6 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { findBrand, brandLinks } from '../assets/js/brands.js';
+import { findBrand, brandLinks, findPrefill } from '../assets/js/brands.js';
+
+test('찾아보기 미리 채움(3단계 B1) — 공식몰 = 「브랜드 공식몰」 · 원화, 매장은 이름 비움, 해외 = 「사이트 (나라)」 · 나라 통화', () => {
+  assert.deepEqual(findPrefill('official', { brand: 'Salomon' }), { type: 'official', name: '살로몬 공식몰', currency: 'KRW' });
+  assert.deepEqual(findPrefill('official', { brand: 'Unknown Label' }), { type: 'official', name: 'Unknown Label 공식몰', currency: 'KRW' });
+  assert.deepEqual(findPrefill('official', { brand: '' }), { type: 'official', name: '', currency: 'KRW' });
+  assert.deepEqual(findPrefill('offline', { brand: 'Nike' }), { type: 'offline', name: '', currency: 'KRW' });
+  const us = brandLinks({ brand: 'Salomon', modelNo: 'LD0274200' }).overseas[0];
+  assert.deepEqual(findPrefill('overseas', { brand: 'Salomon', overseas: us }), { type: 'overseas', name: 'salomon.com (US)', currency: 'USD' });
+  const ca = brandLinks({ brand: "Arc'teryx", modelNo: 'X0001' }).overseas[0];
+  assert.equal(findPrefill('overseas', { overseas: ca }).currency, null, '모르는 나라 통화는 건드리지 않는다');
+  assert.equal(findPrefill('overseas', {}), null);
+});
 
 test('브랜드 찾기 — 대소문자·한글·조던=나이키', () => {
   assert.equal(findBrand('Salomon').key, 'salomon');
