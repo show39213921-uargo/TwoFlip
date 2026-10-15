@@ -10,7 +10,7 @@
 | 밝은 화면의 파란 글자 · 초점 테두리(`--focus`) | `#4b6bff` → `#3451e0` — 「지금 다시 확인함」 같은 `.link-btn` 이 흰 바탕 6.2:1 · 회백 5.6:1(전 4.3 · 3.9) | 라이트 모드 관리자 05 기록 줄 「지금 다시 확인함」, 「확보 상품 →」 버튼 글자 대비 4.5 이상인가. 고객 화면 초점 테두리가 너무 진하지 않은가 |
 | 소개 · 바로 구매 · 404 의 「신청하기」 → 첫 페이지 | `/#apply` 로 들어오면 링크 칸에 초점 | 데스크톱: 링크 칸에 커서가 깜빡이는가. 휴대폰: 키보드는 안 뜰 수 있다(브라우저 제한) — 칸에 초점 표시만 확인. 테스트 모드 · 실제 둘 다 |
 
-> 아래 #40 ~ #45 는 3단계 시안([캔버스](https://claude.ai/artifact/Awfmfyru2E8Nh7bW6PtKmm)) 승인 뒤 한꺼번에 올린 PR 이다. 조사 근거: `docs/design-references.md` · `docs/admin-flow-audit.md`, 바꾸기 전 화면 `docs/screens/before-*`.
+> 아래 #40 ~ #45 는 3단계 시안([캔버스](https://claude.ai/artifact/Awfmfyru2E8Nh7bW6PtKmm)) 승인 뒤 한꺼번에 올린 PR 이다. 조사 근거: `docs/design-references.md` · `docs/admin-flow-audit.md`, 바꾸기 전 화면 `docs/screens/before-*` · 바꾼 뒤 화면 `docs/screens/after-*`(둘 다 실서버 `?demo=0`, 375 · 1280 × 다크 · 라이트, 10-15 — 바꾼 뒤는 `ea56e46` 배포).
 
 ## A1 — 글자 · 간격 · 모서리 토큰 (#40)
 
