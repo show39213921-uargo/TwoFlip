@@ -11,15 +11,16 @@ import { createAdminClient, looksLikeKey, loginAdmin } from './admin-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
 import {
   STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest,
-  sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes, sortRecords, waitText, waitIsLong, josa,
+  sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes, sortRecords, waitText, waitIsLong,
 } from './admin-view.js';
 import { brandLinks, findPrefill } from './brands.js';
 import { CANDIDATE_TYPES, CURRENCIES, checkRate, compareToKream, parseRates, toKrw } from './sourcing.js';
-import { STOCK_STATES, stockLabel, STOCK_PILLS, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from './stock.js';
+import { STOCK_STATES, STOCK_PILLS, DEFAULT_STALE_HOURS, METHOD_LABELS, validateCheck, stockSummary, matchesStockFilter, parseStaleHours } from './stock.js';
 import { formatWon } from './preview-view.js';
 import { createItemsView } from './admin-items.js';
 import { CASE_RESULTS, caseChoices } from './cases-view.js';
 import { contactDraft, smsHref } from './contact-message.js';
+import { planPrefill, notes } from './admin-rules.js';
 
 const store = createLocalStore(browserStorage());
 const SETTINGS_KEY = 'twoflip.admin.settings.v1';
@@ -59,29 +60,19 @@ function applyPrefill(id) {
   const p = pendingPrefill.get(id);
   if (!s || !p) return;
   const { type, name, currency } = s.f;
-  // 13차 QA B-1 — 미리 채운 값은 data-autofill 로 표시한다. 다른 링크를 누르면 표시된 값 그대로(또는 빈칸)일 때만 바꾸고
-  // (매장 = 비움 · 외화 → KRW), 운영자가 고친 판매처 · 직접 고른 통화는 둔다. 국내 통화 막기는 그대로
-  const nameFree = !name.value.trim() || name.value === name.dataset.autofill;
-  const curFree = !currency.dataset.manual;
-  const curBefore = currency.value;
-  type.value = p.type;
-  type.dispatchEvent(new Event('change')); // 국내면 통화 KRW · 「더 적기」 요약 갱신
-  if (nameFree) {
-    name.value = p.name || '';
-    if (p.name) name.dataset.autofill = p.name; else delete name.dataset.autofill;
-  }
-  let curFilled = false;
-  if (curFree && p.currency) { currency.value = p.currency; currency.dataset.autofill = p.currency; curFilled = true; }
-  else if (curFree && currency.dataset.autofill && currency.value === currency.dataset.autofill) { currency.value = 'KRW'; delete currency.dataset.autofill; }
-  else if (curFree) delete currency.dataset.autofill;
+  // 규칙(미리 채운 값 표시 data-autofill · 고친 판매처 · 고른 통화 유지 · 국내 KRW)은 admin-rules.js planPrefill — 테스트로 고정
+  const plan = planPrefill({ name: name.value, nameAuto: name.dataset.autofill, currency: currency.value, currencyAuto: currency.dataset.autofill, manual: Boolean(currency.dataset.manual) }, p);
+  const mark = (el, key, v) => { if (v) el.dataset[key] = v; else delete el.dataset[key]; };
+  type.value = plan.type;
+  name.value = plan.name;
+  mark(name, 'autofill', plan.nameAuto);
+  currency.value = plan.currency;
+  mark(currency, 'autofill', plan.currencyAuto);
+  mark(currency, 'manual', plan.manual ? '1' : '');
+  type.dispatchEvent(new Event('change')); // 「더 적기」 요약 갱신(국내 KRW 는 이미 맞춤)
   prefilling = true;
   try { currency.dispatchEvent(new Event('change')); } finally { prefilling = false; }
-  const filled = [nameFree && p.name ? '판매처' : '', '종류', curFilled ? '통화' : ''].filter(Boolean).join(' · ');
-  const kept = [!nameFree ? '직접 고친 판매처' : '', !curFree && p.currency && currency.value !== p.currency ? `고른 통화(${currency.value})` : ''].filter(Boolean).join(' · ');
-  s.hint.textContent = `「${p.label}」 링크를 열었습니다 — ${filled}를 미리 채웠습니다.`
-    + (kept ? ` ${kept}는 그대로 뒀습니다.` : (nameFree && !p.name ? ' 매장 이름은 직접 적어 주세요.' : ''))
-    // 15차 QA U-1 — 운영자가 고른 외화를 국내 판매처 규칙이 KRW 로 바꿨으면 말없이 바꾸지 않는다
-    + (!curFree && curBefore !== 'KRW' && currency.value === 'KRW' ? ` 국내 판매처라 고른 통화(${curBefore})를 KRW 로 바꿨습니다.` : '');
+  s.hint.textContent = plan.hint;
   s.hint.hidden = false;
 }
 
@@ -211,26 +202,23 @@ async function apply(r, local, remote, done) {
 }
 
 const cands = (r) => (Array.isArray(r.sourcing) ? r.sourcing : []);
-const checkName = (r, checkId) => ((cands(r).find((c) => c.id === checkId) || {}).name || '판매처');
-const toLabel = (label) => `「${label}」${josa(label, '으로', '로')}`;
+const checkOf = (r, checkId) => cands(r).find((c) => c.id === checkId) || {};
+// 결과 문장은 admin-rules.js notes — 고객 이름 · 번호 · 매입가 · 메모가 들어가지 않는 것을 테스트로 고정
 const ops = {
-  setStatus: (r, status) => apply(r, () => ({ status }), (api) => api.patchApplication(r.id, { status }),
-    `${r.id} 상태를 ${toLabel(statusLabel(status))} 바꿨습니다.`),
-  setManual: (r, manual) => apply(r, () => ({ manual }), (api) => api.patchApplication(r.id, { manual }),
-    `${r.id} 브랜드 · 모델번호를 저장했습니다.`),
-  setAssignee: (r, assigneeId) => apply(r, () => ({ assigneeId }), (api) => api.patchApplication(r.id, { assigneeId }),
-    `${r.id} 담당자를 바꿨습니다.`),
+  setStatus: (r, status) => apply(r, () => ({ status }), (api) => api.patchApplication(r.id, { status }), notes.status(r, status)),
+  setManual: (r, manual) => apply(r, () => ({ manual }), (api) => api.patchApplication(r.id, { manual }), notes.brand(r)),
+  setAssignee: (r, assigneeId) => apply(r, () => ({ assigneeId }), (api) => api.patchApplication(r.id, { assigneeId }), notes.assignee(r)),
   addCheck: (r, v) => apply(r,
     () => ({ sourcing: [...cands(r), { id: newId(), ...v, at: nowIso() }] }),
     (api) => api.addCheck(r.id, { type: v.type, name: v.name, size: v.size, stock: v.stock, price: v.price ?? '', currency: v.currency, url: v.url, note: v.note }),
-    `${v.name || '판매처'} · ${stockLabel(v.stock)}${josa(stockLabel(v.stock), '을', '를')} 기록했습니다.`),
+    notes.checkAdded(v)),
   // patch = { stock } 이면 재고 상태 변경, {} 이면 「지금 다시 확인함」 — 둘 다 확인 시각 갱신
   updateCheck: (r, checkId, patch) => apply(r,
     () => ({ sourcing: cands(r).map((c) => (c.id === checkId ? { ...c, ...patch, at: nowIso(), method: 'manual' } : c)) }),
     (api) => (patch.stock ? api.patchCheck(checkId, { stock: patch.stock }) : api.touchCheck(checkId)),
-    patch.stock ? `${checkName(r, checkId)} 재고를 ${toLabel(stockLabel(patch.stock))} 바꿨습니다.` : `${checkName(r, checkId)} 확인 시각을 지금으로 바꿨습니다.`),
+    patch.stock ? notes.checkStock(checkOf(r, checkId), patch.stock) : notes.checkTouched(checkOf(r, checkId))),
   removeCheck: (r, checkId) => apply(r, () => ({ sourcing: cands(r).filter((c) => c.id !== checkId) }), (api) => api.deleteCheck(checkId),
-    `${checkName(r, checkId)} 기록을 지웠습니다.`),
+    notes.checkRemoved(checkOf(r, checkId))),
   // 최근 진행 사례(개편 A-3) — 서버에서만. result 가 비면 끄기
   // 10차 QA U-1 — 거절 이유를 맨 위 알림만이 아니라 스위치 바로 아래에도 남긴다(다시 그려도 보이게 state 에)
   async setCase(r, result) {
@@ -242,7 +230,7 @@ const ops = {
     }
     state.caseErr.delete(r.id);
     replaceServerRecord(res.data.application);
-    flash('', result ? `${r.id} 사례를 공개했습니다 — 첫 페이지 · 소개에는 1분 안에 보입니다.` : `${r.id} 사례 공개를 껐습니다 — 1분 안에 사라집니다.`);
+    flash('', result ? notes.caseOn(r) : notes.caseOff(r));
     render();
   },
   async removeApp(r) {
@@ -252,7 +240,7 @@ const ops = {
       if (!res.ok) { serverFail(res); return; }
       state.server.records = state.server.records.filter((x) => x.id !== r.id);
       if (r.itemId) itemsView.refresh(); // 요청을 지우면 그 상품의 삭제 버튼이 바로 풀리게(5차 QA B-2)
-      flash('', `접수번호 ${r.id} 를 지웠습니다.`);
+      flash('', notes.appRemoved(r));
       render();
       return;
     }
