@@ -45,6 +45,10 @@
 .history li { margin: 2px 0; }
 .src-note[data-kind="error"] { color: var(--error); }
 .src-note[data-kind="warn"] { color: #b26b00; }
+/* 15차 QA B-1 — 새 동작 결과는 6초 동안 머리 바로 아래에 붙는다(스크롤해 내려와 있어도 보이게).
+   크기는 그대로(그림자 번짐으로 여백) — 붙었다 떨어져도 아래가 밀리지 않는다 */
+.src-note:empty { min-height: 0; margin: 0; }
+.src-note.is-fresh { position: sticky; top: calc(var(--head-h, 61px) + 10px); z-index: 5; color: var(--ink); font-weight: 600; background: var(--surface); border-radius: 2px; box-shadow: 0 0 0 8px var(--surface), 0 0 0 9px var(--line-strong), 0 8px 20px 8px rgba(0, 0, 0, .14); }
 
 .settings { margin: 14px 0 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; }
 .settings summary { cursor: pointer; font-weight: 700; font-size: .9rem; }

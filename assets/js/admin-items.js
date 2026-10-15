@@ -3,7 +3,7 @@
 // 매입가 · 내부 메모는 이 화면에만 있다(공개 API 는 보내지 않는다). 차액·예상 수익은 계산해 보이지 않는다(미정 비용이 빠진 값이라).
 
 import { ITEM_STATUSES, ITEM_CONDITIONS, ITEM_CHANNELS, itemStatusLabel, validateItem } from './items-view.js';
-import { maskPhone, formatPhone, formatKst, statusLabel } from './admin-view.js';
+import { maskPhone, formatPhone, formatKst, statusLabel, josa } from './admin-view.js';
 import { formatWon } from './preview-view.js';
 
 const FIELDS = [
@@ -29,11 +29,12 @@ function fieldOf(h, f, value) {
   return h('input', { type: 'text', value: value || null, placeholder: f.placeholder || null, inputmode: f.mode || null, 'aria-label': f.label });
 }
 
-export function createItemsView({ root, h, ext, getApi, onFail, onRender = () => {} }) {
+export function createItemsView({ root, h, ext, getApi, onFail, onNotice = () => {}, onRender = () => {} }) {
   // prefill — 신청 카드 「확보 상품으로 등록 →」(3단계 B4)에서 넘어온 KREAM 주소 · 사이즈. 판매가 · 공개 설명 · 매입가는 채우지 않는다
   const st = { items: [], loaded: false, loading: false, msg: null, open: new Set(), reveal: new Set(), prefill: null };
   const field = (f, value) => fieldOf(h, f, value);
-  const flash = (kind, text) => { st.msg = text ? { kind, text } : null; };
+  // 결과 · 오류는 관리자 안내 줄(#src-note, role=status) 한 곳으로 보낸다 — 화면 낭독기가 읽는다(15차 QA B-1)
+  const flash = (kind, text) => { st.msg = text ? { kind, text } : null; if (text) onNotice(kind, text); };
 
   async function load() {
     st.loading = true;
@@ -127,7 +128,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
       onchange: (e) => {
         const to = e.target.value;
         if (it.status === 'reserved' && to !== 'sold' && !confirm('예약을 풀까요? 다른 요청을 받을 수 있게 됩니다.')) { render(); return; }
-        call(getApi().patchItem(it.id, { status: to }), `「${itemStatusLabel(to)}」(으)로 바꿨습니다.`);
+        call(getApi().patchItem(it.id, { status: to }), `「${itemStatusLabel(to)}」${josa(itemStatusLabel(to), '으로', '로')} 바꿨습니다.`);
       },
     }, ...ITEM_STATUSES.map((s) => h('option', {
       value: s.key, selected: s.key === it.status,
@@ -238,7 +239,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
 
   function render() {
     const head = h('div', { class: 'items-head' },
-      h('p', { class: 'src-note', 'data-kind': st.msg ? st.msg.kind : '', text: st.loading ? '불러오는 중…' : (st.msg ? st.msg.text : `확보 상품 ${st.items.length}건 — 「판매 중」·「예약 중」만 「바로 구매」 페이지에 보입니다.`) }),
+      h('p', { class: 'src-note', text: st.loading ? '불러오는 중…' : `확보 상품 ${st.items.length}건 — 「판매 중」·「예약 중」만 「바로 구매」 페이지에 보입니다.` }), // 동작 결과는 위 안내 줄에
       h('button', { type: 'button', class: 'btn-sm', text: '새로고침', disabled: st.loading ? true : null, onclick: () => load() }));
     root.replaceChildren(head, registerForm(),
       h('div', { class: 'app-list' }, ...(st.items.length ? st.items.map(card) : [h('div', { class: 'empty' }, h('p', { text: st.loaded ? '등록한 확보 상품이 없습니다. 위 「확보 상품 등록」으로 시작하세요.' : '' }))])));

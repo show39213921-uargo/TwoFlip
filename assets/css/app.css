@@ -591,6 +591,7 @@ textarea { resize: vertical; min-height: 88px; }
 .case-size { font-weight: 700; color: var(--ink-2); white-space: nowrap; }
 /* 13차 QA U-2 — 점은 다음 항목 앞(span::before)에 붙이고 그 폭만큼 왼쪽으로 당긴다. 줄 첫 항목의 점은 칸 왼쪽 바깥이라
    overflow 로 잘린다 → 줄 끝 · 줄 머리에 「·」가 남지 않는다. 항목은 줄바꿈 안 함. 아래 「처음이세요?」와 같이 왼쪽 정렬 */
-.apply-promise { --dot-w: 1.25em; display: flex; flex-wrap: wrap; row-gap: var(--sp-1, 4px); overflow: hidden; font-weight: 600; color: var(--hero-ink); text-align: left; }
+.apply-promise { --dot-w: 1em; display: flex; flex-wrap: wrap; row-gap: var(--sp-1, 4px); overflow: hidden; font-weight: 600; color: var(--hero-ink); text-align: left; }
 .apply-promise > span { white-space: nowrap; margin-left: calc(-1 * var(--dot-w)); margin-right: var(--dot-w); }
+.apply-promise > span:last-child { margin-right: 0; } /* 15차 QA U-2 — 점 칸 1.25em → 1em · 끝 여백 없앰: 375 · 100% 한 줄 */
 .apply-promise > span::before { content: "·"; content: "·" / ""; display: inline-block; width: var(--dot-w); text-align: center; color: var(--hero-ink-2); }

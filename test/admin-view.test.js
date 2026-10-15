@@ -117,3 +117,15 @@ test('KREAM 대비 기준 — 신청 사이즈 시세만, 없으면 null(즉시 
   assert.equal(kreamPriceFor({ ...r, size: '265' }), 300000);
   assert.equal(kreamPriceFor({ size: 'L', kream: null }), null);
 });
+
+test('josa — 받침에 맞춰 을/를 · 으로/로(ㄹ 받침은 로), 모르면 둘 다', async () => {
+  const { josa } = await import('../assets/js/admin-view.js');
+  assert.equal(josa('탐색 중', '으로', '로'), '으로');
+  assert.equal(josa('확보', '으로', '로'), '로');
+  assert.equal(josa('품절', '으로', '로'), '로');
+  assert.equal(josa('재고 있음', '을', '를'), '을');
+  assert.equal(josa('확인 불가', '을', '를'), '를');
+  assert.equal(josa('사이즈 270', '을', '를'), '을');
+  assert.equal(josa('Cap', '을', '를'), '을(를)');
+  assert.equal(josa('USD', '으로', '로'), '(으)로');
+});
