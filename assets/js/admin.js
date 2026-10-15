@@ -648,7 +648,9 @@ function stockPanel(r, kPrice, stock) {
             h('div', { text: ago(c.at) }),
             h('div', { class: 'sub' }, formatKst(c.at), ' · ', METHOD_LABELS[c.method] || '수동', c.checkedBy ? ` · ${c.checkedBy}` : '', c.stale ? h('span', { class: 'tag warn', text: '오래됨' }) : null),
             h('button', { type: 'button', class: 'link-btn', text: '지금 다시 확인함', onclick: () => ops.updateCheck(r, c.id, {}) })),
-          h('td', { class: 'left c-name' }, url ? ext(url, c.name) : c.name, isBest ? h('span', { class: 'cheapest', text: stock.cheapestStale ? '최저(오래됨)' : '최저' }) : null),
+          h('td', { class: 'left c-name' }, url ? ext(url, c.name) : c.name, isBest ? h('span', { class: 'cheapest', text: stock.cheapestStale ? '최저(오래됨)' : '최저' }) : null,
+            // 3단계 B4 — 살 수 있는 기록에서 바로 확보 상품 등록(KREAM 주소 · 사이즈만 채움)
+            buyable ? h('button', { type: 'button', class: 'link-btn to-item', text: '확보 상품으로 등록 →', onclick: () => registerFromCheck(r) }) : null),
           h('td', { class: 'c-type', text: typeLabel(c.type) }),
           h('td', { class: 'c-size' }, c.size || '—', c.sameSize ? null : h('span', { class: 'tag', text: '다른 사이즈' })),
           h('td', { class: 'c-stock' }, stockSel),
@@ -874,6 +876,13 @@ function openItem(id) {
   state.view = 'items';
   renderView();
   itemsView.openItem(id);
+}
+
+// 「재고 있음」 기록 → 확보 상품 등록 칸(3단계 B4). 판매가 · 공개 설명 · 매입가는 비워 둔다 — 운영자가 직접 쓴다
+function registerFromCheck(r) {
+  state.view = 'items';
+  renderView();
+  itemsView.startRegister({ kreamUrl: r.kreamUrl, size: r.size, from: r.id });
 }
 
 // ── 설정 · 이벤트 ────────────────────────────────────
