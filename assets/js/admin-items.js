@@ -102,9 +102,10 @@ export function createItemsView({ root, h, ext, getApi, onFail, onNotice = () =>
         st.items = [r.data.item, ...st.items];
         st.open.add(r.data.item.id);
         st.prefill = null;
+        // 결과 문장은 상품 번호만 — 공개 이름 · 매입가 · 메모 · 고객 이름은 넣지 않는다(16차 QA U-1)
         flash('', r.data.item.status === 'on_sale'
-          ? '등록했습니다 — 「바로 구매」 페이지에 바로 보입니다.'
-          : '등록했습니다(비공개). 공개하려면 상태를 「판매 중」으로 바꾸세요.');
+          ? `상품 ${r.data.item.id} 를 등록했습니다 — 「바로 구매」 페이지에 바로 보입니다.`
+          : `상품 ${r.data.item.id} 를 등록했습니다(비공개). 공개하려면 상태를 「판매 중」으로 바꾸세요.`);
         render();
       },
     }, grid, h('div', { class: 'item-register-actions' }, status, submit),
@@ -128,7 +129,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onNotice = () =>
       onchange: (e) => {
         const to = e.target.value;
         if (it.status === 'reserved' && to !== 'sold' && !confirm('예약을 풀까요? 다른 요청을 받을 수 있게 됩니다.')) { render(); return; }
-        call(getApi().patchItem(it.id, { status: to }), `「${itemStatusLabel(to)}」${josa(itemStatusLabel(to), '으로', '로')} 바꿨습니다.`);
+        call(getApi().patchItem(it.id, { status: to }), `상품 ${it.id} 상태를 「${itemStatusLabel(to)}」${josa(itemStatusLabel(to), '으로', '로')} 바꿨습니다.`);
       },
     }, ...ITEM_STATUSES.map((s) => h('option', {
       value: s.key, selected: s.key === it.status,
@@ -169,11 +170,11 @@ export function createItemsView({ root, h, ext, getApi, onFail, onNotice = () =>
           const was = it[f.key] == null ? '' : String(it[f.key]);
           if (now !== was) changed[f.key] = now;
         }
-        if (!Object.keys(changed).length) { flash('', '바뀐 칸이 없습니다.'); render(); return; }
+        if (!Object.keys(changed).length) { flash('', `상품 ${it.id} — 바뀐 칸이 없습니다.`); render(); return; }
         const v = validateItem(changed, false);
         for (const [key, el] of Object.entries(errs)) el.textContent = v.errors[key] || '';
         if (!v.ok) return;
-        call(getApi().patchItem(it.id, v.value), '').then((r) => {
+        call(getApi().patchItem(it.id, v.value), `상품 ${it.id} 를 저장했습니다.`).then((r) => {
           if (!r) return;
           // 저장 안내는 저장 버튼 옆에 잠깐 — 휴대폰에서 구역 맨 위는 화면 밖이다(5차 QA U-3)
           st.savedFor = it.id;
@@ -209,7 +210,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onNotice = () =>
                 // 한 번 누르면 바로 공개 화면이 바뀌므로 한 번 묻는다(3차 QA U-5)
                 if (!confirm(`${q.name} 님 요청으로 예약할까요?
 「바로 구매」 페이지에 「예약 중」으로 바뀌고, 새 구매 요청은 받지 않습니다.`)) return;
-                call(getApi().patchItem(it.id, { status: 'reserved', reservedApplicationId: q.id }), `${q.name} 님 요청으로 예약했습니다 — 「바로 구매」 페이지에서 「예약 중」으로 보입니다.`);
+                call(getApi().patchItem(it.id, { status: 'reserved', reservedApplicationId: q.id }), `상품 ${it.id} 를 접수번호 ${q.id} 요청으로 예약했습니다 — 「바로 구매」 페이지에서 「예약 중」으로 보입니다.`);
               },
             }));
       }))
@@ -223,7 +224,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onNotice = () =>
         const r = await getApi().deleteItem(it.id);
         if (!r.ok) { if (r.error.kind === 'auth') { onFail(r); return; } flash('error', r.error.message); render(); return; }
         st.items = st.items.filter((x) => x.id !== it.id);
-        flash('', '지웠습니다.');
+        flash('', `상품 ${it.id} 를 지웠습니다.`);
         render();
       },
     });
