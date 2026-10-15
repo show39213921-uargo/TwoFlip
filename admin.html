@@ -104,11 +104,12 @@
       <input type="search" id="f-q" placeholder="이름 · 번호 · 모델번호 · 접수번호 · 메모 검색" aria-label="검색">
     </section>
 
-    <section id="list" class="app-list" aria-live="polite"></section>
+    <!-- 목록 · 확보 상품은 알림 영역이 아니다(다시 그릴 때마다 통째로 읽힘) — 동작 결과는 위 #src-note 한 곳에서 알린다(13차 QA 정리 1) -->
+    <section id="list" class="app-list"></section>
     </div>
 
     <!-- 확보 상품(admin-items.js) — 서버에서만 -->
-    <section id="items-view" aria-live="polite" hidden></section>
+    <section id="items-view" hidden></section>
   </main>
 </body>
 </html>
