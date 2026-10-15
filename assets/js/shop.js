@@ -36,6 +36,7 @@ function notice(text, retry) {
   const a = Object.assign(el('a', 'btn btn-primary', 'KREAM 링크로 신청하기'), { href: './#apply' });
   links.append(a);
   box.append(links);
+  list.classList.remove('is-single');
   list.replaceChildren(box);
 }
 
@@ -73,7 +74,16 @@ function render(items) {
     notice('지금 바로 구매할 수 있는 상품이 없어요. 원하는 상품은 KREAM 링크로 신청해 주세요.', false);
     return;
   }
-  list.replaceChildren(...items.map((it) => card(itemCardModel(it))));
+  // 2단계 2-2 — 1개면 2열 반쪽 카드 대신 한 줄 전체 큰 카드 + 「지금은 이 물건 하나예요」(빈 오른쪽 칸이 남지 않게)
+  const single = items.length === 1;
+  list.classList.toggle('is-single', single);
+  const cards = items.map((it) => card(itemCardModel(it)));
+  if (single) {
+    const note = el('p', 'shop-one-note', '지금은 이 물건 하나예요. 찾는 게 없으면 ');
+    note.append(Object.assign(el('a', null, 'KREAM 링크로 부탁하기 →'), { href: './#apply' }));
+    cards.push(note);
+  }
+  list.replaceChildren(...cards);
 }
 
 function card(m) {
