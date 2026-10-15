@@ -2,7 +2,32 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest, sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes,
+  sortRecords, waitText, waitIsLong,
 } from '../assets/js/admin-view.js';
+
+test('정렬(3단계 B3) — 오래 기다린 순이 기본, 최근 접수 순, 시각이 깨진 행은 맨 뒤', () => {
+  const rs = [
+    { id: 'new', receivedAt: '2026-10-15T05:00:00Z' },
+    { id: 'old', receivedAt: '2026-10-14T01:00:00Z' },
+    { id: 'bad', receivedAt: 'x' },
+    { id: 'mid', receivedAt: '2026-10-15T01:00:00Z' },
+  ];
+  assert.deepEqual(sortRecords(rs).map((r) => r.id), ['old', 'mid', 'new', 'bad']);
+  assert.deepEqual(sortRecords(rs, 'newest').map((r) => r.id), ['new', 'mid', 'old', 'bad']);
+});
+
+test('기다린 시간(3단계 B3) — 분 · 시간(48시간 미만) · 일, 접수 · 탐색 중만', () => {
+  const now = Date.parse('2026-10-15T06:00:00Z');
+  const at = (ms, status = 'received') => ({ status, receivedAt: new Date(now - ms).toISOString() });
+  assert.equal(waitText(at(40 * 60000), now), '40분째');
+  assert.equal(waitText(at(26 * 3600000, 'sourcing'), now), '26시간째');
+  assert.equal(waitText(at(50 * 3600000), now), '2일째');
+  assert.equal(waitText(at(5 * 3600000, 'completed'), now), '', '끝난 신청은 없음');
+  assert.equal(waitText({ status: 'received', receivedAt: 'x' }, now), '');
+  assert.equal(waitIsLong(at(26 * 3600000), now, 24), true);
+  assert.equal(waitIsLong(at(2 * 3600000), now, 24), false);
+  assert.equal(waitIsLong(at(26 * 3600000, 'canceled'), now, 24), false);
+});
 
 const snap = {
   name: 'Salomon Jacket', nameKo: '살로몬 자켓', brand: 'Salomon', modelNo: 'LD0274200', image: 'https://x/a.png', buyNowPrice: 317000,

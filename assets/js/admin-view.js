@@ -63,6 +63,30 @@ export function sortNewest(records) {
   return records.slice().sort((a, b) => t(b) - t(a));
 }
 
+// 3단계 B3 — 목록 정렬: oldest(오래 기다린 순, 기본) | newest(최근 접수 순). 시각을 못 읽으면 맨 뒤
+export function sortRecords(records, order = 'oldest') {
+  if (order === 'newest') return sortNewest(records);
+  const t = (r) => { const v = Date.parse(r.receivedAt); return Number.isFinite(v) ? v : Infinity; };
+  return records.slice().sort((a, b) => t(a) - t(b));
+}
+
+// 기다린 시간 — 「40분째 · 5시간째 · 2일째」. 접수 · 탐색 중일 때만 보인다(끝난 신청은 빈 값)
+const OPEN = new Set(['received', 'sourcing']);
+export function waitText(record, nowMs = Date.now()) {
+  if (!record || !OPEN.has(record.status)) return '';
+  const t = Date.parse(record.receivedAt);
+  if (!Number.isFinite(t)) return '';
+  const min = Math.max(0, Math.floor((nowMs - t) / 60000));
+  if (min < 60) return `${min}분째`;
+  const hours = Math.floor(min / 60);
+  if (hours < 48) return `${hours}시간째`;
+  return `${Math.floor(hours / 24)}일째`;
+}
+export function waitIsLong(record, nowMs = Date.now(), hours = 24) {
+  const t = Date.parse(record && record.receivedAt);
+  return OPEN.has(record && record.status) && Number.isFinite(t) && nowMs - t > hours * 3600000;
+}
+
 // 신청한 사이즈의 「신청 당시」 KREAM 시세
 export function sizeQuoteFor(record) {
   const sizes = record && record.kream && Array.isArray(record.kream.sizes) ? record.kream.sizes : [];

@@ -122,9 +122,20 @@ export function stockSummary(record, { rates = {}, now = Date.now(), staleHours 
   };
 }
 
+// 목록 거르기 알약(3단계 B3) — 순서 그대로 보인다. 값은 matchesStockFilter 의 키
+export const STOCK_PILLS = [
+  { key: 'unchecked', label: '기록 없음' },
+  { key: 'stale', label: '오래됨' },
+  { key: 'available', label: '재고 있음' },
+  { key: 'none', label: '재고 없음' },
+  { key: '', label: '전체' },
+];
+
 export function matchesStockFilter(record, filter, opts) {
   if (!filter) return true;
   const s = stockSummary(record, opts);
+  if (filter === 'unchecked') return s.total === 0; // 신청 사이즈로 한 번도 기록하지 않음
+  if (filter === 'stale') return s.total > 0 && s.needsCheck; // 기록은 있는데 전부 유효 시간이 지남
   if (filter === 'needs') return s.needsCheck;
   if (filter === 'available') return s.buyable > 0;
   if (filter === 'none') return !s.needsCheck && s.buyable === 0;

@@ -110,6 +110,12 @@ test('목록 필터 — 확인 필요 / 재고 있음 / 재고 없음', () => {
   assert.deepEqual([none, yes, no].map((r) => matchesStockFilter(r, 'available', opts)), [false, true, false]);
   assert.deepEqual([none, yes, no].map((r) => matchesStockFilter(r, 'none', opts)), [false, false, true]);
   assert.deepEqual([none, yes, no].map((r) => matchesStockFilter(r, '', opts)), [true, true, true]);
+  // 3단계 B3 — 기록 없음 = 한 번도 안 함, 오래됨 = 기록은 있는데 다 지남
+  assert.deepEqual([none, yes, no].map((r) => matchesStockFilter(r, 'unchecked', opts)), [true, false, false]);
+  assert.deepEqual([none, yes, no].map((r) => matchesStockFilter(r, 'stale', opts)), [false, false, false]);
+  const old = app([{ id: '1', size: 'L', stock: 'in', price: 1, currency: 'KRW', at: iso(30 * H) }]);
+  assert.equal(matchesStockFilter(old, 'stale', opts), true, '24시간 넘은 기록만 있으면 오래됨');
+  assert.equal(matchesStockFilter(old, 'unchecked', opts), false);
 });
 
 test('설정 유효 시간 — 1~168 정수만(B-3)', () => {
