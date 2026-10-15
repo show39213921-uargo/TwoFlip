@@ -57,3 +57,22 @@ test('문자로 열기 주소 — 숫자만, 글은 인코딩, 번호가 없으�
   assert.equal(smsHref('010-1234-5678', '안녕 & 하세요'), 'sms:01012345678?&body=' + encodeURIComponent('안녕 & 하세요'));
   assert.equal(smsHref('', 'x'), null);
 });
+
+// 오픈 전 회귀 고정(17차 A-1) — 06 연락 문구 초안 전체 모양
+test('연락 문구 회귀 — 받침 · 영문 · 상품명 없음 · 사이즈 없음 · 판매처 종류 3가지 · 금지 내용 · 가격 빈칸', () => {
+  const r = (type, extra = {}) => ({
+    id: 'a3f9c210', size: 'L', name: '홍길동', phone: '010-1234-5678', memo: '비밀 메모', ...extra,
+    sourcing: [{ type, name: '[QA] 매장 A', stock: 'in', price: 289000, currency: 'KRW', note: '직원 김', at: '2026-10-15T01:00:00Z' }],
+  });
+  const line = (rec, title) => contactDraft(rec, { title }).split('\n')[1];
+  assert.equal(line(r('offline'), '살로몬 UNI 크로스 인슐레이션 자켓 라이트 그레이'), '신청하신 살로몬 UNI 크로스 인슐레이션 자켓 라이트 그레이(사이즈 L)를 매장에서 찾았어요.');
+  assert.equal(line(r('offline'), '살로몬 자켓'), '신청하신 살로몬 자켓(사이즈 L)을 매장에서 찾았어요.');
+  assert.equal(line(r('offline'), 'Cap'), '신청하신 Cap(사이즈 L), 매장에서 찾았어요.');
+  assert.equal(line(r('offline'), ''), '신청하신 상품(사이즈 L)을 매장에서 찾았어요.');
+  assert.equal(line(r('offline', { size: '' }), '살로몬 자켓'), '신청하신 살로몬 자켓을 매장에서 찾았어요.');
+  assert.equal(line(r('official'), '살로몬 자켓'), '신청하신 살로몬 자켓(사이즈 L)을 공식몰에서 찾았어요.');
+  assert.equal(line(r('overseas'), '살로몬 자켓'), '신청하신 살로몬 자켓(사이즈 L)을 해외몰에서 찾았어요.');
+  const all = contactDraft(r('offline'), { title: '살로몬 자켓' });
+  assert.equal(all.split('\n')[2], '가격: [가격을 적어 주세요]');
+  for (const leak of ['[QA] 매장 A', '289000', '289,000', '직원 김', '비밀 메모', '홍길동', '010-1234-5678', '01012345678']) assert.ok(!all.includes(leak), leak);
+});
