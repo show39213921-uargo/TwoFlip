@@ -39,7 +39,8 @@ dev/server.js              로컬 정적 서버 (배포 안 됨)
 docs/api-contract.md       API 요청·응답 계약 — 두 레포의 정본
 docs/deploy.md             도메인·DNS·Pages 현재 설정
 docs/design-guide.md       디자인 가이드 — 원칙 · 브랜드 · 색 · 글자 · 부품 · 문구 · 정리 계획(QA 디자인 제안의 판단 기준)
-docs/qa-prompt.md          화면 QA · UI/UX 제안 지시서 — 다른 세션·사람에게 그대로 넘긴다(계정 비밀번호는 별도 전달)
+docs/qa-regular.md         정기 QA 틀(Claude in Chrome 용) — 매 회차 0번(회차 · 배포 번호 · 이번에 바뀐 것)만 채워 넘긴다(12차~)
+docs/qa-prompt.md          (지난 기록) 화면 QA · UI/UX 제안 지시서 — 다른 세션·사람에게 그대로 넘긴다(계정 비밀번호는 별도 전달)
 docs/ux-review-mobile-prompt.md  2차 UI/UX · 소비자 편의 디자인 제안 지시서(모바일 우선, 10-14 반영분 기준) — Claude in Chrome 용
 assets/img/                워드마크(twoflip-logo-white.svg) · 스플래시(twoflip-splash.svg) · 공유 미리보기(og-home.png · og-shop.png, 1200×630)
 dev/stamp.js               배포 때 CSS·JS 주소와 모듈 import 에 ?v=커밋 을 붙인다(Pages 10분 캐시로 새 HTML·옛 CSS 가 섞이지 않게) — pages.yml 에서 실행
