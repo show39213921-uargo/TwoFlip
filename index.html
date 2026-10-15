@@ -69,10 +69,16 @@
             <form id="apply-form" novalidate aria-label="신청서">
               <div class="field">
                 <label for="kreamUrl">KREAM 링크</label>
-                <div class="input-icon">
+                <!-- 1단계 1-1 — 칸 오른쪽 안 「붙여넣기」(클립보드 읽기가 되는 브라우저만) ↔ 값이 있으면 「링크 지우기」 ✕ -->
+                <div class="input-icon url-box" id="url-box">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
                   <input id="kreamUrl" name="kreamUrl" type="url" inputmode="url" spellcheck="false" placeholder="KREAM 앱 「공유 → 링크 복사」 후 붙여넣기" required>
+                  <button type="button" class="url-action url-paste" id="url-paste" aria-label="클립보드에서 붙여넣기" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h4"/></svg><span>붙여넣기</span></button>
+                  <button type="button" class="url-action url-clear" id="url-clear" aria-label="링크 지우기" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
                 </div>
+                <!-- 링크 확인 칩 — 상품 번호만(상품명은 모른다). 주소에서 사이즈를 넣었으면 「· 사이즈 …」 -->
+                <p class="link-check" id="url-check" aria-live="polite" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><span id="url-check-text"></span></p>
+                <p class="hint" id="url-note" aria-live="polite" hidden></p>
                 <p class="hint" id="url-hint" hidden></p>
                 <p class="error" data-error-for="kreamUrl" aria-live="polite"></p>
               </div>
@@ -112,6 +118,9 @@
                   <p class="error" data-error-for="name" aria-live="polite"></p>
                 </div>
               </div>
+
+              <!-- 사이즈 빠른 선택(1단계 1-1) — 링크는 맞는데 주소에 사이즈가 없을 때만(시세 칩이 있으면 그쪽). 가로로 넘기는 한 줄 -->
+              <div class="size-quick" id="size-quick" role="group" aria-label="사이즈 빠르게 고르기" hidden></div>
 
               <div class="field">
                 <!-- 번호를 넣기 직전에 쓰임을 같이(4차 QA U-2) — 문의 창구는 사업 결정 뒤에 -->

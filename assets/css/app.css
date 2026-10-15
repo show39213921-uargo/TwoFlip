@@ -263,6 +263,41 @@ textarea { resize: vertical; min-height: 88px; }
 .input-icon svg { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); stroke: var(--ink-3); fill: none; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
 .input-icon input { padding-left: 42px; }
 
+/* 링크 칸 보조(1단계 1-1 · 가이드 §6) — 칸 오른쪽 안 「붙여넣기」 ↔ 「링크 지우기」 ✕, 칸 아래 확인 칩, 사이즈 빠른 선택 */
+.url-box.has-paste input { padding-right: calc(4.6rem + 28px); } /* 버튼 폭은 글자 크기를 따른다 — 큰 글자에서 글자가 버튼 밑으로 들어가지 않게 */
+.url-box.has-clear input { padding-right: 52px; }
+.url-action {
+  position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+  min-width: 44px; min-height: 44px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink);
+  font: inherit; font-size: .88rem; font-weight: 700; white-space: nowrap; cursor: pointer;
+}
+.url-action[hidden] { display: none; }
+.input-icon .url-action svg { position: static; transform: none; width: 16px; height: 16px; flex: none; stroke-width: 2; }
+.url-paste { background: color-mix(in srgb, var(--ink) 12%, transparent); }
+.url-paste:hover { background: color-mix(in srgb, var(--ink) 18%, transparent); }
+.input-icon .url-paste svg { stroke: var(--brand); }
+.url-clear { padding: 0; }
+.input-icon .url-clear svg { width: 18px; height: 18px; stroke: var(--ink-3); stroke-width: 2.2; }
+.link-check {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin: 8px 0 0; padding: 4px 12px 4px 8px;
+  border-radius: 999px; font-size: .84rem; font-weight: 600; line-height: 1.4; color: var(--ink);
+  background: color-mix(in srgb, var(--brand) 14%, transparent); border: 1px solid color-mix(in srgb, var(--brand) 38%, transparent);
+}
+.link-check[hidden] { display: none; }
+.link-check svg { flex: none; width: 16px; height: 16px; fill: none; stroke: var(--brand); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+/* 좁은 화면은 가로로 넘기는 한 줄(오른쪽 끝까지 붙여 다음 칩이 살짝 보이게 — 히어로가 넘침을 자른다), 넓은 화면은 줄바꿈 */
+.size-quick { display: flex; gap: 6px; overflow-x: auto; margin: -2px -20px 12px 0; padding: 0 20px 2px 0; scrollbar-width: none; }
+.size-quick[hidden] { display: none; }
+.size-quick-chip {
+  flex: none; min-width: 48px; min-height: 44px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; font-family: var(--mono); font-size: .9rem; font-weight: 600;
+}
+.size-quick-chip:hover { border-color: var(--line-strong); }
+.size-quick-chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.size-quick-sep { flex: none; width: 1px; margin: 10px 2px; background: var(--line); }
+@media (min-width: 561px) { .size-quick { flex-wrap: wrap; overflow: visible; margin-right: 0; padding-right: 0; } }
+
 .error { color: var(--error); font-size: .84rem; margin: 6px 0 0; }
 .error:empty { display: none; }
 .hint { color: var(--ink-3); font-size: .82rem; margin: 6px 0 0; }
