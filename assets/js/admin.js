@@ -35,6 +35,7 @@ const state = {
   reveal: new Set(),
   history: new Map(), // 신청 id → 서버에서 받은 상태 이력
   checkForm: new Map(), // 신청 id → 05 재고 기록 칸의 직전 종류·통화·사이즈
+  moreOpen: new Set(), // 좁은 화면 05 「더 적기」를 펼쳐 둔 신청 id(다시 그려도 펼친 채로)
   caseErr: new Map(), // 신청 id → 사례 공개를 서버가 거절한 이유(스위치 아래 한 줄)
   view: 'apps', // 신청 | items(확보 상품)
   jumpToRecord: null, // 접힌 카드의 「재고 기록」 — 다음 그리기 때 그 카드 05 기록 칸으로
@@ -42,6 +43,10 @@ const state = {
   settings: null,
 };
 state.settings = state.localSettings;
+
+// 좁은 화면(휴대폰) — 05 재고 기록 칸을 한 손 기록 모양으로(2단계 2-3). 폭이 기준을 넘나들면 다시 그린다(render 는 아래에서 정의)
+const narrowMq = window.matchMedia('(max-width: 560px)');
+narrowMq.addEventListener('change', () => render());
 
 // ── 작은 도구 ─────────────────────────────────────────
 function h(tag, props, ...kids) {
@@ -605,6 +610,38 @@ function stockPanel(r, kPrice, stock) {
     },
   });
 
+  // 좁은 화면 한 손 기록(2단계 2-3) — 판매처 · 가격 + 큰 버튼 「재고 있음」 「품절」이 곧 「기록」. 나머지는 「더 적기」에 접는다.
+  // 같은 칸(f)과 같은 「기록」 동작(검사 · 직전 값 유지 · 국내 통화 막기)을 그대로 쓰고, 상태만 버튼이 정한다
+  const submit = (stockKey) => { f.stock.value = stockKey; add.click(); };
+  const sum = h('span', {});
+  const unit = h('span', { class: 'qf-unit', 'aria-hidden': 'true' });
+  const refresh = () => {
+    sum.textContent = ` · ${typeLabel(f.type.value)} · 사이즈 ${f.size.value.trim() || '—'} · ${f.currency.value}`;
+    unit.textContent = f.currency.value === 'KRW' ? '원' : f.currency.value;
+  };
+  for (const el of [f.type, f.size, f.currency]) for (const ev of ['change', 'input']) el.addEventListener(ev, refresh);
+  refresh();
+  const quickForm = () => h('div', { class: 'quick-form' },
+    h('label', { class: 'qf-field' }, '판매처', f.name),
+    h('label', { class: 'qf-field' }, h('span', {}, '가격 ', h('span', { class: 'sub', text: '· 모르면 비워 두세요' })), h('span', { class: 'qf-price' }, f.price, unit)),
+    h('div', { class: 'qf-actions' },
+      h('button', { type: 'button', class: 'qf-btn primary', text: '재고 있음', onclick: () => submit('in') }),
+      h('button', { type: 'button', class: 'qf-btn', text: '품절', onclick: () => submit('out') })),
+    h('p', { class: 'sub qf-hint', text: '누르면 그 상태로 바로 기록합니다. 판매처만 적어도 됩니다.' }),
+    h('details', {
+      class: 'qf-more', open: state.moreOpen.has(r.id),
+      ontoggle: (e) => { if (e.currentTarget.open) state.moreOpen.add(r.id); else state.moreOpen.delete(r.id); },
+    },
+    h('summary', {}, h('strong', { text: '더 적기' }), sum),
+    h('div', { class: 'qf-grid' },
+      h('label', {}, '종류', f.type), h('label', {}, '확인한 사이즈', f.size), h('label', {}, '통화', f.currency),
+      h('label', {}, '주소(선택)', f.url), h('label', { class: 'qf-wide' }, '메모', f.note)),
+    h('p', { class: 'sub qf-other-k', text: '다른 상태로 기록' }),
+    h('div', { class: 'qf-other' },
+      h('button', { type: 'button', class: 'btn-sm', text: '소량', onclick: () => submit('low') }),
+      h('button', { type: 'button', class: 'btn-sm', text: '확인 불가', onclick: () => submit('unknown') }))),
+    err);
+
   const bestCmp = stock.cheapest ? compareToKream(stock.cheapest.krw, kPrice) : null;
   return h('div', { class: 'panel full' },
     h('h3', {}, h('span', { class: 'n', text: '05' }), `재고 확인 — 신청 사이즈 ${want || '미지정'}`),
@@ -614,7 +651,7 @@ function stockPanel(r, kPrice, stock) {
         : (stock.cheapest && kPrice == null ? h('span', { class: 'sub', text: ` KREAM 대비 — (사이즈 ${want || '?'} 시세 미확인)` }) : null),
       h('span', { class: 'sub', text: ` · 최근 확인 기준 ${state.settings.staleHours}시간(설정) · 오래된 확인 ${stock.stale}건` + (stock.otherSize ? ` · 다른 사이즈 ${stock.otherSize}건` : '') })),
     table,
-    h('div', { class: 'cand-form stock-form' }, f.type, f.name, f.size, f.stock, f.price, f.currency, f.url, f.note, add, err),
+    narrowMq.matches ? quickForm() : h('div', { class: 'cand-form stock-form' }, f.type, f.name, f.size, f.stock, f.price, f.currency, f.url, f.note, add, err),
     h('p', { class: 'muted', style: 'margin-top:6px', text: '재고 확인은 구매가 아닙니다 — 실제로 사면 위 상태를 「확보」로 바꾸세요. 지금 기록은 전부 사람이 확인한 수동 기록입니다. 해외 원화 = 물품가 × 환율(카드 수수료·관세·부가세·배송비 별도).' }));
 }
 
