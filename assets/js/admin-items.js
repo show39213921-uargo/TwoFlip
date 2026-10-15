@@ -30,7 +30,8 @@ function fieldOf(h, f, value) {
 }
 
 export function createItemsView({ root, h, ext, getApi, onFail, onRender = () => {} }) {
-  const st = { items: [], loaded: false, loading: false, msg: null, open: new Set(), reveal: new Set() };
+  // prefill — 신청 카드 「확보 상품으로 등록 →」(3단계 B4)에서 넘어온 KREAM 주소 · 사이즈. 판매가 · 공개 설명 · 매입가는 채우지 않는다
+  const st = { items: [], loaded: false, loading: false, msg: null, open: new Set(), reveal: new Set(), prefill: null };
   const field = (f, value) => fieldOf(h, f, value);
   const flash = (kind, text) => { st.msg = text ? { kind, text } : null; };
 
@@ -68,8 +69,9 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
   function registerForm() {
     const inputs = {};
     const errs = {};
+    const pre = st.prefill || {};
     const grid = h('div', { class: 'item-form-grid' }, ...FIELDS.map((f) => {
-      inputs[f.key] = field(f, '');
+      inputs[f.key] = field(f, (f.key === 'kreamUrl' || f.key === 'size') ? (pre[f.key] || '') : '');
       errs[f.key] = h('span', { class: 'field-msg', 'data-kind': 'error' });
       return h('label', { class: f.wide ? 'wide' : null }, f.label, inputs[f.key], errs[f.key]);
     }));
@@ -98,6 +100,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
         }
         st.items = [r.data.item, ...st.items];
         st.open.add(r.data.item.id);
+        st.prefill = null;
         flash('', r.data.item.status === 'on_sale'
           ? '등록했습니다 — 「바로 구매」 페이지에 바로 보입니다.'
           : '등록했습니다(비공개). 공개하려면 상태를 「판매 중」으로 바꾸세요.');
@@ -105,8 +108,11 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
       },
     }, grid, h('div', { class: 'item-register-actions' }, status, submit),
     h('p', { class: 'muted', text: 'KREAM 상품명·이미지는 같은 상품의 최근(6시간) 정보가 있으면 바로, 없으면 사무실 PC 가 30분 안에 채웁니다.' }));
-    return h('details', { class: 'settings item-register-box', open: st.loaded && !st.items.length ? true : null },
-      h('summary', {}, '＋ 확보 상품 등록'), form);
+    const from = st.prefill ? h('p', { class: 'sub item-prefill', role: 'status' },
+      `신청 ${st.prefill.from} 의 KREAM 주소 · 사이즈를 채웠습니다. 판매가 · 공개 설명 · 매입가는 직접 적어 주세요. `,
+      h('button', { type: 'button', class: 'link-btn', text: '채운 값 지우기', onclick: () => { st.prefill = null; render(); } })) : null;
+    return h('details', { class: 'settings item-register-box', open: (st.loaded && !st.items.length) || st.prefill ? true : null },
+      h('summary', {}, '＋ 확보 상품 등록'), from, form);
   }
 
   // ── 목록 ─────────────────────────────────────────────
@@ -254,9 +260,23 @@ export function createItemsView({ root, h, ext, getApi, onFail, onRender = () =>
     else { flash('error', '그 확보 상품을 찾지 못했습니다(지워졌을 수 있습니다).'); render(); }
   }
 
+  // 3단계 B4 — 신청 카드의 「재고 있음」 기록에서 넘어와 등록 칸을 채워 연다(주소 · 사이즈만)
+  async function startRegister({ kreamUrl, size, from }) {
+    st.prefill = { kreamUrl: kreamUrl || '', size: size || '', from: from || '' };
+    if (!st.loaded) await load(); else render();
+    const box = root.querySelector('.item-register-box');
+    if (box) {
+      box.open = true;
+      box.scrollIntoView({ block: 'start' });
+      const sale = box.querySelector('input[aria-label^="판매가"]');
+      if (sale) sale.focus({ preventScroll: true });
+    }
+  }
+
   return {
     titleOf,
     openItem,
+    startRegister,
     preload() { if (!st.loaded && !st.loading) load(); },
     refresh() { if (st.loaded && !st.loading) load(); },
     show() { if (!st.loaded && !st.loading) load(); else render(); },
