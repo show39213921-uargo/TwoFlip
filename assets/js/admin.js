@@ -35,6 +35,7 @@ const state = {
   reveal: new Set(),
   history: new Map(), // 신청 id → 서버에서 받은 상태 이력
   checkForm: new Map(), // 신청 id → 05 재고 기록 칸의 직전 종류·통화·사이즈
+  caseErr: new Map(), // 신청 id → 사례 공개를 서버가 거절한 이유(스위치 아래 한 줄)
   view: 'apps', // 신청 | items(확보 상품)
   jumpToRecord: null, // 접힌 카드의 「재고 기록」 — 다음 그리기 때 그 카드 05 기록 칸으로
   localSettings: loadSettings(),
@@ -181,7 +182,19 @@ const ops = {
     (api) => (patch.stock ? api.patchCheck(checkId, { stock: patch.stock }) : api.touchCheck(checkId))),
   removeCheck: (r, checkId) => apply(r, () => ({ sourcing: cands(r).filter((c) => c.id !== checkId) }), (api) => api.deleteCheck(checkId)),
   // 최근 진행 사례(개편 A-3) — 서버에서만. result 가 비면 끄기
-  setCase: (r, result) => apply(r, () => ({}), (api) => (result ? api.setCase(r.id, result) : api.deleteCase(r.id))),
+  // 10차 QA U-1 — 거절 이유를 맨 위 알림만이 아니라 스위치 바로 아래에도 남긴다(다시 그려도 보이게 state 에)
+  async setCase(r, result) {
+    const res = await (result ? adminApi().setCase(r.id, result) : adminApi().deleteCase(r.id));
+    if (!res.ok) {
+      if (res.error.kind !== 'auth') state.caseErr.set(r.id, { text: res.error.fields ? Object.values(res.error.fields).join(' ') : res.error.message, noProduct: Boolean(res.error.fields && res.error.fields.result) });
+      serverFail(res);
+      return;
+    }
+    state.caseErr.delete(r.id);
+    replaceServerRecord(res.data.application);
+    state.msg = null;
+    render();
+  },
   async removeApp(r) {
     if (!confirm(`접수번호 ${r.id} 신청을 지울까요?` + (isServer() ? ' 서버 DB 에서 지워지고 되돌릴 수 없습니다.' : ''))) return;
     if (isServer()) {
@@ -638,12 +651,19 @@ function caseRow(r) {
   const choices = caseChoices(r.status);
   if (!choices.length) return [h('dt', { text: '사례 공개' }), h('dd', { class: 'muted', text: '완료나 취소된 신청만 공개할 수 있습니다.' })];
   const cur = r.case && r.case.result;
+  const k = r.kream || null;
+  const noProduct = !cur && !(k && (k.nameKo || k.name)); // 서버는 상품명이 없으면 거절한다(no_product)
+  const saved = state.caseErr.get(r.id);
+  const err = saved && (!saved.noProduct || noProduct) ? saved.text : ''; // KREAM 정보가 채워진 뒤 다시 받으면 옛 거절 이유는 감춘다
   const sel = h('select', {
     'aria-label': '사례로 공개', class: 'assignee-sel',
     onchange: (e) => ops.setCase(r, e.target.value),
   }, h('option', { value: '' }, '공개 안 함'), ...choices.map((v) => h('option', { value: v, selected: v === cur }, `공개 — ${CASE_RESULTS[v].admin}`)));
   return [h('dt', { text: '사례 공개' }), h('dd', {}, sel,
-    h('span', { class: 'sub', text: cur ? ` · ${r.case.date} 날짜로 공개 중` : '' }),
+    // 10차 QA B-2 — 점 앞이 비어 보이지 않게 결과 이름부터
+    cur ? h('p', { class: 'sub', style: 'margin:4px 0 0', text: `${CASE_RESULTS[cur].admin} · ${r.case.date} 날짜로 공개 중` }) : null,
+    err ? h('p', { class: 'form-err', role: 'alert', style: 'margin:4px 0 0', text: `${err}${noProduct ? ' KREAM 정보가 채워지면(접수 후 최대 30분) 다시 고르세요.' : ''}` })
+      : noProduct ? h('p', { class: 'sub', style: 'margin:4px 0 0', text: 'KREAM 정보가 아직 없습니다 — 채워진 뒤(접수 후 최대 30분) 공개할 수 있습니다.' }) : null,
     h('p', { class: 'muted', style: 'margin:4px 0 0', text: '이름·번호·가격은 나가지 않습니다 — 날짜·브랜드·상품명·사이즈·결과만.' }))];
 }
 
