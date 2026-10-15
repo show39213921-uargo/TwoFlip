@@ -199,6 +199,15 @@ a { color: inherit; }
 .done-dot svg { width: 16px; height: 16px; fill: none; stroke: var(--brand-ink); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .done-steps .is-now { color: var(--ink); font-weight: 800; }
 .done-steps .is-now .done-dot { background: var(--brand); border-color: var(--brand); }
+/* 2단계 2-1 — 카드가 뜰 때 한 번: 원이 가운데서 채워지고(.18초) 체크가 그려진다(.12초). 반복 없음, 동작 줄이기면 바로 채운 상태.
+   카드는 hidden 으로 숨겼다 보이므로 신청할 때마다 처음부터 한 번 돈다 */
+.done-steps .is-now .done-dot { background: transparent; }
+.done-steps .is-now .done-dot::before { content: ""; position: absolute; inset: -2px; border-radius: 50%; background: var(--brand); animation: done-fill .18s cubic-bezier(.2, .8, .3, 1) both; }
+.done-steps .is-now .done-dot svg { position: relative; }
+.done-steps .is-now .done-dot path { stroke-dasharray: 24; animation: done-check .12s ease-out .18s both; }
+@keyframes done-fill { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes done-check { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .done-steps .is-now .done-dot::before, .done-steps .is-now .done-dot path { animation: none; } }
 .done-now { margin: 0 0 16px; color: var(--ink-3); font-size: .84rem; text-align: center; }
 .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 
