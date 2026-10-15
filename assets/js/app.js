@@ -481,3 +481,12 @@ function syncQuick() {
 syncQuick();
 
 updateLinkUi();
+
+// 다른 페이지(소개 · 바로 구매 · 404)의 「신청하기」(./#apply)로 들어오면 링크 칸에 바로 커서(3단계 덤).
+// 페이지를 막 연 참이라 휴대폰은 키보드까지는 안 뜰 수 있다(브라우저가 사람이 누른 때만 띄운다) — 칸 위치·초점 표시는 된다
+// 다른 페이지에서 넘어올 때는 브라우저가 주소의 #apply 로 스크롤하면서 초점을 body 로 돌려놓는다 — load 뒤에 준다(새로고침은 바로 돼도)
+const focusApply = () => {
+  if (location.hash === '#apply' && !form.hidden && (document.activeElement === document.body || !document.activeElement)) urlInput.focus({ preventScroll: true });
+};
+if (document.readyState === 'complete') setTimeout(focusApply, 0);
+else window.addEventListener('load', () => setTimeout(focusApply, 0), { once: true });
