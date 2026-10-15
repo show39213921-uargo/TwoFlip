@@ -142,9 +142,11 @@ DB 저장일 때만 열린다 — 서버에 표(`twoflip_items`)가 아직 없�
 
 ```json
 { "cases": [
-  { "date": "2026-10-12", "brand": "Salomon", "name": "살로몬 UNI 크로스 인슐레이션 자켓", "size": "L", "result": "found_store" }
+  { "date": "2026-10-12", "brand": "Salomon", "name": "살로몬 UNI 크로스 인슐레이션 자켓", "size": "L", "result": "found_store", "image": "https://kream-phinf.pstatic.net/…png" }
 ] }
 ```
+
+- `image`(1단계 1-2, backend #15): 켤 때 떠 둔 사진 주소(https) — 바로 구매 요청이면 그 확보 상품 사진, 아니면 신청의 KREAM 사진. 없으면 `null`(화면은 「사진 준비 중」), `not_found` 는 항상 `null`(화면은 사진 칸 없이). 마이그레이션 `2026-10-15_case_image` 전이면 늘 `null`.
 
 - 운영자가 관리자 화면 「사례 공개」를 켠 완료·취소 신청만, 최근 5건. **자동 공개는 없다.**
 - `result`: `found_store`(매장에서 찾음 · 연락 완료) · `found_online`(공식몰에서 찾음 · 연락 완료) · `not_found`(이번엔 못 찾았어요). 화면 문구는 `assets/js/cases-view.js`.

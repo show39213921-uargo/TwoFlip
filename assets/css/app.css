@@ -419,9 +419,14 @@ textarea { resize: vertical; min-height: 88px; }
 .cases-title { margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -0.03em; }
 .cases-sub { margin: 4px 0 12px; color: var(--ink-3); font-size: .86rem; }
 .case-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-width: 640px; }
-.case { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); gap: 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
-.case-date { color: var(--ink-3); font-size: .8rem; padding-top: 2px; }
-.case-body { display: grid; gap: 4px; min-width: 0; }
+/* 1단계 1-2 — 왼쪽 정사각 64px 사진(흰 바탕 · contain) + 날짜 · 상품 · 결과. 못 찾은 건은 사진 칸 없이 한 열 */
+.case { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.case.no-thumb { grid-template-columns: minmax(0, 1fr); }
+.case-thumb { width: 64px; height: 64px; box-sizing: border-box; background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.case-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.case-thumb .strip-fallback { width: 40%; height: 40%; }
+.case-date { color: var(--ink-3); font-size: .8rem; }
+.case-body { display: grid; gap: 3px; min-width: 0; }
 .case-title { font-weight: 600; font-size: .92rem; line-height: 1.35; overflow-wrap: anywhere; }
 /* 결과 칩 — 찾음은 「가능」 색(§3), 못 찾음은 끝·없음 색. 색만으로 가르지 않고 글자로 말한다 */
 .case-result { justify-self: start; font-size: .76rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); }

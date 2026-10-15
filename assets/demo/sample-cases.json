@@ -1,5 +1,5 @@
 [
-  { "date": "2026-10-12", "brand": "Salomon", "name": "[샘플] 살로몬 UNI 크로스 인슐레이션 자켓", "size": "L", "result": "found_store" },
-  { "date": "2026-10-11", "brand": null, "name": "[샘플] 러닝화", "size": "270", "result": "found_online" },
-  { "date": "2026-10-10", "brand": null, "name": "[샘플] 볼캡", "size": "FREE", "result": "not_found" }
+  { "date": "2026-10-12", "brand": "Salomon", "name": "[샘플] 살로몬 UNI 크로스 인슐레이션 자켓", "size": "L", "result": "found_store", "image": "https://kream-phinf.pstatic.net/MjAyNjA5MTBfMjQ0/MDAxNzg5MDI1MTkxMzk3.lnHq5LFSI4TymVihVofSRjKPyqXZScYMwMGXSXoJ8IMg.gctVK-LqtjUo4MAeTv1zOkyimfvc-8OcI0iAaUR5Jxgg.PNG/a_3ed5a668eee64a4393cb3d35933a1b88.png" },
+  { "date": "2026-10-11", "brand": null, "name": "[샘플] 러닝화", "size": "270", "result": "found_online", "image": null },
+  { "date": "2026-10-10", "brand": null, "name": "[샘플] 볼캡", "size": "FREE", "result": "not_found", "image": null }
 ]
