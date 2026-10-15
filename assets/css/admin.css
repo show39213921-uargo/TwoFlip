@@ -136,6 +136,31 @@
 .cand-form select, .cand-form input { font: inherit; font-size: .84rem; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); width: 100%; }
 .form-err { grid-column: 1 / -1; color: var(--error); font-size: .8rem; margin: 0; }
 .form-err:empty { display: none; }
+
+/* 좁은 화면 한 손 기록(2단계 2-3 · 가이드 §6) — 판매처 · 가격 48px, 큰 버튼 52px, 나머지는 「더 적기」 */
+.quick-form { display: grid; gap: 10px; margin-top: 14px; }
+.qf-field { display: grid; gap: 4px; font-size: .84rem; font-weight: 600; margin: 0; }
+.qf-field input { font: inherit; font-size: 1rem; font-weight: 400; min-height: 48px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface-2); color: var(--ink); width: 100%; box-sizing: border-box; }
+.qf-price { position: relative; display: block; }
+.qf-price input { padding-right: 52px; }
+.qf-unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-weight: 500; color: var(--ink-3); font-size: .9rem; pointer-events: none; }
+.qf-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 2px; }
+.qf-btn { font: inherit; font-size: 1rem; font-weight: 800; min-height: 52px; border-radius: 12px; border: 1px solid var(--line-strong); background: transparent; color: var(--ink); cursor: pointer; }
+.qf-btn.primary { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.qf-hint { margin: -2px 0 0; }
+.qf-more { border: 1px dashed var(--line-strong); border-radius: 10px; padding: 0 12px; }
+.qf-more summary { min-height: 44px; display: flex; align-items: center; gap: 2px; flex-wrap: wrap; font-size: .84rem; color: var(--ink-2); cursor: pointer; list-style: none; }
+.qf-more summary::-webkit-details-marker { display: none; }
+.qf-more summary::after { content: "+"; margin-left: auto; font-weight: 800; color: var(--ink-3); }
+.qf-more[open] summary::after { content: "−"; }
+.qf-more summary strong { color: var(--ink); }
+.qf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.qf-grid label { display: grid; gap: 2px; font-size: .76rem; font-weight: 600; margin: 0; min-width: 0; }
+.qf-grid .qf-wide { grid-column: 1 / -1; }
+.qf-grid input, .qf-grid select { font: inherit; font-size: 1rem; font-weight: 400; min-height: 44px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); width: 100%; box-sizing: border-box; min-width: 0; }
+.qf-other-k { margin: 10px 0 6px; }
+.qf-other { display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 12px; }
+.qf-other .btn-sm { min-height: 40px; }
 .manual { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .manual input { font: inherit; font-size: .84rem; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); }
 .row-actions { display: flex; justify-content: flex-end; gap: 6px; }
