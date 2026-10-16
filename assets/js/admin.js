@@ -960,7 +960,7 @@ function contactBox(r) {
   }
   const key = `${r.id}:${kind}`;
   const status = h('p', { class: 'sub contact-status', role: 'status' });
-  const text = h('textarea', { class: 'contact-text', rows: '7', 'aria-label': '연락 문구', oninput: (e) => contactEdits.set(key, e.target.value) });
+  const text = h('textarea', { class: 'contact-text', rows: '9', 'aria-label': '연락 문구', oninput: (e) => contactEdits.set(key, e.target.value) });
   text.value = contactEdits.get(key) ?? draft;
   const copy = async (value, done) => {
     let ok = false;
