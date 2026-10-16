@@ -50,5 +50,9 @@ export function createAdminClient({ baseUrl, key, fetchImpl = globalThis.fetch, 
     createItem: (v) => call('POST', '/admin/items', v),
     patchItem: (id, patch) => call('PATCH', `/admin/items/${enc(id)}`, patch),
     deleteItem: (id) => call('DELETE', `/admin/items/${enc(id)}`),
+    // 18차 — 미리보기(바로 구매 화면이 관리자 세션으로) · 오류 알림
+    previewItem: (id) => call('GET', `/admin/items/${enc(id)}/preview`),
+    previewRequest: (id, payload) => call('POST', `/admin/items/${enc(id)}/preview-requests`, payload),
+    errors: () => call('GET', '/admin/errors'),
   };
 }

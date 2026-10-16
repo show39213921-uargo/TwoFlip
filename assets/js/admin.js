@@ -6,6 +6,7 @@
 // 계산·표시 값은 순수 모듈(admin-view · brands · sourcing · stock)에서 오고, 여기는 DOM 만 다룬다.
 // 신청자·KREAM·판매처 문자열은 전부 textContent 로 넣는다(HTML 로 해석하지 않는다).
 
+import './error-report.js'; // 오류 알림(18차 C)
 import { CONFIG } from './config.js';
 import { createAdminClient, looksLikeKey, loginAdmin } from './admin-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
@@ -328,7 +329,24 @@ async function loadServer() {
   }
   if (isServer()) useSettings();
   flash('', `서버에서 신청 ${state.server.records.length}건을 불러왔습니다(최신 500건까지).`);
+  loadErrors(); // 오류 건수(18차 C) — 기다리지 않는다
   render();
+}
+
+// ── 오류 알림(18차 C) — 머리에 최근 24시간 건수만(0이면 숨김), 누르면 최근 20건 ──
+async function loadErrors() {
+  const btn = $('err-line');
+  const r = state.server.key ? await adminApi().errors() : null;
+  const n = r && r.ok ? Number(r.data.count) || 0 : 0;
+  btn.hidden = n === 0;
+  btn.textContent = `오류 ${n}건 · 24시간`;
+  btn.title = '최근 24시간 화면 · 서버 오류 — 누르면 최근 20건';
+  const list = r && r.ok && Array.isArray(r.data.recent) ? r.data.recent : [];
+  $('err-list').replaceChildren(...list.map((e) => h('li', {},
+    h('div', { class: 'err-head' }, h('strong', { text: e.source === 'back' ? '서버' : '화면' }), ` ${formatKst(e.at)} · ${e.path || '/'}`),
+    h('p', { class: 'err-msg', text: e.message || '' }),
+    h('p', { class: 'sub', text: [e.location, e.release ? `배포 ${e.release}` : ''].filter(Boolean).join(' · ') }))));
+  if (n === 0) { $('err-panel').hidden = true; btn.setAttribute('aria-expanded', 'false'); }
 }
 
 function logout(clearMsg = true) {
@@ -340,6 +358,8 @@ function logout(clearMsg = true) {
   state.reveal.clear();
   state.checkForm.clear();
   state.msg = null;
+  $('err-line').hidden = true;
+  $('err-panel').hidden = true;
   useSettings();
   itemsView.reset();
   render(); // 감춘 화면에도 신청자 정보가 남지 않게 비운다
@@ -989,6 +1009,12 @@ function initGate() {
   $('src-server').addEventListener('click', () => setSource('server'));
   $('server-refresh').addEventListener('click', () => loadServer());
   $('server-logout').addEventListener('click', () => logout());
+  $('err-line').addEventListener('click', () => {
+    const open = $('err-panel').hidden;
+    $('err-panel').hidden = !open;
+    $('err-line').setAttribute('aria-expanded', String(open));
+    if (open) $('err-panel').scrollIntoView({ block: 'start' });
+  });
 
   $('gate-form').addEventListener('submit', async (e) => {
     e.preventDefault();

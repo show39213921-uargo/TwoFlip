@@ -20,11 +20,16 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://twoflip.u-argo.com/about.html">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e0f12'/%3E%3Cpath d='M9 12h12l-3-3M23 20H11l3 3' stroke='%23c8f04a' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <!-- 결정 대기(18차 D) — 파비콘 파일이 오면 assets/img/favicon.svg · assets/img/apple-touch-icon.png(180×180)에 두고, 위 data: 아이콘 줄을 아래 두 줄로 바꾼다
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+  굵은 로고는 assets/img/twoflip-logo-bold.svg — 헤더 .logo-word 의 src 만 바꾼다(크기 · 자리는 그대로) -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="assets/css/app.css">
   <!-- 최근 진행 사례만 스크립트로 채운다(개편 A-3) — 나머지는 정적 -->
   <script type="module" src="assets/js/cases.js"></script>
+  <script type="module" src="assets/js/pending.js"></script>
 </head>
 <body class="page-low">
   <!-- 소개 페이지(개편 A-2) — 첫 페이지에서 옮겨 온 진행 설명 · 누가 하나요 · 자주 묻는 질문 · 최근 사례(사례만 cases.js).
@@ -108,6 +113,8 @@
             <summary>KREAM과 무슨 관계인가요?</summary>
             <p>제휴 관계가 없는 독립 서비스예요. KREAM 링크는 어떤 상품인지 정확히 알기 위해 받아요.</p>
           </details>
+          <!-- 결정 대기(18차 D) — config.js PENDING.faq 의 { q, a } 가 여기에 같은 모양으로 붙는다. 비어 있으면 hidden 그대로(pending.js) -->
+          <div data-pending-faq hidden></div>
         </div>
         <!-- TODO(결정 대기): 문의 창구가 정해지면 여기와 푸터에 -->
       </div>

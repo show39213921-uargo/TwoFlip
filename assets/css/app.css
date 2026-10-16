@@ -200,6 +200,14 @@ a { color: inherit; }
 .done-id strong { font-size: var(--fs-title); letter-spacing: .04em; user-select: all; }
 .done-copy { font: inherit; font-size: var(--fs-body); font-weight: 700; min-height: 44px; padding: 0 var(--sp-4); border-radius: var(--r-pill); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; }
 .done-msg { margin: var(--sp-4) 0 var(--sp-4); color: var(--ink-2); font-size: var(--fs-body); }
+/* 미리보기 띠(18차 A) — 관리자 세션으로 연 비공개 상품에만. 고객 화면에는 생기지 않는다 */
+.shop-preview-band { order: -1; grid-area: band; margin: 0; padding: var(--sp-2) var(--sp-3); font-size: var(--fs-cap); font-weight: 800; color: #1a1300; background: #ffd23f; }
+.shop-grid.is-single .shop-card.is-preview { grid-template-areas: "band band" "img body" "btn btn"; }
+@media (min-width: 561px) { .shop-grid.is-single .shop-card.is-preview { grid-template-rows: auto 1fr auto; grid-template-areas: "band band" "img body" "img btn"; } }
+/* 결정 대기 자리(18차 D) — config.js PENDING 값이 있을 때만 보인다 */
+.pending-lines { margin: 0 0 var(--sp-4); color: var(--ink-2); font-size: var(--fs-body); }
+.pending-lines p { margin: 0 0 var(--sp-1); }
+.sheet-pending { margin: var(--sp-2) 0 0; font-size: var(--fs-cap); }
 /* 신청 완료 단계 표시(개편 A-4) — 접수됨 → 찾는 중 → 찾으면 연락. 지금 단계만 채운 원(--brand: 히어로 안에선 연두) + 굵은 글자.
    색만으로 가르지 않는다: 지금 단계는 체크 표시 + aria-current=step + 아래 「지금은 …이에요」 한 줄 */
 .done-steps { list-style: none; margin: 0 0 var(--sp-2); padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); text-align: center; }
