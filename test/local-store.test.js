@@ -54,7 +54,7 @@ test('데모 신청 → 브라우저 저장, 서버와 같은 응답 모양', as
   const store = createLocalStore(fakeStorage(), 'k');
   const api = createLocalApi({ store, now: () => Date.parse('2026-10-13T08:00:00Z'), newId: () => 'demo0001' });
   const r = await api.submitApplication({ kreamUrl: 'https://kream.co.kr/products/1', kreamProductId: '1', size: 'L', name: '가', phone: '01000000000', memo: '', consent: true });
-  assert.deepEqual(r, { ok: true, data: { id: 'demo0001', status: 'received', receivedAt: '2026-10-13T08:00:00.000Z' } });
+  assert.deepEqual(r, { ok: true, data: { id: 'demo0001', status: 'received', receivedAt: '2026-10-13T08:00:00.000Z', statusToken: 'demo0001.demo' } }); // 4단계 — 서버처럼 확인 링크 토큰
   const saved = store.list()[0];
   assert.equal(saved.source, 'demo');
   assert.equal(saved.kream, null);

@@ -201,6 +201,7 @@ a { color: inherit; }
 .done-id strong { font-size: var(--fs-title); letter-spacing: .04em; user-select: all; }
 .done-copy { font: inherit; font-size: var(--fs-body); font-weight: 700; min-height: 44px; padding: 0 var(--sp-4); border-radius: var(--r-pill); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; }
 .done-msg { margin: var(--sp-4) 0 var(--sp-4); color: var(--ink-2); font-size: var(--fs-body); }
+.done-status { display: inline-flex; align-items: center; min-height: 44px; margin-top: var(--sp-2); font-weight: 700; color: var(--ink); } /* 4단계 A-4 */
 /* 미리보기 띠(18차 A) — 관리자 세션으로 연 비공개 상품에만. 고객 화면에는 생기지 않는다 */
 .shop-preview-band { order: -1; grid-area: band; margin: 0; padding: var(--sp-2) var(--sp-3); font-size: var(--fs-cap); font-weight: 800; color: #1a1300; background: #ffd23f; }
 .shop-grid.is-single .shop-card.is-preview { grid-template-areas: "band band" "img body" "btn btn"; }
@@ -604,3 +605,36 @@ textarea { resize: vertical; min-height: 88px; }
 .apply-promise > span { white-space: nowrap; margin-left: calc(-1 * var(--dot-w)); margin-right: var(--dot-w); }
 .apply-promise > span:last-child { margin-right: 0; } /* 15차 QA U-2 — 점 칸 1.25em → 1em · 끝 여백 없앰: 375 · 100% 한 줄 */
 .apply-promise > span::before { content: "·"; content: "·" / ""; display: inline-block; width: var(--dot-w); text-align: center; color: var(--hero-ink-2); }
+
+/* ── 진행 상황(status.html · 4단계 · 가이드 §6) — 밝은 본문 위 카드 하나 · 단계는 완료 카드와 같은 모양 · 답하기만 어두운 상자 ── */
+.status-page { padding: var(--sp-6) 0 var(--sp-12); }
+.status-wrap [hidden], .status-card[hidden] { display: none; } /* 카드 · 상자 · 버튼의 display 가 hidden 을 이기지 않게 */
+.status-wrap { max-width: 560px; display: grid; gap: var(--sp-3); }
+.status-card { background: var(--low-card); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--sp-5); }
+.status-card .field:last-of-type { margin-bottom: var(--sp-3); }
+.status-card .status { margin: 0 0 var(--sp-3); }
+.status-note { margin: var(--sp-3) 0 0; color: var(--ink-3); font-size: var(--fs-cap); }
+.status-wrap > .status-note { margin: 0 var(--sp-1); }
+.status-result { display: grid; gap: var(--sp-4); }
+.st-head { display: grid; gap: var(--sp-1); }
+.st-title { margin: 0; font-size: var(--fs-strong); font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+.st-meta { margin: 0; color: var(--ink-3); font-size: var(--fs-cap); }
+.status-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; }
+.status-steps li { word-break: keep-all; } /* 「이번엔 못 찾았어요」가 낱말 중간에서 끊기지 않게 */
+.status-steps .is-done { color: var(--ink-2); }
+.status-steps .is-done .done-dot { background: var(--brand); border-color: var(--brand); }
+.status-steps .is-done .done-dot svg { fill: none; stroke: var(--brand-ink); stroke-width: 3; }
+.status-steps .is-miss { color: var(--ink); font-weight: 800; }
+.status-steps .is-miss .done-dot { background: var(--ink-2); border-color: var(--ink-2); }
+.st-line { margin: 0; text-align: center; font-size: var(--fs-body); }
+.answer-box { background: var(--hero-bg); color: var(--hero-ink); border-radius: var(--radius); padding: var(--sp-5); display: grid; gap: var(--sp-3); }
+.answer-box .btn { min-height: 52px; }
+.btn-lime { background: var(--lime); color: var(--on-lime); }
+.btn-lime:hover { opacity: .92; }
+.btn-on-dark { background: transparent; color: var(--hero-ink); border-color: var(--hero-line); }
+.btn-on-dark:hover { border-color: var(--hero-ink-2); }
+.answer-sub { margin: 0; color: var(--hero-ink-2); font-size: var(--fs-body); }
+.answer-done { margin: 0; font-size: var(--fs-strong); font-weight: 700; }
+.answer-err { margin: 0; color: #ffb4a8; font-size: var(--fs-body); }
+.answer-link { justify-self: start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--hero-ink); font: inherit; font-size: var(--fs-body); font-weight: 700; text-decoration: underline; cursor: pointer; }
+.answer-box :focus-visible { outline-color: var(--lime); }

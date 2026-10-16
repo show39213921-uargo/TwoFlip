@@ -149,7 +149,7 @@ form.addEventListener('submit', async (e) => {
     renderSizeHint();
     syncQuick();
     updateLinkUi();
-    showDone(r.data.id);
+    showDone(r.data.id, r.data.statusToken);
   } else {
     setStatus('error', r.error.message);
   }
@@ -171,8 +171,11 @@ function rememberApplied(key, id) {
 // ── 접수 완료 카드 — 폼 자리를 바꿔 끼운다(2차 QA U-3: 화면 밖 안내 · 입력이 비워져 접수번호를 놓침) ──
 // 연락 시점은 아직 정해지지 않았다 — 「확보되면 연락」까지만 쓴다
 const done = $('apply-done');
-function showDone(id) {
+function showDone(id, statusToken) {
   $('done-id').textContent = id;
+  // 4단계 A-4 — 진행 상황 보기(확인 링크). 토큰이 없으면(서버 설정 전) 숨김
+  $('done-status').hidden = !statusToken;
+  if (statusToken) $('done-status').href = `status.html?t=${encodeURIComponent(statusToken)}`;
   // 4차 QA R-4 — 정해지지 않은 시점은 정해진 것처럼 쓰지 않는다. 테스트 모드도 실제 문구를 그대로 보인다(5차 QA U-4)
   // 개편 A-4 — 연락 시점 안내는 단계 표시 아래 한 줄(「찾는 데 걸리는 시간은 상품마다 달라요」)로 옮겼다
   const real = '찾으면 적어 주신 번호로 연락드려요. 접수번호를 남겨 두세요(캡처해 두면 편해요).';
