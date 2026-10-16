@@ -18,6 +18,18 @@ export const REPLY_DONE = {
 export const CHANGE_MIN = 30;
 export const WRONG = '접수번호나 번호를 다시 확인해 주세요.';
 export const LATER = '잠시 후 다시 시도해 주세요.';
+// 서버로 보내기 전 화면 검사 문구(24차 QA U-1) — 비었으면 「적어 주세요」, 뒤 4자리 모양이 틀리면 「숫자 4개로」. 서버가 거절하면 WRONG 그대로
+export const LOOKUP_EMPTY = '접수번호와 휴대폰 번호 뒤 4자리를 적어 주세요.';
+export const LOOKUP_LAST4 = '휴대폰 번호 뒤 4자리를 숫자 4개로 적어 주세요.';
+
+/** 조회 칸 화면 검사 — 통과하면 null, 아니면 { message, fields: 문제 칸('id' · 'last4', 앞에서부터) } */
+export function lookupCheck(id, last4) {
+  const fields = [];
+  if (!id) fields.push('id');
+  if (!/^\d{4}$/.test(last4)) fields.push('last4');
+  if (!fields.length) return null;
+  return { message: !id || !last4 ? LOOKUP_EMPTY : LOOKUP_LAST4, fields };
+}
 
 /** 관리자 상태 · 연락 종류 · 살 수 있는 기록 → 단계(백엔드 Stage::of 와 같다) */
 export function stageOf(status, contactKind, hasBuyable) {
