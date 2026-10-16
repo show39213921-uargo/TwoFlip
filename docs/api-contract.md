@@ -85,8 +85,10 @@
 서버는 저장할 때 KREAM 상품 스냅샷(이름·모델번호·즉시 구매가·사이즈별 시세)을 최대 4초 기다려 같이 남긴다. 못 받으면 `kream: null` 로 저장하고 접수는 그대로 한다(`KREAM_SERVER=off` 면 처음부터 `null`).
 
 ```json
-{ "id": "a1b2c3d4", "status": "received", "receivedAt": "2026-10-13T07:30:00Z" }
+{ "id": "a1b2c3d4", "status": "received", "receivedAt": "2026-10-13T07:30:00Z", "statusToken": "a1b2c3d4.Zx…(32자)" }
 ```
+
+`statusToken` 은 서버에 `STATUS_SECRET` 이 있을 때만 붙는다(4단계). 완료 카드 「진행 상황 보기 →」가 `status.html?t=<statusToken>` 으로 간다. 없으면 버튼은 `status.html`(직접 조회)로 간다.
 
 **실패 — 4xx/5xx**. 페이지는 `error.message` 를 그대로 신청자에게 보여 준다(한국어로).
 
@@ -169,6 +171,31 @@ DB 저장일 때만 열린다 — 서버에 표(`twoflip_items`)가 아직 없�
 - 서버 500 도 같은 표에 한 줄(요청 경로 · 예외 종류와 메시지 앞 200자, 같은 가림).
 - `GET /admin/errors` → `{ count, qaCount, ready, recent: [...], qa: [...] }` — 각 줄 `{ source: front|back, path, message, location, release, at }`. `count` · `recent` 는 최근 24시간 **진짜 오류**(최근 20건), 메시지에 `[QA]` 가 든 오류(QA 가 일부러 낸 것)는 `qaCount` · `qa` 로 따로 준다(19차 U-3). 표가 없으면(마이그레이션 `2026-10-15_errors` 전) `{ count: 0, qaCount: 0, recent: [], qa: [], ready: false }`.
 - `DELETE /admin/errors/qa` → `{ deleted }` — `[QA]` 오류 기록만 지운다. 다른 오류는 지우는 API 가 없다(30일 지나면 로그인 때 자동 정리).
+
+## 진행 상황 조회 · 확인 링크 · 답하기 — 10-16(4단계)
+
+토큰 = `{접수번호}.{HMAC-SHA256(STATUS_SECRET, "status:"+접수번호) 앞 32자, URL-safe}`. **DB 에 저장하지 않는다** — 같은 신청이면 완료 카드 · 관리자 06 이 늘 같은 링크를 쓴다. 접수 뒤 30일이 지나면 410. `STATUS_SECRET` 이 없거나 마이그레이션 `2026-10-16_status` 전이면 아래 전부 503 `status_unavailable`. 응답은 모두 `Cache-Control: no-store`, 토큰은 로그 · 오류 기록에 남기지 않는다. **토큰은 본문으로만 받는다** — API 주소(쿼리)에 실으면 웹서버 접속 로그에 남아서 `GET /status?t=` 는 없다(404). 고객 화면도 주소창의 `t=` 를 읽자마자 지운다.
+
+| 요청 | 본문 | 응답 |
+|---|---|---|
+| `POST /status/view` | `{ t }` | 200 보기 · 404 「링크를 다시 확인해 주세요. 접수번호와 번호 뒤 4자리로도 확인할 수 있어요.」 · 410 `link_expired` |
+| `POST /status/lookup` | `{ id, last4 }` | 200 보기 · 404 「접수번호나 번호를 다시 확인해 주세요.」 · 429 「잠시 후 다시 시도해 주세요.」(같은 IP 10분 20회, 같은 접수번호 5번 틀리면 10분 잠김 — 맞는 번호도) |
+| `POST /status/reply` | `{ t, answer }` 또는 `{ id, last4, answer }` · answer = `buy` \| `pass` | 200 보기 · 409 `reply_not_open`(찾았어요 단계 아님) · `reply_locked`(답한 지 30분 지남 — 「답을 바꾸시려면 문자로 연락 주세요.」) · `reply_closed`(답장 기한 지남, 아직 답 없음) |
+
+보기 칸은 **이것뿐**이다(백엔드 스냅샷 테스트로 고정) — 가격 · 판매처 · 이름 · 번호는 나가지 않는다.
+
+```json
+{ "name": "살로몬 크로스 자켓", "size": "L", "receivedDate": "2026-10-16", "stage": "found", "reply": null, "replyAt": null, "replyDeadline": "2026-10-17T05:00:00Z" }
+```
+
+- `stage`: `received` → `searching`(탐색 중 · 확보, 또는 연락 완료인데 재고 있음 기록 없음) → `found`(「찾았어요」 연락 보냄, 또는 연락 완료 + 재고 있음 기록) / `not_found`(「못 찾았어요」 연락 · 취소) → `done`(결제 완료 · 완료). `name` 은 KREAM 한글명 → 영문명 → null.
+- `replyDeadline`: 설정 「답장 기한」이 있고 `found` 일 때만 = 연락 보낸 시각 + 기한. 없으면 null(화면에 기한 줄 없음).
+- 답하면 상태는 그대로 두고 상태 이력에 「고객 답: 구매할게요 / 이번엔 괜찮아요」 한 줄을 남긴다.
+
+관리자(세션 키 필요):
+- `GET /admin/applications/{id}/status-link` → `{ token }` (위와 같은 값, 없으면 503).
+- `PUT /admin/applications/{id}/contact` `{ kind: found | not_found }` → `{ application }` — 「연락 보냄」 시각을 남긴다. 신청 행에 `contact: { kind, at }` · `reply: { answer, at }`(없으면 null)이 붙는다.
+- `GET/PUT /admin/settings` 에 `replyHours`(1~168 정수, `null` · `''` = 없음).
 
 ## 보안 — API 쪽에서 반드시
 
