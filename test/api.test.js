@@ -120,3 +120,17 @@ test('최근 진행 사례 — GET {base}/cases(개편 A-3)', async () => {
   assert.equal(f.calls[0].url, 'https://api.example/cases');
   assert.equal(f.calls[0].init.method, 'GET');
 });
+
+test('4단계 — 진행 상황: 토큰은 본문으로만(주소에 싣지 않는다) · 조회 · 답하기', async () => {
+  const f = fakeFetch(() => json(200, { stage: 'found' }));
+  const api = createApiClient({ baseUrl: 'https://api.example', fetchImpl: f });
+  await api.status('ab12.SECRETTOKEN');
+  await api.statusLookup('ab12', '0000');
+  await api.statusReply({ t: 'ab12.SECRETTOKEN' }, 'buy');
+  assert.deepEqual(f.calls.map((c) => [c.init.method, c.url, c.init.body]), [
+    ['POST', 'https://api.example/status/view', JSON.stringify({ t: 'ab12.SECRETTOKEN' })],
+    ['POST', 'https://api.example/status/lookup', JSON.stringify({ id: 'ab12', last4: '0000' })],
+    ['POST', 'https://api.example/status/reply', JSON.stringify({ t: 'ab12.SECRETTOKEN', answer: 'buy' })],
+  ]);
+  assert.ok(f.calls.every((c) => !c.url.includes('SECRETTOKEN')));
+});
