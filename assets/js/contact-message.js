@@ -53,7 +53,9 @@ export function notFoundDraft(record, { title = '', statusUrl = '' } = {}) {
   ].join('\n');
 }
 
-/** 연락 문구 초안 — 살 수 있는 기록이 없으면 null. statusUrl 이 있으면 끝에 확인 링크 한 줄(4단계 B-1) */
+/** 연락 문구 초안 — 살 수 있는 기록이 없으면 null.
+ *  확인 링크가 있으면 「아래 링크에서 「구매할게요」를…」 + 주소만 한 줄(문자 앱이 링크로 잡게 — 22차 QA U-1),
+ *  없으면(토큰을 못 만듦) 예전처럼 「이 메시지에 답장 주세요」 */
 export function contactDraft(record, { title = '', statusUrl = '' } = {}) {
   const hit = latestBuyable(record);
   if (!hit) return null;
@@ -66,9 +68,10 @@ export function contactDraft(record, { title = '', statusUrl = '' } = {}) {
     '안녕하세요, TWOFLIP이에요.',
     josa ? `신청하신 ${thing}${josa} ${place}에서 찾았어요.` : `신청하신 ${thing}, ${place}에서 찾았어요.`,
     `가격: ${PRICE_BLANK}`,
-    '구매를 원하시면 이 메시지에 답장 주세요.',
+    ...(statusUrl
+      ? ['아래 링크에서 「구매할게요」를 눌러 주세요. 문자로 답하셔도 돼요.', statusUrl]
+      : ['구매를 원하시면 이 메시지에 답장 주세요.']),
     `접수번호 ${record.id}`,
-    ...(statusUrl ? [`진행 상황 · 답하기: ${statusUrl}`] : []),
   ].join('\n');
 }
 

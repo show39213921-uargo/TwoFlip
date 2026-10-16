@@ -23,6 +23,7 @@ let auth = null;   // { t } 또는 { id, last4 } — 답할 때 같은 걸로
 let view = null;   // 서버가 준 칸 7개
 let justDone = ''; // 방금 답했을 때 한 줄(새로 그려도 남게)
 let changing = false;
+let focusTo = ''; // 다시 그린 뒤 초점 — 'buy'(답 바꾸기 뒤 「구매할게요」) · 'done'(답한 뒤 결과 문장) — 22차 QA U-4
 
 function takeToken() {
   const url = new URL(location.href);
@@ -51,7 +52,7 @@ function showError(text) {
 const failText = (r) => (r.error && r.error.status && r.error.message ? r.error.message : LATER); // 연결 실패 · 시간 초과는 한 가지로
 
 function render() {
-  const m = statusModel(view, Date.now());
+  const m = statusModel(view, Date.now(), { changing });
   $('status-form').hidden = true;
   $('status-lede').hidden = true; // 조회한 뒤에는 「접수번호와 … 확인해요」 안내가 필요 없다(접수 날짜는 카드에)
   $('st-title').textContent = m.size ? `${m.title} · ` : m.title;
@@ -93,19 +94,24 @@ function renderAnswer(r) {
     err.setAttribute('role', 'alert');
     err.hidden = true;
     box.replaceChildren(...parts, buy, pass, err);
+    if (focusTo === 'buy') buy.focus();
+    focusTo = '';
     return;
   }
   if (kind === 'answered') {
     const parts = [];
-    if (justDone) { const p = el('p', 'answer-done', justDone); p.setAttribute('role', 'status'); parts.push(p); }
+    let done = null;
+    if (justDone) { done = el('p', 'answer-done', justDone); done.setAttribute('role', 'status'); done.tabIndex = -1; parts.push(done); }
     parts.push(el('p', 'answer-sub', r.text));
     if (r.canChange) {
       const change = el('button', 'answer-link', '답 바꾸기');
       change.type = 'button';
-      change.addEventListener('click', () => { changing = true; justDone = ''; render(); });
+      change.addEventListener('click', () => { changing = true; justDone = ''; focusTo = 'buy'; render(); });
       parts.push(change);
     }
     box.replaceChildren(...parts);
+    if (focusTo === 'done' && done) done.focus();
+    focusTo = '';
     return;
   }
   box.replaceChildren(el('p', 'answer-done', r.text)); // expired
@@ -123,6 +129,7 @@ async function answer(kind, buttons) {
   view = r.data;
   changing = false;
   justDone = REPLY_DONE[kind];
+  focusTo = 'done';
   render();
 }
 

@@ -44,6 +44,19 @@ export const isQa = (s) => String(s ?? '').includes('[QA]');
 const quoted = (label) => `「${label}」${josa(label, '으로', '로')}`;
 const seller = (c) => (c && c.name) || '판매처';
 
+// ── 연락 보냄 → 상태(22차 QA U-3) ──
+// 「못 찾았어요」를 보낸 뒤 상태 — 재영 확인 전까지 「취소」. 바꾸려면 이 한 줄만
+export const NOT_FOUND_STATUS = 'canceled';
+const CONTACT_NEXT = { found: 'contacted', not_found: NOT_FOUND_STATUS };
+const CONTACT_FROM = new Set(['received', 'sourcing', 'secured']);
+/** 연락을 보낸 뒤 바꿀지 물을 상태 — 접수 · 탐색 중 · 확보일 때만, 아니면 null */
+export function contactNextStatus(kind, status) {
+  const next = CONTACT_NEXT[kind] || null;
+  return next && CONTACT_FROM.has(status) && next !== status ? next : null;
+}
+/** 확인 창 문구 — 「연락을 보냈으면 상태를 「연락 완료」로 바꿉니다.」 */
+export const contactConfirm = (status) => `연락을 보냈으면 상태를 ${quoted(statusLabel(status))} 바꿉니다.`;
+
 export const notes = {
   status: (r, status) => `${r.id} 상태를 ${quoted(statusLabel(status))} 바꿨습니다.`,
   brand: (r) => `${r.id} 브랜드 · 모델번호를 저장했습니다.`,

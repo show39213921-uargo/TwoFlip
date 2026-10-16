@@ -8,6 +8,8 @@ export const STAGE_LINE = {
   not_found: '이번엔 찾지 못했어요. 다른 상품도 링크만 보내 주시면 찾아볼게요.',
   done: '', // 마무리 — 안내 문장은 두지 않는다(브리프에 없음)
 };
+// 답이 있거나 기한이 지나 버튼이 없을 때 「찾았어요」 한 줄(22차 QA U-2)
+export const FOUND_LINE_DONE = '문자로 가격을 보내 드렸어요.';
 export const REPLY_LABEL = { buy: '구매할게요', pass: '이번엔 괜찮아요' };
 export const REPLY_DONE = {
   buy: '답을 받았어요. 입금 방법을 곧 문자로 알려 드릴게요.',
@@ -72,15 +74,17 @@ export function replyModel(view, nowMs) {
   return { kind: 'ask', deadline: Number.isFinite(dl) ? `${kstTime(view.replyDeadline, { weekday: true })}까지 답해 주시면 잡아 둘게요.` : '' };
 }
 
-/** 화면에 그릴 값 하나로 */
-export function statusModel(view, nowMs) {
+/** 화면에 그릴 값 하나로 — changing = 「답 바꾸기」를 눌러 버튼을 다시 보이는 중 */
+export function statusModel(view, nowMs, { changing = false } = {}) {
+  const reply = replyModel(view, nowMs);
+  const noButtons = reply.kind === 'expired' || (reply.kind === 'answered' && !changing);
   return {
     title: view.name || '신청하신 상품',
     size: view.size || '',
     received: receivedText(view.receivedDate),
     steps: stepsOf(view.stage),
-    line: STAGE_LINE[view.stage] ?? '',
-    reply: replyModel(view, nowMs),
+    line: view.stage === 'found' && noButtons ? FOUND_LINE_DONE : (STAGE_LINE[view.stage] ?? ''),
+    reply,
   };
 }
 
