@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 80" role="img" aria-labelledby="title">
+  <title id="title">TWOFLIP</title>
+  <!-- 굵은 워드마크 시안(결정 ③ · 정리 계획 ⑫) — 30px 이하 헤더용 후보. 적용은 재영 결정 후 -->
+  <text x="250" y="52" text-anchor="middle"
+        font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="42" font-weight="600" letter-spacing="14"
+        fill="#FFFFFF">TWOFLIP</text>
+</svg>
