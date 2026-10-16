@@ -131,3 +131,16 @@ test('최저가가 있어도 환율 없어 빠진 외화 기록은 배지에 「
   ]), { rates, now: NOW, staleHours: 24 });
   assert.equal(s.label, '재고 있음 2곳 · 최저 295,000원 · 환율 필요 1곳');
 });
+
+test('4단계 — 「답장 대기」 알약: 찾았어요 연락 뒤 답이 없는 열린 신청', () => {
+  const opts = { rates, now: NOW, staleHours: 24 };
+  const sent = { kind: 'found', at: iso(H) };
+  const rows = [
+    { ...app([]), status: 'contacted', contact: sent },
+    { ...app([]), status: 'contacted', contact: sent, reply: { answer: 'buy', at: iso(H) } },
+    { ...app([]), status: 'contacted', contact: { kind: 'not_found', at: iso(H) } },
+    { ...app([]), status: 'canceled', contact: sent },
+    app([]),
+  ];
+  assert.deepEqual(rows.map((r) => matchesStockFilter(r, 'waiting', opts)), [true, false, false, false, false]);
+});

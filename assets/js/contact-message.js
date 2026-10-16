@@ -6,6 +6,15 @@ const BUYABLE = new Set(['in', 'low']);
 const PLACE = { offline: '매장', official: '공식몰', overseas: '해외몰', other: '판매처' };
 export const PRICE_BLANK = '[가격을 적어 주세요]';
 
+// 받침 — 한글 · 숫자로 끝날 때만 안다(true/false), 영문 등은 null
+function hasBatchim(word) {
+  const ch = String(word || '').trim().slice(-1);
+  const code = ch.charCodeAt(0);
+  if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 !== 0;
+  if (/[0-9]/.test(ch)) return '013678'.includes(ch);
+  return null;
+}
+
 // 받침이 있으면 「을」, 없으면 「를」 — 한글이나 숫자로 끝날 때만 고르고, 모르면 null(문장을 「~, 매장에서 찾았어요」로 바꾼다 · 13차 QA U-1)
 function eulReul(word) {
   const ch = String(word || '').trim().slice(-1);
@@ -21,8 +30,31 @@ export function latestBuyable(record) {
   return list.filter((c) => BUYABLE.has(c.stock)).sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))[0] || null;
 }
 
-/** 연락 문구 초안 — 살 수 있는 기록이 없으면 null */
-export function contactDraft(record, { title = '' } = {}) {
+/** 06 문구 종류 기본값(4단계 B-2) — 재고 있음 · 소량이 있으면 「찾았어요」, 기록이 있는데 모두 품절 · 확인 불가면 「못 찾았어요」 */
+export function defaultContactKind(record) {
+  if (latestBuyable(record)) return 'found';
+  const list = Array.isArray(record && record.sourcing) ? record.sourcing : [];
+  return list.length ? 'not_found' : 'found';
+}
+
+/** 「못 찾았어요」 초안(4단계 B-2) — 새 약속(재입고 알림 등)은 넣지 않는다. 받침 · 상품명 없을 때 규칙은 「찾았어요」와 같다 */
+export function notFoundDraft(record, { title = '', statusUrl = '' } = {}) {
+  const name = String(title || '').trim() || '상품';
+  const size = String((record && record.size) || '').trim();
+  const thing = size ? `${name}(사이즈 ${size})` : name;
+  const b = hasBatchim(name);
+  const rest = '공식몰 · 매장 · 해외를 확인했지만 이번엔 찾지 못했어요.';
+  return [
+    '안녕하세요, TWOFLIP이에요.',
+    b === null ? `신청하신 ${thing}, ${rest}` : `신청하신 ${thing}${b ? '은' : '는'} ${rest}`,
+    '다른 상품도 KREAM 링크만 보내 주시면 찾아볼게요.',
+    ...(statusUrl ? [`진행 상황: ${statusUrl}`] : []),
+    `접수번호 ${record.id}`,
+  ].join('\n');
+}
+
+/** 연락 문구 초안 — 살 수 있는 기록이 없으면 null. statusUrl 이 있으면 끝에 확인 링크 한 줄(4단계 B-1) */
+export function contactDraft(record, { title = '', statusUrl = '' } = {}) {
   const hit = latestBuyable(record);
   if (!hit) return null;
   const name = String(title || '').trim() || '상품';
@@ -36,6 +68,7 @@ export function contactDraft(record, { title = '' } = {}) {
     `가격: ${PRICE_BLANK}`,
     '구매를 원하시면 이 메시지에 답장 주세요.',
     `접수번호 ${record.id}`,
+    ...(statusUrl ? [`진행 상황 · 답하기: ${statusUrl}`] : []),
   ].join('\n');
 }
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { contactDraft, latestBuyable, smsHref, PRICE_BLANK } from '../assets/js/contact-message.js';
+import { contactDraft, notFoundDraft, defaultContactKind, latestBuyable, smsHref, PRICE_BLANK } from '../assets/js/contact-message.js';
 
 const rec = (sourcing) => ({
   id: 'a3f9c210', size: 'L', name: '홍길동', phone: '01012345678', memo: '비밀 메모',
@@ -75,4 +75,43 @@ test('연락 문구 회귀 — 받침 · 영문 · 상품명 없음 · 사이즈
   const all = contactDraft(r('offline'), { title: '살로몬 자켓' });
   assert.equal(all.split('\n')[2], '가격: [가격을 적어 주세요]');
   for (const leak of ['[QA] 매장 A', '289000', '289,000', '직원 김', '비밀 메모', '홍길동', '010-1234-5678', '01012345678']) assert.ok(!all.includes(leak), leak);
+});
+
+// ── 4단계 B-1 · B-2 ──
+const URL1 = 'https://twoflip.u-argo.com/status.html?t=a3f9c210.abcdefghijklmnopqrstuvwxyz012345';
+
+test('4단계 — 「찾았어요」 문구 끝에 확인 링크 한 줄(링크가 없으면 줄도 없다)', () => {
+  const r = rec([{ type: 'offline', name: '살로몬 하남점', stock: 'in', at: '2026-10-15T02:00:00Z' }]);
+  const t = contactDraft(r, { title: '살로몬 자켓', statusUrl: URL1 }).split('\n');
+  assert.equal(t.at(-1), `진행 상황 · 답하기: ${URL1}`);
+  assert.equal(t.at(-2), '접수번호 a3f9c210');
+  assert.ok(!contactDraft(r, { title: '살로몬 자켓' }).includes('진행 상황'));
+});
+
+test('4단계 — 「못 찾았어요」 문구: 정해진 다섯 줄, 새 약속 · 판매처 · 가격 · 이름 없음', () => {
+  const r = rec([{ type: 'offline', name: '살로몬 하남점', stock: 'out', price: 289000, note: '직원 김', at: '2026-10-15T02:00:00Z' }]);
+  const t = notFoundDraft(r, { title: '살로몬 크로스 인슐레이션 자켓', statusUrl: URL1 });
+  assert.equal(t, [
+    '안녕하세요, TWOFLIP이에요.',
+    '신청하신 살로몬 크로스 인슐레이션 자켓(사이즈 L)은 공식몰 · 매장 · 해외를 확인했지만 이번엔 찾지 못했어요.',
+    '다른 상품도 KREAM 링크만 보내 주시면 찾아볼게요.',
+    `진행 상황: ${URL1}`,
+    '접수번호 a3f9c210',
+  ].join('\n'));
+  for (const x of ['하남점', '289000', '직원 김', '홍길동', '01012345678', '비밀 메모', '재입고', '알려 드릴까요']) assert.ok(!t.includes(x), x);
+});
+
+test('4단계 — 「못 찾았어요」 받침 · 상품명 없음 · 사이즈 없음', () => {
+  const r = { id: 'b1', size: '' };
+  assert.match(notFoundDraft(r, { title: '나이키 덩크' }), /신청하신 나이키 덩크는 공식몰/);
+  assert.match(notFoundDraft(r, { title: '아식스 젤 카야노 14' }), /신청하신 아식스 젤 카야노 14는 공식몰/);
+  assert.match(notFoundDraft(r, { title: '' }), /신청하신 상품은 공식몰/);
+  assert.match(notFoundDraft(r, { title: 'Arc\'teryx Beta' }), /신청하신 Arc'teryx Beta, 공식몰/);
+  assert.ok(!notFoundDraft(r, { title: '' }).includes('진행 상황'), '링크가 없으면 줄도 없다');
+});
+
+test('4단계 — 문구 종류 기본값: 재고 있음 · 소량이 있으면 찾았어요, 기록이 모두 품절 · 확인 불가면 못 찾았어요', () => {
+  assert.equal(defaultContactKind(rec([])), 'found', '기록이 없으면 아직 판단하지 않는다');
+  assert.equal(defaultContactKind(rec([{ stock: 'out', at: '2026-10-15T01:00:00Z' }, { stock: 'unknown', at: '2026-10-15T02:00:00Z' }])), 'not_found');
+  assert.equal(defaultContactKind(rec([{ stock: 'out', at: '2026-10-15T01:00:00Z' }, { stock: 'low', at: '2026-10-15T02:00:00Z' }])), 'found');
 });

@@ -128,6 +128,7 @@ export const STOCK_PILLS = [
   { key: 'stale', label: '오래됨' },
   { key: 'available', label: '재고 있음' },
   { key: 'none', label: '재고 없음' },
+  { key: 'waiting', label: '답장 대기' }, // 4단계 B-3 — 「찾았어요」 연락 뒤 고객 답이 없음
   { key: '', label: '전체' },
 ];
 
@@ -139,5 +140,6 @@ export function matchesStockFilter(record, filter, opts) {
   if (filter === 'needs') return s.needsCheck;
   if (filter === 'available') return s.buyable > 0;
   if (filter === 'none') return !s.needsCheck && s.buyable === 0;
+  if (filter === 'waiting') return Boolean(['received', 'sourcing', 'secured', 'contacted'].includes(record.status) && record.contact && record.contact.kind === 'found' && !record.reply); // admin-view isWaitingReply 와 같다
   return true;
 }

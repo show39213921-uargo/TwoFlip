@@ -127,3 +127,14 @@ test('사례 공개 — PUT {result} · 끄기 DELETE(개편 A-3)', async () => 
     ['DELETE', 'https://a/admin/applications/ab12/case', null],
   ]);
 });
+
+test('4단계 — 확인 링크 GET · 연락 보냄 PUT {kind}', async () => {
+  const f = fakeFetch(() => json(200, { token: 'ab12.x' }));
+  const api = createAdminClient({ baseUrl: 'https://a', key: KEY, fetchImpl: f });
+  await api.statusLink('ab12');
+  await api.recordContact('ab12', 'not_found');
+  assert.deepEqual(f.calls.map((c) => [c.init.method, c.url, c.init.body ?? null]), [
+    ['GET', 'https://a/admin/applications/ab12/status-link', null],
+    ['PUT', 'https://a/admin/applications/ab12/contact', JSON.stringify({ kind: 'not_found' })],
+  ]);
+});

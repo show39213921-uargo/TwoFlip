@@ -55,5 +55,8 @@ export function createAdminClient({ baseUrl, key, fetchImpl = globalThis.fetch, 
     previewRequest: (id, payload) => call('POST', `/admin/items/${enc(id)}/preview-requests`, payload),
     errors: () => call('GET', '/admin/errors'),
     deleteQaErrors: () => call('DELETE', '/admin/errors/qa'), // 19차 U-3 — [QA] 오류 기록만
+    // 4단계 — 진행 상황 확인 링크 토큰(같은 신청이면 늘 같은 값) · 「연락 보냄」 기록(kind: found | not_found)
+    statusLink: (id) => call('GET', `/admin/applications/${enc(id)}/status-link`),
+    recordContact: (id, kind) => call('PUT', `/admin/applications/${enc(id)}/contact`, { kind }),
   };
 }

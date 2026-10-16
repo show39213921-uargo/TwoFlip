@@ -13,6 +13,7 @@ import { createLocalStore, browserStorage } from './local-store.js';
 import {
   STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest,
   sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes, sortRecords, waitText, waitIsLong,
+  parseReplyHours, replyWaitText, replyWaitIsLong, replyChip, replyKeys,
 } from './admin-view.js';
 import { brandLinks, findPrefill } from './brands.js';
 import { CANDIDATE_TYPES, CURRENCIES, checkRate, compareToKream, parseRates, toKrw } from './sourcing.js';
@@ -20,12 +21,13 @@ import { STOCK_STATES, STOCK_PILLS, DEFAULT_STALE_HOURS, METHOD_LABELS, validate
 import { formatWon } from './preview-view.js';
 import { createItemsView } from './admin-items.js';
 import { CASE_RESULTS, caseChoices } from './cases-view.js';
-import { contactDraft, smsHref } from './contact-message.js';
+import { contactDraft, notFoundDraft, defaultContactKind, smsHref } from './contact-message.js';
 import { planPrefill, notes, isQa } from './admin-rules.js';
 
 const store = createLocalStore(browserStorage());
 const SETTINGS_KEY = 'twoflip.admin.settings.v1';
 const KEY_STORAGE = 'twoflip.admin.key';
+const REPLIES_SEEN_KEY = 'twoflip.admin.replies.seen'; // 4단계 B-4 — 지난번 불러올 때 본 고객 답(「새 답 n건」)
 const $ = (id) => document.getElementById(id);
 
 const state = {
@@ -104,12 +106,14 @@ function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
     const hours = Number(s.staleHours);
+    const reply = parseReplyHours(s.replyHours);
     return {
       area: typeof s.area === 'string' ? s.area : '',
       rates: parseRates(s.rates || {}),
       staleHours: Number.isFinite(hours) && hours > 0 ? hours : DEFAULT_STALE_HOURS,
+      replyHours: reply.ok ? reply.value : null,
     };
-  } catch { return { area: '', rates: {}, staleHours: DEFAULT_STALE_HOURS }; }
+  } catch { return { area: '', rates: {}, staleHours: DEFAULT_STALE_HOURS, replyHours: null }; }
 }
 const stockOpts = () => ({ rates: state.settings.rates, now: Date.now(), staleHours: state.settings.staleHours });
 
@@ -220,6 +224,19 @@ const ops = {
     patch.stock ? notes.checkStock(checkOf(r, checkId), patch.stock) : notes.checkTouched(checkOf(r, checkId))),
   removeCheck: (r, checkId) => apply(r, () => ({ sourcing: cands(r).filter((c) => c.id !== checkId) }), (api) => api.deleteCheck(checkId),
     notes.checkRemoved(checkOf(r, checkId))),
+  // 「연락 보냄」(4단계 B-3) — 문구 복사 · 문자로 열기를 누르면 기록. 탐색 중 · 확보면 「연락 완료」로 바꿀지 묻는다
+  async recordContact(r, kind) {
+    if (isServer()) {
+      const res = await adminApi().recordContact(r.id, kind);
+      if (!res.ok) { serverFail(res); return; }
+      replaceServerRecord(res.data.application);
+      flash('', notes.contactSent(r));
+      render();
+    } else saveLocal(r.id, { contact: { kind, at: nowIso() } }, notes.contactSent(r));
+    if ((r.status === 'sourcing' || r.status === 'secured') && confirm('연락을 보냈으면 상태를 「연락 완료」로 바꿉니다.')) {
+      await apply(r, () => ({ status: 'contacted' }), (api) => api.patchApplication(r.id, { status: 'contacted' }), notes.contactSent(r, 'contacted'));
+    }
+  },
   // 최근 진행 사례(개편 A-3) — 서버에서만. result 가 비면 끄기
   // 10차 QA U-1 — 거절 이유를 맨 위 알림만이 아니라 스위치 바로 아래에도 남긴다(다시 그려도 보이게 state 에)
   async setCase(r, result) {
@@ -325,12 +342,23 @@ async function loadServer() {
   itemsView.preload(); // 탭을 열기 전에도 확보 상품 건수·이름이 보이게(3차 QA B-4)
   if (settings.ok) {
     const s = settings.data.settings;
-    state.server.settings = { area: s.area || '', rates: parseRates(s.fxRates || {}), staleHours: Number(s.staleHours) || DEFAULT_STALE_HOURS };
+    state.server.settings = { area: s.area || '', rates: parseRates(s.fxRates || {}), staleHours: Number(s.staleHours) || DEFAULT_STALE_HOURS, replyHours: Number(s.replyHours) || null };
   }
   if (isServer()) useSettings();
-  flash('', `서버에서 신청 ${state.server.records.length}건을 불러왔습니다(최신 500건까지).`);
+  const fresh = freshReplies(state.server.records);
+  flash('', `서버에서 신청 ${state.server.records.length}건을 불러왔습니다(최신 500건까지).` + (fresh ? ` ${notes.newReplies(fresh)}` : ''));
   loadErrors(); // 오류 건수(18차 C) — 기다리지 않는다
   render();
+}
+
+// 「새 답 n건」(4단계 B-4) — 지난번 불러올 때 없던 고객 답(답을 바꾸면 새 답). 본 목록은 이 브라우저에만
+function freshReplies(list) {
+  const keys = replyKeys(list);
+  let seen = [];
+  try { seen = JSON.parse(localStorage.getItem(REPLIES_SEEN_KEY) || '[]'); } catch { /* 처음처럼 */ }
+  const before = new Set(Array.isArray(seen) ? seen : []);
+  try { localStorage.setItem(REPLIES_SEEN_KEY, JSON.stringify(keys)); } catch { /* 이번 화면만 */ }
+  return keys.filter((k) => !before.has(k)).length;
 }
 
 // ── 오류 알림(18차 C) — 머리에 최근 24시간 건수만(0이면 숨김), 누르면 최근 20건 ──
@@ -402,7 +430,7 @@ function fieldMsg(el, kind, text) {
 
 async function persistSettings(msgEl) {
   if (isServer() && state.server.member) {
-    const res = await adminApi().putSettings({ area: state.settings.area, fxRates: state.settings.rates, staleHours: state.settings.staleHours });
+    const res = await adminApi().putSettings({ area: state.settings.area, fxRates: state.settings.rates, staleHours: state.settings.staleHours, replyHours: state.settings.replyHours ?? null });
     if (!res.ok) { fieldMsg(msgEl, 'error', '저장하지 못했습니다.'); serverFail(res); return; }
     fieldMsg(msgEl, 'ok', '저장됨 · 3명에게 적용');
   } else {
@@ -531,6 +559,15 @@ function renderList(all) {
   list.replaceChildren(...rows.map(renderCard));
 }
 
+// 고객 답 칩(4단계 B-3) — 구매할게요는 라임 테두리, 괜찮아요는 회색. 답이 없고 「찾았어요」 연락 뒤면 「답장 대기 n시간째」(기한을 넘기면 주황)
+function replyTag(r) {
+  const chip = replyChip(r);
+  if (chip) return h('span', { class: `tag reply-chip ${chip.kind}`, title: '고객 답', text: chip.text });
+  const wait = replyWaitText(r);
+  if (!wait) return null;
+  return h('span', { class: 'tag reply-wait' + (replyWaitIsLong(r, Date.now(), state.settings.replyHours) ? ' warn' : ''), title: `「찾았어요」 연락 뒤 답 기다린 시간 · 기한 ${state.settings.replyHours || 24}시간`, text: wait });
+}
+
 function renderCard(r) {
   const k = r.kream || null;
   const manual = r.manual || {};
@@ -555,6 +592,7 @@ function renderCard(r) {
     h('div', { class: 'thumb' }, img ? h('img', { src: img, alt: '', referrerpolicy: 'no-referrer', loading: 'lazy' }) : '이미지 없음'),
     h('div', { class: 'sum-prod' },
       h('div', { class: 'cell-k clip' }, brand || '브랜드 미상', waitText(r) ? h('span', { class: 'tag wait' + (waitIsLong(r, Date.now(), state.settings.staleHours) ? ' warn' : ''), title: '접수 뒤 기다린 시간', text: waitText(r) }) : null,
+        replyTag(r),
         r.source === 'sample' ? h('span', { class: 'tag', text: '샘플' }) : null, r.source === 'demo' ? h('span', { class: 'tag', text: '테스트' }) : null,
         r.itemId ? h('span', { class: 'tag buy-tag', text: '바로 구매' }) : null,
         assignee ? h('span', { class: 'tag', text: `담당 ${assignee.name}` }) : null),
@@ -846,7 +884,7 @@ function serverExtras(r) {
     ? (hist.length
       ? h('ol', { class: 'history' }, ...hist.map((x) => h('li', {},
         h('span', { class: 'mono', text: formatKst(x.changedAt) }), ' ',
-        `${x.fromStatus ? statusLabel(x.fromStatus) : '—'} → ${statusLabel(x.toStatus)}`,
+        x.note && x.fromStatus === x.toStatus ? x.note : `${x.fromStatus ? statusLabel(x.fromStatus) : '—'} → ${statusLabel(x.toStatus)}`, // 4단계 — 「고객 답: 구매할게요」
         h('span', { class: 'sub', text: x.changedBy ? ` · ${x.changedBy.name}` : '' }))))
       : h('p', { class: 'muted', text: '아직 상태를 바꾼 적이 없습니다.' }))
     : h('button', {
@@ -882,32 +920,88 @@ function caseRow(r) {
     h('p', { class: 'muted', style: 'margin:4px 0 0', text: '이름·번호·가격은 나가지 않습니다 — 날짜·브랜드·상품명·사이즈·결과만.' }))];
 }
 
-// 연락 문구(3단계 B2) — 「재고 있음 · 소량」 기록이 있으면 초안을 채운다. 고친 글은 다시 그려져도 남는다(이 화면 안에서만)
-const contactEdits = new Map(); // 신청 id → 운영자가 고친 글
+// 연락 문구(3단계 B2 · 4단계 B-2) — 「찾았어요」 · 「못 찾았어요」 두 종류. 고친 글은 다시 그려져도 남는다(이 화면 안에서만, 종류마다 따로)
+const contactEdits = new Map(); // `신청 id:종류` → 운영자가 고친 글
+const contactKinds = new Map(); // 신청 id → 운영자가 고른 종류(안 고르면 기록으로 정한 기본값)
+const statusUrls = new Map(); // 신청 id → 진행 상황 확인 링크('' = 서버가 아직 못 만듦, 없으면 받는 중)
+const KIND_LABEL = { found: '찾았어요', not_found: '못 찾았어요' };
+
+// 확인 링크(4단계 B-1) — 서버는 STATUS_SECRET 으로 만든 토큰, 브라우저 · 파일 출처는 테스트 화면(demo)용 가짜 토큰
+function statusUrlFor(r) {
+  const page = new URL('status.html', location.href);
+  if (!isServer()) { page.search = `?demo=1&t=${encodeURIComponent(r.id)}.demo`; return page.href; }
+  if (statusUrls.has(r.id)) return statusUrls.get(r.id);
+  statusUrls.set(r.id, null); // 받는 중 — 두 번 부르지 않는다
+  adminApi().statusLink(r.id).then((res) => {
+    if (res.ok && res.data && typeof res.data.token === 'string') { page.search = `?t=${encodeURIComponent(res.data.token)}`; statusUrls.set(r.id, page.href); } else statusUrls.set(r.id, '');
+    if (res.error && res.error.kind === 'auth') { serverFail(res); return; }
+    render();
+  });
+  return null;
+}
+
 function contactBox(r) {
   if (r.itemId) return null; // 바로 구매 요청은 확보 상품 화면에서 연락 · 예약
   const k = r.kream || null;
-  const draft = contactDraft(r, { title: (k && (k.nameKo || k.name)) || '' });
-  if (!draft) return h('p', { class: 'muted contact-empty', text: '05 에 「재고 있음」을 기록하면 연락 문구를 채웁니다.' });
+  const title = (k && (k.nameKo || k.name)) || '';
+  const kind = contactKinds.get(r.id) || defaultContactKind(r);
+  const url = statusUrlFor(r);
+  const draft = kind === 'not_found' ? notFoundDraft(r, { title, statusUrl: url || '' }) : contactDraft(r, { title, statusUrl: url || '' });
+  const pills = h('div', { class: 'contact-kinds', role: 'group', 'aria-label': '문구 종류' }, ...['found', 'not_found'].map((v) => h('button', {
+    type: 'button', class: 'pill', 'aria-pressed': String(kind === v), text: KIND_LABEL[v],
+    onclick: () => { contactKinds.set(r.id, v); render(); },
+  })));
+  const reply = replyLine(r);
+  const head = h('p', { class: 'contact-k' }, h('strong', { text: '연락 문구' }),
+    h('span', { class: 'sub', text: kind === 'found' ? ' — 「재고 있음」 기록으로 채웠습니다. 가격은 직접 적어 주세요.' : ' — 이번엔 찾지 못했다고 알립니다. 새 약속(재입고 알림 등)은 넣지 않습니다.' }));
+  if (!draft) {
+    return h('div', { class: 'contact-box' }, h('p', { class: 'contact-k' }, h('strong', { text: '연락 문구' })), pills,
+      h('p', { class: 'muted contact-empty', text: '05 에 「재고 있음」을 기록하면 연락 문구를 채웁니다.' }), reply);
+  }
+  const key = `${r.id}:${kind}`;
   const status = h('p', { class: 'sub contact-status', role: 'status' });
-  const text = h('textarea', { class: 'contact-text', rows: '6', 'aria-label': '연락 문구', oninput: (e) => contactEdits.set(r.id, e.target.value) });
-  text.value = contactEdits.get(r.id) ?? draft;
+  const text = h('textarea', { class: 'contact-text', rows: '9', 'aria-label': '연락 문구', oninput: (e) => contactEdits.set(key, e.target.value) });
+  text.value = contactEdits.get(key) ?? draft;
   const copy = async (value, done) => {
     let ok = false;
     try { await navigator.clipboard.writeText(value); ok = true; } catch { /* 권한 없음 */ }
     status.textContent = ok ? done : '복사하지 못했습니다 — 글을 길게 눌러 복사하세요.';
+    return ok;
   };
   const sms = smsHref(r.phone, text.value);
-  const smsLink = sms ? h('a', { class: 'contact-btn', href: sms, text: '문자로 열기', onclick: (e) => { e.currentTarget.href = smsHref(r.phone, text.value); } }) : null;
+  const smsLink = sms ? h('a', { class: 'contact-btn', href: sms, text: '문자로 열기', onclick: (e) => { e.currentTarget.href = smsHref(r.phone, text.value); ops.recordContact(r, kind); } }) : null;
+  const linkNote = url === null ? '확인 링크를 받는 중입니다…'
+    : url === '' ? '확인 링크를 아직 만들 수 없습니다(서버 설정 전) — 링크 없이 보냅니다.' : '';
   return h('div', { class: 'contact-box' },
-    h('p', { class: 'contact-k' }, h('strong', { text: '연락 문구' }), h('span', { class: 'sub', text: ' — 「재고 있음」 기록으로 채웠습니다. 가격은 직접 적어 주세요.' })),
+    head, pills,
     text,
-    h('p', { class: 'sub', text: '상품명 · 사이즈 · 판매처 종류 · 접수번호만 넣습니다. 판매처 이름 · 기록한 가격(매입가) · 메모는 넣지 않습니다.' }),
+    h('p', { class: 'sub', text: kind === 'found'
+      ? '상품명 · 사이즈 · 판매처 종류 · 접수번호 · 확인 링크만 넣습니다. 판매처 이름 · 기록한 가격(매입가) · 메모는 넣지 않습니다.'
+      : '상품명 · 사이즈 · 확인 링크 · 접수번호만 넣습니다.' }),
+    linkNote ? h('p', { class: 'sub contact-link-note', text: linkNote }) : null,
     h('div', { class: 'contact-actions' },
-      h('button', { type: 'button', class: 'contact-btn primary', text: '문구 복사', onclick: () => copy(text.value, '연락 문구를 복사했습니다.') }),
+      h('button', { type: 'button', class: 'contact-btn primary', text: '문구 복사', onclick: async () => { if (await copy(text.value, '연락 문구를 복사했습니다.')) ops.recordContact(r, kind); } }),
       smsLink,
       r.phone ? h('button', { type: 'button', class: 'btn-sm', text: '번호 복사', onclick: () => copy(String(r.phone).replace(/\D/g, ''), '번호를 복사했습니다.') }) : null),
-    status);
+    status,
+    reply);
+}
+
+// 「연락 보냄 · 시각」 + 고객 답(4단계 B-3). 「괜찮아요」면 「취소로 바꾸기」(묻고 나서)
+function replyLine(r) {
+  const c = r.contact && r.contact.at ? r.contact : null;
+  const chip = replyChip(r);
+  const wait = replyWaitText(r);
+  if (!c && !chip) return null;
+  const closed = ['paid', 'completed', 'canceled'].includes(r.status);
+  return h('div', { class: 'contact-sent' },
+    c ? h('span', { class: 'sub', text: `연락 보냄 · ${formatKst(c.at)} · ${KIND_LABEL[c.kind] || ''}` }) : null,
+    chip ? h('span', { class: `tag reply-chip ${chip.kind}`, text: chip.text })
+      : wait ? h('span', { class: 'tag reply-wait' + (replyWaitIsLong(r, Date.now(), state.settings.replyHours) ? ' warn' : ''), text: wait }) : null,
+    chip && chip.kind === 'pass' && !closed ? h('button', {
+      type: 'button', class: 'btn-sm', text: '취소로 바꾸기',
+      onclick: () => { if (confirm('고객이 「괜찮아요」로 답했습니다. 상태를 「취소」로 바꿉니다.')) ops.setStatus(r, 'canceled'); },
+    }) : null);
 }
 
 function customerPanel(r, revealed) {
@@ -974,10 +1068,11 @@ const rateMsgs = {};
 function fillSettingsInputs() {
   $('set-area').value = state.settings.area;
   $('set-stale').value = String(state.settings.staleHours);
+  $('set-reply').value = state.settings.replyHours == null ? '' : String(state.settings.replyHours);
   for (const [c, el] of Object.entries(rateInputs)) el.value = state.settings.rates[c] ?? '';
   // 출처를 바꾸면 이전 출처의 안내·오류 표시는 지운다
-  for (const el of [$('set-area'), $('set-stale'), ...Object.values(rateInputs)]) el.removeAttribute('aria-invalid');
-  for (const el of [$('msg-area'), $('msg-stale'), ...Object.values(rateMsgs)]) fieldMsg(el, '', '');
+  for (const el of [$('set-area'), $('set-stale'), $('set-reply'), ...Object.values(rateInputs)]) el.removeAttribute('aria-invalid');
+  for (const el of [$('msg-area'), $('msg-stale'), $('msg-reply'), ...Object.values(rateMsgs)]) fieldMsg(el, '', '');
   $('settings-scope').textContent = isServer() && state.server.settings ? '(서버 공용 — 3명 모두에게 적용)' : '(이 브라우저에만)';
 }
 
@@ -994,6 +1089,17 @@ function initSettings() {
     stale.value = String(v.value);
     state.settings.staleHours = v.value;
     persistSettings($('msg-stale'));
+  });
+
+  // 답장 기한(4단계 B-3) — 비우면 고객 화면에 기한을 보이지 않고, 「답장 대기」는 24시간이 지나면 주황
+  const reply = $('set-reply');
+  reply.addEventListener('change', () => {
+    const v = parseReplyHours(reply.value);
+    if (!v.ok) { reply.setAttribute('aria-invalid', 'true'); fieldMsg($('msg-reply'), 'error', v.error); return; }
+    reply.removeAttribute('aria-invalid');
+    reply.value = v.value == null ? '' : String(v.value);
+    state.settings.replyHours = v.value;
+    persistSettings($('msg-reply'));
   });
 
   const box = $('set-rates');
