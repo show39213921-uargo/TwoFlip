@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>진행 상황 — TWOFLIP</title>
+  <!-- 진행 상황(4단계) — 개인 화면이라 검색 · 공유 미리보기에 나오지 않게(og · canonical 없음) -->
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#0e0f12">
+  <!-- 아이콘(21차) — 탭 · 홈 화면. 원본 SVG 와 만드는 법은 docs/brand.md -->
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/img/brand/apple-touch-icon.png">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script type="module" src="assets/js/status.js"></script>
+</head>
+<body class="page-low">
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="logo" href="./" aria-label="TWOFLIP 처음으로">
+        <img class="logo-word" src="assets/img/twoflip-logo-white.svg" alt="TWOFLIP" width="500" height="80">
+      </a>
+      <nav class="header-nav" aria-label="메뉴">
+        <a class="nav-link" href="about.html">소개</a>
+        <a class="nav-link" href="shop.html">바로 구매</a>
+        <a class="header-cta" href="./#apply">신청하기</a>
+      </nav>
+    </div>
+  </header>
+
+  <div id="demo-banner" class="demo-banner" role="note" hidden>
+    <div class="wrap demo-row">
+      <span><strong>테스트 모드</strong> · 이 브라우저에 저장된 신청만 보여요. 샘플: 접수번호 demo0001 · 뒤 4자리 0000.</span>
+      <span class="demo-links"><a href="admin.html">관리자 화면 →</a><a href="status.html?demo=0">테스트 끝내기</a></span>
+    </div>
+  </div>
+
+  <main id="top">
+    <section class="page-hero">
+      <div class="wrap">
+        <h1>진행 상황</h1>
+        <p class="lede" id="status-lede">접수번호와 휴대폰 번호 뒤 4자리로 확인해요.</p>
+      </div>
+    </section>
+
+    <section class="status-page">
+      <div class="wrap status-wrap">
+        <!-- 직접 조회(A-1 ②) — 틀리면 어느 칸인지 말하지 않는다 -->
+        <form class="status-card" id="status-form" novalidate>
+          <div class="field">
+            <label for="st-id">접수번호</label>
+            <input id="st-id" name="id" type="text" inputmode="latin" autocapitalize="off" autocomplete="off" spellcheck="false" maxlength="16" placeholder="예: 8357525a" required>
+          </div>
+          <div class="field">
+            <label for="st-last4">휴대폰 번호 뒤 4자리</label>
+            <input id="st-last4" name="last4" type="text" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="0000" required>
+          </div>
+          <p class="status" id="status-error" data-kind="error" role="alert" hidden></p>
+          <button class="btn btn-primary btn-block" type="submit" id="status-submit">확인하기</button>
+          <p class="status-note">접수번호는 신청 완료 화면에 있어요. 확인 링크를 받으셨으면 그 링크로 바로 열려요.</p>
+        </form>
+
+        <!-- 결과(A-2) — 상품명 · 사이즈 · 접수 날짜 · 단계 · 답만. 가격 · 판매처 · 이름 · 번호는 오지 않는다 -->
+        <section class="status-card status-result" id="status-result" aria-labelledby="st-title" hidden>
+          <div class="st-head">
+            <h2 class="st-title" id="st-title"></h2>
+            <p class="st-meta" id="st-meta"></p>
+          </div>
+          <ol class="done-steps status-steps" id="st-steps" aria-label="진행 단계"></ol>
+          <p class="st-line" id="st-line" role="status"></p>
+        </section>
+        <!-- 답하기(A-3) — 「찾았어요」 단계만. 연두는 어두운 바탕 위에서만(가이드 §2) → 답하기 상자만 어둡게 -->
+        <section class="answer-box" id="st-answer" aria-label="답하기" hidden></section>
+        <p class="status-note" id="st-note" hidden>가격 · 판매처는 이 화면에 보이지 않아요. 찾으면 문자로 알려 드려요.</p>
+        <a class="btn btn-outline btn-block" id="st-apply" href="./#apply" hidden>KREAM 링크로 신청하기</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-row">
+      <span class="logo small">
+        <img class="logo-word" src="assets/img/twoflip-logo-white.svg" alt="TWOFLIP" width="500" height="80">
+      </span>
+      <span class="footer-note">TWOFLIP은 KREAM과 제휴 관계가 없는 독립 서비스예요.</span>
+      <nav class="footer-nav" aria-label="아래 메뉴"><a href="./">신청하기</a><a href="about.html">소개</a><a href="shop.html">바로 구매</a></nav>
+    </div>
+  </footer>
+</body>
+</html>

@@ -28,7 +28,7 @@ jobs:
       - name: Collect site
         run: |
           mkdir _site
-          cp index.html about.html shop.html admin.html 404.html _site/
+          cp index.html about.html shop.html status.html admin.html 404.html _site/
           cp -r assets _site/
           touch _site/.nojekyll
           # CSS·JS 주소와 모듈 import 에 커밋 버전을 붙인다 — Pages 10분 캐시로 새 HTML·옛 CSS 가 섞이지 않게(7차 QA U-3)

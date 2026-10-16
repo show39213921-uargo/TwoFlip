@@ -179,6 +179,8 @@
                 <strong id="done-id" class="mono"></strong>
                 <button type="button" class="done-copy" id="done-copy">복사</button>
               </div>
+              <!-- 4단계 A-4 — 진행 상황(확인 링크는 접수 응답의 statusToken). 토큰이 없으면(서버 설정 전) 숨김 -->
+              <a class="done-status" id="done-status" href="status.html" hidden>진행 상황 보기 →</a>
               <p class="done-msg" id="done-msg"></p>
               <!-- 결정 대기(18차 D) — config.js PENDING 의 문의 창구 · 「못 찾으면」 · 결제 시점. 비어 있으면 hidden 그대로(pending.js) -->
               <div class="pending-lines done-pending" data-pending="contact notFound payment" hidden></div>
@@ -251,7 +253,7 @@
         <img class="logo-word" src="assets/img/twoflip-logo-white.svg" alt="TWOFLIP" width="500" height="80">
       </span>
       <span class="footer-note">TWOFLIP은 KREAM과 제휴 관계가 없는 독립 서비스예요.</span>
-      <nav class="footer-nav" aria-label="아래 메뉴"><a href="about.html">소개</a><a href="shop.html">바로 구매</a></nav>
+      <nav class="footer-nav" aria-label="아래 메뉴"><a href="about.html">소개</a><a href="shop.html">바로 구매</a><a href="status.html">신청한 상품 확인하기</a></nav>
     </div>
   </footer>
 </body>

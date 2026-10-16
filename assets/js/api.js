@@ -81,7 +81,18 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, timeout
     return request('GET', '/cases');
   }
 
-  return { submitApplication, preview, health, items, requestItem, cases };
+  // 진행 상황(4단계) — 확인 링크 토큰 · 접수번호 + 뒤 4자리 · 답(buy | pass). auth = { t } 또는 { id, last4 }
+  function status(t) {
+    return request('GET', '/status?t=' + encodeURIComponent(String(t || '')));
+  }
+  function statusLookup(id, last4) {
+    return request('POST', '/status/lookup', { id, last4 });
+  }
+  function statusReply(auth, answer) {
+    return request('POST', '/status/reply', { ...auth, answer });
+  }
+
+  return { submitApplication, preview, health, items, requestItem, cases, status, statusLookup, statusReply };
 }
 
 function fail(kind, message, status) {
