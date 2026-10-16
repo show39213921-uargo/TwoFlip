@@ -39,6 +39,8 @@ export function planPrefill(now, p) {
 
 // ── 안내 줄(#src-note) 결과 문장(15차 QA B-1 · 16차 QA U-1) ──
 // 신청은 접수번호 · 판매처 이름 · 상태만, 확보 상품은 상품 번호만. 고객 이름 · 전화번호 · 매입가 · 메모는 받아도 쓰지 않는다
+/** QA 가 만든 값인가 — 이름 · 오류 메시지에 [QA] 가 들어 있다(서버 규칙과 같다) */
+export const isQa = (s) => String(s ?? '').includes('[QA]');
 const quoted = (label) => `「${label}」${josa(label, '으로', '로')}`;
 const seller = (c) => (c && c.name) || '판매처';
 
@@ -60,5 +62,9 @@ export const notes = {
   itemSaved: (it) => `상품 ${it.id} 를 저장했습니다.`,
   itemNoChange: (it) => `상품 ${it.id} — 바뀐 칸이 없습니다.`,
   itemRemoved: (it) => `상품 ${it.id} 를 지웠습니다.`,
-  itemReserved: (it, req) => `상품 ${it.id} 를 접수번호 ${req.id} 요청으로 예약했습니다 — 「바로 구매」 페이지에서 「예약 중」으로 보입니다.`,
+  // 19차 U-1 — [QA] 요청 예약은 공개 목록에서 빠진다(18차 A) — 문장도 사실대로
+  itemReserved: (it, req) => (isQa(req && req.name)
+    ? `상품 ${it.id} 를 접수번호 ${req.id} 요청으로 예약했습니다 — [QA] 요청이라 「바로 구매」에는 보이지 않습니다.`
+    : `상품 ${it.id} 를 접수번호 ${req.id} 요청으로 예약했습니다 — 「바로 구매」 페이지에서 「예약 중」으로 보입니다.`),
+  qaErrorsCleared: (n) => `[QA] 오류 기록 ${n}건을 지웠습니다.`,
 };

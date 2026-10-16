@@ -86,3 +86,16 @@ test('안내 줄 — 확보 상품은 상품 번호만(예약도 고객 이름 �
   assert.equal(clean(notes.itemRemoved(item)), '상품 q9001abc 를 지웠습니다.');
   assert.equal(clean(notes.itemReserved(item, req)), '상품 q9001abc 를 접수번호 8357525a 요청으로 예약했습니다 — 「바로 구매」 페이지에서 「예약 중」으로 보입니다.');
 });
+
+// 19차 U-1 · U-3
+test('안내 줄 — [QA] 요청으로 예약하면 「바로 구매」에 안 보인다고 말한다(일반 예약 문장은 그대로), 이름은 넣지 않음', async () => {
+  const { isQa } = await import('../assets/js/admin-rules.js');
+  const qaReq = { id: 'c9dd1f8d', name: '[QA] 이름', phone: '010-0000-0000' };
+  assert.equal(notes.itemReserved(item, qaReq), '상품 q9001abc 를 접수번호 c9dd1f8d 요청으로 예약했습니다 — [QA] 요청이라 「바로 구매」에는 보이지 않습니다.');
+  assert.ok(!notes.itemReserved(item, qaReq).includes('이름'), '고객 이름 없음');
+  assert.equal(notes.itemReserved(item, req), '상품 q9001abc 를 접수번호 8357525a 요청으로 예약했습니다 — 「바로 구매」 페이지에서 「예약 중」으로 보입니다.');
+  assert.equal(notes.qaErrorsCleared(5), '[QA] 오류 기록 5건을 지웠습니다.');
+  assert.equal(isQa('Uncaught Error: [QA] 오류 알림 확인'), true);
+  assert.equal(isQa('TypeError: x'), false);
+  assert.equal(isQa(undefined), false);
+});

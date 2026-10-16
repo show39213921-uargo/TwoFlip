@@ -161,13 +161,14 @@ DB 저장일 때만 열린다 — 서버에 표(`twoflip_items`)가 아직 없�
 - `GET /admin/items/{id}/preview` → `{ item }` — 상태와 상관없이 `GET /items` 한 건과 같은 칸. `X-TwoFlip-Key` 필요(없으면 401).
 - `POST /admin/items/{id}/preview-requests` — 본문은 `POST /items/{id}/requests` 와 같다. **이름에 `[QA]` 가 있을 때만** 201, 아니면 422 `preview_only`(「미리보기 상품에는 요청할 수 없습니다.」). 예약 중 · 판매 완료면 409.
 - 바로 구매 화면은 `shop.html?preview={id}` 이고, 이 브라우저에 관리자 세션 키가 있을 때만 위 둘을 부른다. 없으면 `preview` 를 무시한다.
-- `GET /items` 는 **`[QA]` 구매 요청으로 예약된 상품을 빼고** 준다 — 비공개 상품을 미리보기로 예약해도 「예약 중」으로 드러나지 않게. 실제 손님 예약은 그대로 보인다.
+- `GET /items` 는 **`[QA]` 구매 요청으로 예약된 상품을 빼고** 준다 — 비공개 상품을 미리보기로 예약해도 「예약 중」으로 드러나지 않게. 실제 손님 예약은 그대로 보인다. 예약한 요청(신청)이 지워져 없는 「예약 중」 상품도 뺀다(19차).
 
 ### 오류 알림
 - `POST /client-error` — 본문 `{ path, message, where, line, release }`(text/plain JSON, `sendBeacon`). 204, 같은 IP 10분 30건(넘으면 429). 브라우저도 10분 5건까지만 보낸다(`assets/js/error-report.js`).
   저장은 경로(쿼리 · # 제외) · 메시지 앞 200자(따옴표 속 값 · 6자리 넘는 숫자 · 이메일 가림) · 파일:줄 · 배포 번호 · 서버 시각뿐. 입력값 · 이름 · 번호 · 쿠키 · IP 는 받지도 남기지도 않는다.
 - 서버 500 도 같은 표에 한 줄(요청 경로 · 예외 종류와 메시지 앞 200자, 같은 가림).
-- `GET /admin/errors` → `{ count, ready, recent: [{ source: front|back, path, message, location, release, at }] }` — 최근 24시간 건수와 최근 20건. 표가 없으면(마이그레이션 `2026-10-15_errors` 전) `{ count: 0, recent: [], ready: false }`.
+- `GET /admin/errors` → `{ count, qaCount, ready, recent: [...], qa: [...] }` — 각 줄 `{ source: front|back, path, message, location, release, at }`. `count` · `recent` 는 최근 24시간 **진짜 오류**(최근 20건), 메시지에 `[QA]` 가 든 오류(QA 가 일부러 낸 것)는 `qaCount` · `qa` 로 따로 준다(19차 U-3). 표가 없으면(마이그레이션 `2026-10-15_errors` 전) `{ count: 0, qaCount: 0, recent: [], qa: [], ready: false }`.
+- `DELETE /admin/errors/qa` → `{ deleted }` — `[QA]` 오류 기록만 지운다. 다른 오류는 지우는 API 가 없다(30일 지나면 로그인 때 자동 정리).
 
 ## 보안 — API 쪽에서 반드시
 

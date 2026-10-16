@@ -53,6 +53,7 @@
   <main class="wrap wide admin-main" id="admin-app" hidden>
     <section class="panel err-panel" id="err-panel" aria-labelledby="err-title" hidden>
       <h2 id="err-title">최근 오류 <span class="sub">24시간 · 최근 20건 · 경로 · 메시지 앞 200자만 남깁니다(입력값 · 이름 · 번호 없음)</span></h2>
+      <p class="err-qa-row" id="err-qa-row" hidden><button type="button" class="btn-sm" id="err-clear-qa">[QA] 기록 지우기</button> <span class="sub">QA 가 일부러 낸 오류(메시지에 [QA])만 지웁니다. 다른 오류는 지울 수 없습니다.</span></p>
       <ol class="err-list" id="err-list"></ol>
     </section>
     <p class="notice">
