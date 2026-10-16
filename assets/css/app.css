@@ -175,7 +175,8 @@ a { color: inherit; }
   display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
   font: inherit; font-weight: 700; font-size: var(--fs-strong); text-decoration: none; cursor: pointer;
   padding: var(--sp-3) var(--sp-6); border-radius: var(--radius); border: 1px solid transparent;
-  transition: transform .12s ease, background-color .15s ease, opacity .15s ease;
+  /* 바탕색은 전환하지 않는다 — 글자색은 바로 바뀌는데 바탕만 늦게 바뀌면 다크 → 라이트 순간 「연두 바탕 + 흰 글자」(대비 1.31)가 생겼다(20차 C) */
+  transition: transform .12s ease, opacity .15s ease;
 }
 .btn:active { transform: translateY(1px); }
 .hero .btn-primary { background: var(--lime); color: var(--on-lime); }

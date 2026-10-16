@@ -361,7 +361,7 @@ async function loadErrors() {
 }
 
 async function clearQaErrors() {
-  if (!confirm(`[QA] 로 시작하는 오류 기록 ${errQa}건을 지웁니다.`)) return;
+  if (!confirm(`메시지에 [QA] 가 든 오류 기록 ${errQa}건을 지웁니다.`)) return; // 20차 U-2 — 목록 위 설명과 같은 기준(포함)
   const r = await adminApi().deleteQaErrors();
   if (!r.ok) { if (r.error.kind === 'auth') { serverFail(r); return; } flash('error', `지우지 못했습니다: ${r.error.message}`); renderToolbar(); return; }
   flash('', notes.qaErrorsCleared(Number(r.data.deleted) || 0));

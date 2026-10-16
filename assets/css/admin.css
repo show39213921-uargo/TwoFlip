@@ -42,7 +42,9 @@
 .site-header .server-session .err-line { color: #1a1300; background: #ffd23f; border-color: #ffd23f; font-weight: 800; }
 .err-panel { margin: 12px 0; scroll-margin-top: calc(var(--head-h, 61px) + 8px); } /* 19차 — 펼칠 때 고정 머리 밑에 제목이 가리지 않게 */
 /* 19차 U-3 — [QA] 오류는 회색 · 아래쪽, 진짜 오류가 없고 [QA] 만 있으면 머리 줄도 회색 */
-.site-header .server-session .err-line.is-qa { color: var(--hero-ink); background: transparent; border-color: var(--hero-line); font-weight: 700; }
+/* 20차 U-1 — 「QA 기록 n건」은 목록 「QA」 칩(#8c9099)과 같은 톤의 회색. 머리는 반투명(88%)이라 라이트에서 흰 카드 위로 지나가면
+   바탕이 #2b2c2e 까지 밝아진다 — #8c9099 는 그때 4.38 이라 한 단계 밝힌 #969aa3(최악 5.0, 다크 6.9) */
+.site-header .server-session .err-line.is-qa { color: #969aa3; background: transparent; border-color: #969aa3; font-weight: 700; }
 .err-list li.is-qa { color: var(--ink-3); }
 .qa-chip { background: var(--surface-2, #eee); color: var(--ink-3); border: 1px solid var(--line); }
 .err-qa-row { margin: 0 0 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
