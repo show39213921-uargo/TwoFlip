@@ -1,7 +1,7 @@
 // 4단계 — 진행 상황 화면 규칙(단계 · 한 줄 · 답하기) · 테스트 모드 흐름
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stageOf, stepsOf, replyModel, statusModel, viewOfRecord, kstTime, STAGE_LINE, REPLY_DONE } from '../assets/js/status-view.js';
+import { stageOf, stepsOf, replyModel, statusModel, viewOfRecord, kstTime, STAGE_LINE, REPLY_DONE, FOUND_LINE_DONE } from '../assets/js/status-view.js';
 import { createLocalApi, DEMO_STATUS_ID } from '../assets/js/local-api.js';
 import { createLocalStore } from '../assets/js/local-store.js';
 
@@ -87,4 +87,18 @@ test('테스트 모드 흐름 — 샘플 demo0001 · 0000 은 「찾았어요」
   assert.equal(mine.data.stage, 'received');
   assert.equal((await api.statusReply({ t: sub.data.statusToken }, 'buy')).error.status, 409, '찾았어요 전에는 답 못 함');
   assert.equal((await api.status('q1w2e3r4.wrong')).ok, false);
+});
+
+test('22차 U-2 — 답이 있으면 「찾았어요」 한 줄은 「문자로 가격을 보내 드렸어요.」까지, 「답 바꾸기」 중에는 「아래에서 답해 주세요」', () => {
+  const now = Date.parse('2026-10-16T05:10:00Z');
+  const base = { name: 'x', size: 'L', receivedDate: '2026-10-16', stage: 'found', reply: null, replyAt: null, replyDeadline: null };
+  assert.equal(statusModel(base, now).line, STAGE_LINE.found);
+  const answered = { ...base, reply: 'buy', replyAt: '2026-10-16T05:00:00Z' };
+  assert.equal(statusModel(answered, now).line, FOUND_LINE_DONE);
+  assert.equal(FOUND_LINE_DONE, '문자로 가격을 보내 드렸어요.');
+  assert.equal(statusModel(answered, now, { changing: true }).line, STAGE_LINE.found);
+  // 기한이 지나 버튼이 없을 때도 「아래에서 답해 주세요」를 두지 않는다
+  assert.equal(statusModel({ ...base, replyDeadline: '2026-10-16T05:00:00Z' }, now).line, FOUND_LINE_DONE);
+  // 다른 단계는 그대로
+  assert.equal(statusModel({ ...base, stage: 'searching' }, now).line, STAGE_LINE.searching);
 });

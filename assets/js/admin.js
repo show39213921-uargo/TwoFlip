@@ -22,7 +22,7 @@ import { formatWon } from './preview-view.js';
 import { createItemsView } from './admin-items.js';
 import { CASE_RESULTS, caseChoices } from './cases-view.js';
 import { contactDraft, notFoundDraft, defaultContactKind, smsHref } from './contact-message.js';
-import { planPrefill, notes, isQa } from './admin-rules.js';
+import { planPrefill, notes, isQa, contactNextStatus, contactConfirm } from './admin-rules.js';
 
 const store = createLocalStore(browserStorage());
 const SETTINGS_KEY = 'twoflip.admin.settings.v1';
@@ -224,7 +224,8 @@ const ops = {
     patch.stock ? notes.checkStock(checkOf(r, checkId), patch.stock) : notes.checkTouched(checkOf(r, checkId))),
   removeCheck: (r, checkId) => apply(r, () => ({ sourcing: cands(r).filter((c) => c.id !== checkId) }), (api) => api.deleteCheck(checkId),
     notes.checkRemoved(checkOf(r, checkId))),
-  // 「연락 보냄」(4단계 B-3) — 문구 복사 · 문자로 열기를 누르면 기록. 탐색 중 · 확보면 「연락 완료」로 바꿀지 묻는다
+  // 「연락 보냄」(4단계 B-3) — 문구 복사 · 문자로 열기를 누르면 기록. 접수 · 탐색 중 · 확보면 상태를 바꿀지 묻는다
+  // (찾았어요 → 연락 완료, 못 찾았어요 → NOT_FOUND_STATUS — 22차 QA U-3). 「취소」를 누르면 연락 보냄만 남는다
   async recordContact(r, kind) {
     if (isServer()) {
       const res = await adminApi().recordContact(r.id, kind);
@@ -233,8 +234,9 @@ const ops = {
       flash('', notes.contactSent(r));
       render();
     } else saveLocal(r.id, { contact: { kind, at: nowIso() } }, notes.contactSent(r));
-    if ((r.status === 'sourcing' || r.status === 'secured') && confirm('연락을 보냈으면 상태를 「연락 완료」로 바꿉니다.')) {
-      await apply(r, () => ({ status: 'contacted' }), (api) => api.patchApplication(r.id, { status: 'contacted' }), notes.contactSent(r, 'contacted'));
+    const next = contactNextStatus(kind, r.status);
+    if (next && confirm(contactConfirm(next))) {
+      await apply(r, () => ({ status: next }), (api) => api.patchApplication(r.id, { status: next }), notes.contactSent(r, next));
     }
   },
   // 최근 진행 사례(개편 A-3) — 서버에서만. result 가 비면 끄기

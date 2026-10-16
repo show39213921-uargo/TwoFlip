@@ -1,7 +1,7 @@
 // 오픈 전 회귀 고정(17차) — 찾아보기 미리 채움 규칙 · 안내 줄 결과 문장. 화면 코드(admin.js · admin-items.js)가 이 함수를 그대로 쓴다.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planPrefill, notes } from '../assets/js/admin-rules.js';
+import { planPrefill, notes, NOT_FOUND_STATUS, contactNextStatus, contactConfirm } from '../assets/js/admin-rules.js';
 import { findPrefill } from '../assets/js/brands.js';
 
 // 브랜드 표(brands.js)가 주는 값을 그대로 쓴다 — 표가 바뀌면 여기서 먼저 깨진다
@@ -104,4 +104,20 @@ test('4단계 — 연락 보냄 · 새 답 안내 줄', () => {
   assert.equal(clean(notes.contactSent(app)), 'a3f9c210 연락 보냄을 기록했습니다.');
   assert.equal(clean(notes.contactSent(app, 'contacted')), 'a3f9c210 연락 보냄을 기록했습니다. 상태를 「연락 완료」로 바꿨습니다.');
   assert.equal(notes.newReplies(2), '새 답 2건이 있습니다.');
+});
+
+test('22차 U-3 — 연락 보냄 뒤 상태: 접수 · 탐색 중 · 확보면 묻는다(찾았어요 → 연락 완료, 못 찾았어요 → 취소)', () => {
+  assert.equal(NOT_FOUND_STATUS, 'canceled');
+  for (const s of ['received', 'sourcing', 'secured']) {
+    assert.equal(contactNextStatus('found', s), 'contacted', s);
+    assert.equal(contactNextStatus('not_found', s), 'canceled', s);
+  }
+  for (const s of ['contacted', 'paid', 'completed', 'canceled']) {
+    assert.equal(contactNextStatus('found', s), null, s);
+    assert.equal(contactNextStatus('not_found', s), null, s);
+  }
+  assert.equal(contactNextStatus('other', 'received'), null);
+  assert.equal(contactConfirm('contacted'), '연락을 보냈으면 상태를 「연락 완료」로 바꿉니다.');
+  assert.equal(contactConfirm('canceled'), '연락을 보냈으면 상태를 「취소」로 바꿉니다.');
+  assert.equal(clean(notes.contactSent(app, 'canceled')), 'a3f9c210 연락 보냄을 기록했습니다. 상태를 「취소」로 바꿨습니다.');
 });

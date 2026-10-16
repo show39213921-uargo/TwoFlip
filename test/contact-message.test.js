@@ -80,12 +80,30 @@ test('연락 문구 회귀 — 받침 · 영문 · 상품명 없음 · 사이즈
 // ── 4단계 B-1 · B-2 ──
 const URL1 = 'https://twoflip.u-argo.com/status.html?t=a3f9c210.abcdefghijklmnopqrstuvwxyz012345';
 
-test('4단계 — 「찾았어요」 문구 끝에 확인 링크 한 줄(링크가 없으면 줄도 없다)', () => {
-  const r = rec([{ type: 'offline', name: '살로몬 하남점', stock: 'in', at: '2026-10-15T02:00:00Z' }]);
-  const t = contactDraft(r, { title: '살로몬 자켓', statusUrl: URL1 }).split('\n');
-  assert.equal(t.at(-1), `진행 상황 · 답하기: ${URL1}`);
-  assert.equal(t.at(-2), '접수번호 a3f9c210');
-  assert.ok(!contactDraft(r, { title: '살로몬 자켓' }).includes('진행 상황'));
+test('22차 U-1 — 「찾았어요」: 확인 링크가 있으면 답하는 길은 링크 하나(주소만 한 줄), 없으면 「답장 주세요」', () => {
+  const r = rec([{ type: 'offline', name: '살로몬 하남점', stock: 'in', price: 289000, note: '직원 김', at: '2026-10-15T02:00:00Z' }]);
+  const t = contactDraft(r, { title: '살로몬 크로스 인슐레이션 자켓', statusUrl: URL1 });
+  assert.equal(t, [
+    '안녕하세요, TWOFLIP이에요.',
+    '신청하신 살로몬 크로스 인슐레이션 자켓(사이즈 L)을 매장에서 찾았어요.',
+    `가격: ${PRICE_BLANK}`,
+    '아래 링크에서 「구매할게요」를 눌러 주세요. 문자로 답하셔도 돼요.',
+    URL1,
+    '접수번호 a3f9c210',
+  ].join('\n'));
+  assert.ok(!t.includes('진행 상황'), '링크 앞에 이름표를 붙이지 않는다');
+  assert.ok(!t.includes('이 메시지에 답장'), '답하는 길이 두 개가 되지 않게');
+  for (const leak of ['하남점', '289', '직원', '비밀', '홍길동', '01012345678']) assert.ok(!t.includes(leak), leak);
+  assert.doesNotMatch(t, /습니다/);
+  // 링크가 없으면(토큰을 못 만듦) 예전 줄
+  const plain = contactDraft(r, { title: '살로몬 자켓' }).split('\n');
+  assert.equal(plain[3], '구매를 원하시면 이 메시지에 답장 주세요.');
+  assert.equal(plain.length, 5);
+  // 상품명 없음 · 받침 없음 · 영문 이름도 같은 꼴
+  const second = (title) => contactDraft(r, { title, statusUrl: URL1 }).split('\n')[1];
+  assert.equal(second(''), '신청하신 상품(사이즈 L)을 매장에서 찾았어요.');
+  assert.equal(second('뉴발란스 2002'), '신청하신 뉴발란스 2002(사이즈 L)를 매장에서 찾았어요.');
+  assert.equal(second('Arc\'teryx Beta'), "신청하신 Arc'teryx Beta(사이즈 L), 매장에서 찾았어요.");
 });
 
 test('4단계 — 「못 찾았어요」 문구: 정해진 다섯 줄, 새 약속 · 판매처 · 가격 · 이름 없음', () => {
