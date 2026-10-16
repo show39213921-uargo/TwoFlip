@@ -47,6 +47,14 @@ function showError(text) {
   const e = $('status-error');
   e.textContent = text || '';
   e.hidden = !text;
+  if (!text) for (const f of [$('st-id'), $('st-last4')]) { f.removeAttribute('aria-invalid'); f.removeAttribute('aria-describedby'); }
+}
+
+// 조회 실패 — 오류 문장(role=alert)을 칸에 잇고 초점을 접수번호 칸으로(바로 고치게). 어느 칸이 틀렸는지는 말하지 않으니 두 칸 다 — 23차 QA U-1
+function lookupFailed(text) {
+  showError(text);
+  for (const f of [$('st-id'), $('st-last4')]) { f.setAttribute('aria-invalid', 'true'); f.setAttribute('aria-describedby', 'status-error'); }
+  $('st-id').focus();
 }
 
 const failText = (r) => (r.error && r.error.status && r.error.message ? r.error.message : LATER); // 연결 실패 · 시간 초과는 한 가지로
@@ -146,13 +154,18 @@ $('status-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = $('st-id').value.trim().toLowerCase();
   const last4 = $('st-last4').value.replace(/\D/g, '');
-  if (!id || last4.length !== 4) { showError('접수번호나 번호를 다시 확인해 주세요.'); return; }
+  if (!id || last4.length !== 4) { lookupFailed('접수번호나 번호를 다시 확인해 주세요.'); return; }
   const btn = $('status-submit');
   btn.disabled = true;
   showError('');
   const r = await openWith({ id, last4 }, () => api.statusLookup(id, last4));
   btn.disabled = false;
-  if (!r.ok) showError(failText(r));
+  if (!r.ok) { lookupFailed(failText(r)); return; }
+  // 조회 성공 — 결과가 나온 걸 알 수 있게 상품 제목 줄로 초점 · 스크롤(동작 줄이기면 css 가 바로 이동) — 23차 QA U-1
+  // 확인 링크(?t=)로 바로 열 때는 옮기지 않는다(첫 진입은 브라우저 기본)
+  const title = $('st-title');
+  title.focus({ preventScroll: true });
+  title.scrollIntoView({ block: 'start' });
 });
 $('st-last4').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4); });
 
