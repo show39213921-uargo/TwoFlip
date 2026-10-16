@@ -1,6 +1,7 @@
 // 진행 상황(status.html · 4단계) — 확인 링크(?t=) 또는 접수번호 + 뒤 4자리로 열고, 「찾았어요」면 답을 받는다.
 // 화면 값은 status-view.js(순수), 여기는 DOM 만. 외부 문자열은 textContent 로만 넣는다.
 // 확인 링크 토큰은 읽자마자 주소창에서 지우고(캡처 · 공유 · 기록으로 안 새게) 이 탭(sessionStorage)에만 둔다.
+// 둔 토큰은 새로고침 · 뒤로가기 때만 다시 쓴다 — 링크(바닥글 「신청한 상품 확인하기」 등)로 오면 조회 칸부터(다른 신청도 볼 수 있게).
 
 import './error-report.js'; // 오류 알림(18차 C) — 주소 쿼리는 원래 보내지 않는다
 import { CONFIG } from './config.js';
@@ -32,7 +33,13 @@ function takeToken() {
     history.replaceState(history.state, '', url.pathname + url.search + url.hash);
     return t;
   }
-  try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; }
+  const nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || null;
+  const again = Boolean(nav && (nav.type === 'reload' || nav.type === 'back_forward'));
+  try {
+    if (again) return sessionStorage.getItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+  } catch { /* 저장 불가 */ }
+  return null;
 }
 
 function showError(text) {
