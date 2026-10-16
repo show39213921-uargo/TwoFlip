@@ -38,6 +38,15 @@
 
 /* 헤더의 로그인 상태 */
 .server-session { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* 오류 알림(18차 C) — 머리의 작은 줄 · 펼친 목록 */
+.site-header .server-session .err-line { color: #1a1300; background: #ffd23f; border-color: #ffd23f; font-weight: 800; }
+.err-panel { margin: 12px 0; }
+.err-panel h2 { margin: 0 0 8px; font-size: 1rem; }
+.err-list { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
+.err-list .err-head { font-size: .84rem; }
+.err-list .err-msg { margin: 2px 0 0; font-size: .84rem; overflow-wrap: anywhere; }
+.err-list .sub { margin: 0; overflow-wrap: anywhere; }
+.item-preview { font-size: .84rem; font-weight: 700; min-height: 40px; display: inline-flex; align-items: center; } /* 18차 A */
 .server-session #server-who { font-weight: 700; font-size: .86rem; color: var(--hero-ink); margin-right: 4px; }
 .site-header .server-session .btn-sm { background: transparent; color: var(--hero-ink); border-color: var(--hero-line); }
 .assignee-sel { font: inherit; font-size: .84rem; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); }

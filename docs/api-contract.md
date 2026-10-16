@@ -153,6 +153,21 @@ DB 저장일 때만 열린다 — 서버에 표(`twoflip_items`)가 아직 없�
 - **이름 · 번호 · 가격 · 접수번호는 응답에 절대 없다** — 서버가 켤 때 공개용 칸만 따로 떠 두고 그것만 읽는다. `date` 는 완료·취소로 바뀐 한국 날짜.
 - 제한·캐시는 `GET /items` 와 같다(같은 IP 10분 600회 · 200 은 60초 캐시). 사례 표가 아직 없으면 `{ cases: [] }`. 0건이거나 실패하면 화면은 구역을 숨긴다.
 - 관리자: `PUT /admin/applications/{id}/case` `{ result }` 켜기 · `DELETE` 끄기(완료 = 찾음 둘, 취소 = 못 찾음). 신청 목록 각 건에 `case: { result, date } | null`.
+- 응답 칸(`date · brand · name · size · result · image`)은 백엔드 테스트로 고정돼 있다(18차 B) — 칸이 늘거나 이름 · 번호 · 접수번호 · 판매처 · 가격 · 메모가 나오면 실패.
+
+## 미리보기 · 오류 알림 — 10-15(18차)
+
+### 미리보기(관리자 세션 전용 — 공개 응답은 그대로)
+- `GET /admin/items/{id}/preview` → `{ item }` — 상태와 상관없이 `GET /items` 한 건과 같은 칸. `X-TwoFlip-Key` 필요(없으면 401).
+- `POST /admin/items/{id}/preview-requests` — 본문은 `POST /items/{id}/requests` 와 같다. **이름에 `[QA]` 가 있을 때만** 201, 아니면 422 `preview_only`(「미리보기 상품에는 요청할 수 없습니다.」). 예약 중 · 판매 완료면 409.
+- 바로 구매 화면은 `shop.html?preview={id}` 이고, 이 브라우저에 관리자 세션 키가 있을 때만 위 둘을 부른다. 없으면 `preview` 를 무시한다.
+- `GET /items` 는 **`[QA]` 구매 요청으로 예약된 상품을 빼고** 준다 — 비공개 상품을 미리보기로 예약해도 「예약 중」으로 드러나지 않게. 실제 손님 예약은 그대로 보인다.
+
+### 오류 알림
+- `POST /client-error` — 본문 `{ path, message, where, line, release }`(text/plain JSON, `sendBeacon`). 204, 같은 IP 10분 30건(넘으면 429). 브라우저도 10분 5건까지만 보낸다(`assets/js/error-report.js`).
+  저장은 경로(쿼리 · # 제외) · 메시지 앞 200자(따옴표 속 값 · 6자리 넘는 숫자 · 이메일 가림) · 파일:줄 · 배포 번호 · 서버 시각뿐. 입력값 · 이름 · 번호 · 쿠키 · IP 는 받지도 남기지도 않는다.
+- 서버 500 도 같은 표에 한 줄(요청 경로 · 예외 종류와 메시지 앞 200자, 같은 가림).
+- `GET /admin/errors` → `{ count, ready, recent: [{ source: front|back, path, message, location, release, at }] }` — 최근 24시간 건수와 최근 20건. 표가 없으면(마이그레이션 `2026-10-15_errors` 전) `{ count: 0, recent: [], ready: false }`.
 
 ## 보안 — API 쪽에서 반드시
 

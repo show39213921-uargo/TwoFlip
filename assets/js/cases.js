@@ -2,6 +2,7 @@
 // 운영자가 「사례로 공개」를 켠 건만 서버가 준다. 0건이거나 못 받으면 구역째 숨긴 채 둔다(빈 칸 금지).
 // 외부 문자열(상품명)은 textContent 로만 넣는다.
 
+import './error-report.js'; // 오류 알림(18차 C) — 소개 페이지는 이 파일이 진입점
 import { CONFIG } from './config.js';
 import { createApiClient } from './api.js';
 import { createLocalApi } from './local-api.js';

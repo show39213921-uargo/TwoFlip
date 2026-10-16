@@ -20,6 +20,10 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://twoflip.u-argo.com/">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e0f12'/%3E%3Cpath d='M9 12h12l-3-3M23 20H11l3 3' stroke='%23c8f04a' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <!-- 결정 대기(18차 D) — 파비콘 파일이 오면 assets/img/favicon.svg · assets/img/apple-touch-icon.png(180×180)에 두고, 위 data: 아이콘 줄을 아래 두 줄로 바꾼다
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+  굵은 로고는 assets/img/twoflip-logo-bold.svg — 헤더 .logo-word 의 src 만 바꾼다(크기 · 자리는 그대로) -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="assets/css/app.css">
@@ -177,6 +181,8 @@
                 <button type="button" class="done-copy" id="done-copy">복사</button>
               </div>
               <p class="done-msg" id="done-msg"></p>
+              <!-- 결정 대기(18차 D) — config.js PENDING 의 문의 창구 · 「못 찾으면」 · 결제 시점. 비어 있으면 hidden 그대로(pending.js) -->
+              <div class="pending-lines done-pending" data-pending="contact notFound payment" hidden></div>
               <!-- TODO(결정 대기): 진행 상황 보기(접수번호 + 휴대폰 뒷자리) · 알림 수단(문자·카톡) 안내 — 정해지면 이 자리에 -->
               <!-- 「이용 방법 보기」는 카드 바로 아래 링크가 그대로 보인다 — 카드 안에 두 번 두지 않는다 -->
               <button type="button" class="btn btn-outline btn-block" id="done-again">다른 상품 신청하기</button>

@@ -21,6 +21,20 @@ function sessionSet(v) { try { if (v === '1') globalThis.sessionStorage?.setItem
 const m = resolveMode({ search: globalThis.location?.search || '', sessionFlag: sessionGet(), apiBaseUrl });
 if (m.demoFlag) sessionSet(m.demoFlag);
 
+// 결정 대기(18차 D) — 재영 결정 후 해요체 한 문장씩 채운다. 비어 있으면 화면에 아무것도 안 나온다(pending.js).
+//   contact  문의 창구        → 첫 페이지 완료 카드 아래 · 바로 구매 요청 창 안내
+//   fee      수수료 안내      → 바로 구매 요청 창 안내
+//   payment  결제 시점        → 완료 카드 아래 · 요청 창 안내
+//   notFound 「못 찾으면」 안내 → 완료 카드 아래
+//   faq      소개 「자주 묻는 질문」 끝에 붙일 { q, a } 목록(예: { q: '수수료는 얼마예요?', a: '…' })
+export const PENDING = {
+  contact: '',
+  fee: '',
+  payment: '',
+  notFound: '',
+  faq: [],
+};
+
 export const CONFIG = {
   apiBaseUrl,
   isLocal,

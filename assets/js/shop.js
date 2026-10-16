@@ -3,11 +3,14 @@
 // 신청(index.html)과 다른 페이지다(10-14 재영 결정 — 위아래 한 페이지에서 나눔).
 // 목록을 못 받으면(서버 준비 전 · 오류 · 접수 준비 중) 빈 껍데기 대신 이유와 다음 할 일을 보인다.
 
+import './error-report.js'; // 오류 알림(18차 C)
+import './pending.js'; // 결정 대기 자리(18차 D) — 값이 비면 아무것도 안 함
 import { CONFIG } from './config.js';
 import { createApiClient } from './api.js';
 import { createLocalApi } from './local-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
 import { itemCardModel, validateItemRequest } from './items-view.js';
+import { createAdminClient, looksLikeKey } from './admin-api.js';
 
 const api = CONFIG.mode === 'demo'
   ? createLocalApi({ store: createLocalStore(browserStorage()) })
@@ -21,6 +24,19 @@ const form = $('item-form');
 let current = null; // 시트에 열린 상품(화면 값)
 
 if (CONFIG.mode === 'demo') $('demo-banner').hidden = false;
+
+// 미리보기(18차 A) — 관리자 「확보 상품」의 「미리보기 ↗」(shop.html?preview=<id>). 이 브라우저에 관리자 로그인 세션이 있을 때만
+// 그 상품 하나(비공개여도)를 띠와 함께 보이고, 구매 요청은 관리자 API 로 보낸다(이름에 [QA] 가 있을 때만 서버가 받는다).
+// 세션이 없거나 못 불러오면 preview 는 조용히 무시 — 일반 화면과 같다. 공개 목록 응답은 그대로다
+const previewId = (() => { try { const v = new URLSearchParams(location.search).get('preview'); return v && /^[0-9a-z]{1,16}$/.test(v) ? v : null; } catch { return null; } })();
+const adminKey = (() => { try { return sessionStorage.getItem('twoflip.admin.key') || localStorage.getItem('twoflip.admin.key') || ''; } catch { return ''; } })();
+const admin = previewId && CONFIG.mode === 'api' && looksLikeKey(adminKey) ? createAdminClient({ baseUrl: CONFIG.apiBaseUrl, key: adminKey }) : null;
+async function withPreview(items) {
+  if (!admin) return items;
+  const r = await admin.previewItem(previewId);
+  if (!r.ok || !r.data || !r.data.item) return items;
+  return [{ ...r.data.item, preview: true }, ...items.filter((x) => x.id !== r.data.item.id)];
+}
 
 // 목록을 못 받았을 때 — 이유 한 줄 + 다음 할 일(다시 시도 · 신청으로)
 function notice(text, retry) {
@@ -48,7 +64,7 @@ async function load({ fresh = false } = {}) {
     else notice('상품 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.', true);
     return;
   }
-  render(r.data.items || []);
+  render(await withPreview(r.data.items || []));
   // 첫 페이지 미리보기에서 눌러 왔으면(shop.html#i-<id>) 그 카드로
   const target = location.hash.startsWith('#i-') ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
   if (target) { target.scrollIntoView({ block: 'center' }); target.classList.add('is-target'); }
@@ -77,7 +93,7 @@ function render(items) {
   // 2단계 2-2 — 1개면 2열 반쪽 카드 대신 한 줄 전체 큰 카드 + 「지금은 이 물건 하나예요」(빈 오른쪽 칸이 남지 않게)
   const single = items.length === 1;
   list.classList.toggle('is-single', single);
-  const cards = items.map((it) => card(itemCardModel(it)));
+  const cards = items.map((it) => card({ ...itemCardModel(it), preview: it.preview === true }));
   if (single) {
     const note = el('p', 'shop-one-note', '지금은 이 물건 하나예요. 찾는 게 없으면 ');
     note.append(Object.assign(el('a', null, 'KREAM 링크로 부탁하기 →'), { href: './#apply' }));
@@ -87,7 +103,7 @@ function render(items) {
 }
 
 function card(m) {
-  const box = el('article', 'shop-card' + (m.reserved ? ' is-reserved' : ''));
+  const box = el('article', 'shop-card' + (m.reserved ? ' is-reserved' : '') + (m.preview ? ' is-preview' : ''));
   box.id = `i-${m.id}`;
   const mine = requestedIds(m.id);
   const imgBox = el('div', 'shop-img');
@@ -127,6 +143,7 @@ function card(m) {
     if (ids.length && !confirm(`이미 요청하셨어요(접수번호 ${ids.join(', ')}).\n새로 보낼까요?`)) return;
     openSheet(m);
   });
+  if (m.preview) box.append(el('p', 'shop-preview-band', '미리보기 — 고객에게는 안 보입니다')); // 관리자 세션에서만(18차 A)
   box.append(imgBox, body, btn);
   return box;
 }
@@ -233,7 +250,7 @@ form.addEventListener('submit', async (e) => {
   const btn = $('item-submit');
   btn.disabled = true;
   btn.textContent = '보내는 중…';
-  const r = await api.requestItem(current.id, v.payload);
+  const r = current.preview && admin ? await admin.previewRequest(current.id, v.payload) : await api.requestItem(current.id, v.payload);
   btn.disabled = false;
   btn.textContent = '구매 요청 보내기';
   if (r.ok) { rememberRequest(current.id, r.data.id); done(r.data.id); return; }

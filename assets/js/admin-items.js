@@ -228,12 +228,18 @@ export function createItemsView({ root, h, ext, getApi, onFail, onNotice = () =>
       },
     });
 
+    // 미리보기(18차 A) — 공개하지 않고 바로 구매 화면에서 이 상품을 본다. 로그인 세션(이 탭)을 새 탭에 넘기려고 window.open(같은 사이트)
+    const previewHref = `shop.html?preview=${encodeURIComponent(it.id)}`;
+    const previewLine = h('p', { class: 'muted item-preview-line' },
+      h('a', { class: 'link-btn item-preview', href: previewHref, target: '_blank', onclick: (e) => { e.preventDefault(); window.open(previewHref, '_blank'); } }, '미리보기 ', h('span', { 'aria-hidden': 'true', text: '↗' })),
+      ' — 공개하지 않고 바로 구매 화면에서 봅니다(이 브라우저의 관리자 로그인으로만). 구매 요청은 이름에 [QA] 가 있을 때만 받습니다.');
+
     return h('div', { class: 'detail' },
-      h('div', { class: 'panel full' }, h('h3', {}, h('span', { class: 'n', text: '01' }), '상품 · 공개 정보'), kreamLine, grid,
+      h('div', { class: 'panel full' }, h('h3', {}, h('span', { class: 'n', text: '01' }), '상품 · 공개 정보'), kreamLine, previewLine, grid,
         h('div', { class: 'row-actions' }, h('span', { class: 'field-msg saved-msg', 'data-kind': 'ok', role: 'status', text: st.savedFor === it.id ? '저장했습니다' : '' }), save)),
       h('div', { class: 'panel full' }, h('h3', {}, h('span', { class: 'n', text: '02' }), `구매 요청 ${reqs.length}건`),
         reqList,
-        h('p', { class: 'muted', style: 'margin-top:8px', text: '요청은 「신청」 목록에도 「바로 구매」 표시로 들어옵니다 — 연락·상태 변경은 거기서. 예약을 풀려면 위 상태를 「판매 중」으로.' }),
+        h('p', { class: 'muted', style: 'margin-top:8px', text: '요청은 「신청」 목록에도 「바로 구매」 표시로 들어옵니다 — 연락·상태 변경은 거기서. 예약을 풀려면 위 상태를 「판매 중」으로(미리보기로 [QA] 예약을 했으면 「비공개」로).' }),
         h('div', { class: 'row-actions' }, del)));
   }
 

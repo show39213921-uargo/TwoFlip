@@ -1,6 +1,8 @@
 // 신청 페이지 연결부 — 검증(validate.js)·전송(api.js)·미리보기 값(preview-view.js)은 순수 모듈이고, 여기는 DOM 만 다룬다.
 // 외부(KREAM) 문자열은 textContent 로만 넣는다.
 
+import './error-report.js'; // 오류 알림(18차 C)
+import './pending.js'; // 결정 대기 자리(18차 D) — 값이 비면 아무것도 안 함
 import { CONFIG } from './config.js';
 import { createApiClient } from './api.js';
 import { createLocalApi } from './local-api.js';
