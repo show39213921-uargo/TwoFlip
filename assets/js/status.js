@@ -8,7 +8,7 @@ import { CONFIG } from './config.js';
 import { createApiClient } from './api.js';
 import { createLocalApi } from './local-api.js';
 import { createLocalStore, browserStorage } from './local-store.js';
-import { statusModel, REPLY_DONE, LATER } from './status-view.js';
+import { statusModel, lookupCheck, REPLY_DONE, LATER } from './status-view.js';
 
 const api = CONFIG.mode === 'demo'
   ? createLocalApi({ store: createLocalStore(browserStorage()) })
@@ -47,14 +47,15 @@ function showError(text) {
   const e = $('status-error');
   e.textContent = text || '';
   e.hidden = !text;
-  if (!text) for (const f of [$('st-id'), $('st-last4')]) { f.removeAttribute('aria-invalid'); f.removeAttribute('aria-describedby'); }
+  for (const f of [$('st-id'), $('st-last4')]) { f.removeAttribute('aria-invalid'); f.removeAttribute('aria-describedby'); }
 }
 
-// 조회 실패 — 오류 문장(role=alert)을 칸에 잇고 초점을 접수번호 칸으로(바로 고치게). 어느 칸이 틀렸는지는 말하지 않으니 두 칸 다 — 23차 QA U-1
-function lookupFailed(text) {
+// 조회 실패 — 오류 문장(role=alert)을 칸에 잇고 초점을 첫 칸으로(바로 고치게) — 23차 QA U-1
+// 서버가 거절하면 어느 칸이 틀렸는지 말하지 않으니 두 칸 다, 화면 검사(빈 칸 · 모양)면 문제 칸만 — 24차 QA U-1
+function lookupFailed(text, fields = [$('st-id'), $('st-last4')]) {
   showError(text);
-  for (const f of [$('st-id'), $('st-last4')]) { f.setAttribute('aria-invalid', 'true'); f.setAttribute('aria-describedby', 'status-error'); }
-  $('st-id').focus();
+  for (const f of fields) { f.setAttribute('aria-invalid', 'true'); f.setAttribute('aria-describedby', 'status-error'); }
+  fields[0].focus();
 }
 
 const failText = (r) => (r.error && r.error.status && r.error.message ? r.error.message : LATER); // 연결 실패 · 시간 초과는 한 가지로
@@ -153,8 +154,9 @@ async function openWith(nextAuth, fetcher) {
 $('status-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = $('st-id').value.trim().toLowerCase();
-  const last4 = $('st-last4').value.replace(/\D/g, '');
-  if (!id || last4.length !== 4) { lookupFailed('접수번호나 번호를 다시 확인해 주세요.'); return; }
+  const last4 = $('st-last4').value.trim();
+  const bad = lookupCheck(id, last4); // 화면 검사로 걸리면 서버에 보내지 않는다(조회 횟수 · 잠금에 안 들어감)
+  if (bad) { lookupFailed(bad.message, bad.fields.map((k) => $(k === 'id' ? 'st-id' : 'st-last4'))); return; }
   const btn = $('status-submit');
   btn.disabled = true;
   showError('');

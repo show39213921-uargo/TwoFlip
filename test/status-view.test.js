@@ -1,7 +1,7 @@
 // 4단계 — 진행 상황 화면 규칙(단계 · 한 줄 · 답하기) · 테스트 모드 흐름
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stageOf, stepsOf, replyModel, statusModel, viewOfRecord, kstTime, STAGE_LINE, REPLY_DONE, FOUND_LINE_DONE } from '../assets/js/status-view.js';
+import { stageOf, stepsOf, replyModel, statusModel, viewOfRecord, kstTime, lookupCheck, STAGE_LINE, REPLY_DONE, FOUND_LINE_DONE, LOOKUP_EMPTY, LOOKUP_LAST4 } from '../assets/js/status-view.js';
 import { createLocalApi, DEMO_STATUS_ID } from '../assets/js/local-api.js';
 import { createLocalStore } from '../assets/js/local-store.js';
 
@@ -101,4 +101,17 @@ test('22차 U-2 — 답이 있으면 「찾았어요」 한 줄은 「문자로 
   assert.equal(statusModel({ ...base, replyDeadline: '2026-10-16T05:00:00Z' }, now).line, FOUND_LINE_DONE);
   // 다른 단계는 그대로
   assert.equal(statusModel({ ...base, stage: 'searching' }, now).line, STAGE_LINE.searching);
+});
+
+test('24차 U-1 — 조회 칸 화면 검사: 비었으면 「적어 주세요」 · 뒤 4자리 모양이 틀리면 「숫자 4개로」, 문제 칸만', () => {
+  assert.equal(LOOKUP_EMPTY, '접수번호와 휴대폰 번호 뒤 4자리를 적어 주세요.');
+  assert.equal(LOOKUP_LAST4, '휴대폰 번호 뒤 4자리를 숫자 4개로 적어 주세요.');
+  assert.deepEqual(lookupCheck('', ''), { message: LOOKUP_EMPTY, fields: ['id', 'last4'] });
+  assert.deepEqual(lookupCheck('demo0001', ''), { message: LOOKUP_EMPTY, fields: ['last4'] });
+  assert.deepEqual(lookupCheck('', '0000'), { message: LOOKUP_EMPTY, fields: ['id'] });
+  assert.deepEqual(lookupCheck('', '12'), { message: LOOKUP_EMPTY, fields: ['id', 'last4'] });
+  assert.deepEqual(lookupCheck('demo0001', '123'), { message: LOOKUP_LAST4, fields: ['last4'] });
+  assert.deepEqual(lookupCheck('demo0001', '12a4'), { message: LOOKUP_LAST4, fields: ['last4'] });
+  assert.equal(lookupCheck('demo0001', '0000'), null);
+  for (const m of [LOOKUP_EMPTY, LOOKUP_LAST4]) assert.doesNotMatch(m, /습니다|다시 확인/);
 });
