@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   STATUSES, statusLabel, maskPhone, formatPhone, formatKst, summarize, filterRecords, sortNewest, sizeQuoteFor, kreamPriceFor, toCsv, normalizeImported, shiftSampleTimes,
-  sortRecords, waitText, waitIsLong,
+  sortRecords, waitText, waitIsLong, parseReplyHours, isWaitingReply, replyWaitText, replyWaitIsLong, replyChip, replyKeys,
 } from '../assets/js/admin-view.js';
 
 test('정렬(3단계 B3) — 오래 기다린 순이 기본, 최근 접수 순, 시각이 깨진 행은 맨 뒤', () => {
@@ -128,4 +128,43 @@ test('josa — 받침에 맞춰 을/를 · 으로/로(ㄹ 받침은 로), 모르
   assert.equal(josa('사이즈 270', '을', '를'), '을');
   assert.equal(josa('Cap', '을', '를'), '을(를)');
   assert.equal(josa('USD', '으로', '로'), '(으)로');
+});
+
+// ── 4단계 B-3 · B-4 — 답장 대기 · 고객 답 ──
+const SENT = '2026-10-16T01:00:00Z'; // KST 10:00
+const sentAt = Date.parse(SENT);
+const found = (extra = {}) => ({ id: 'a1', status: 'contacted', contact: { kind: 'found', at: SENT }, reply: null, ...extra });
+
+test('4단계 — 답장 대기는 「찾았어요」 연락 뒤 답이 없는 열린 신청만', () => {
+  assert.equal(isWaitingReply(found()), true);
+  assert.equal(isWaitingReply(found({ status: 'sourcing' })), true);
+  assert.equal(isWaitingReply(found({ contact: { kind: 'not_found', at: SENT } })), false);
+  assert.equal(isWaitingReply(found({ reply: { answer: 'buy', at: SENT } })), false);
+  for (const s of ['paid', 'completed', 'canceled']) assert.equal(isWaitingReply(found({ status: s })), false, s);
+  assert.equal(isWaitingReply({ id: 'a1', status: 'contacted' }), false, '연락 기록 없음');
+});
+
+test('4단계 — 「답장 대기 n시간째」와 기한(기본 24시간)을 넘기면 주황', () => {
+  assert.equal(replyWaitText(found(), sentAt + 5 * 60000), '답장 대기 5분째');
+  assert.equal(replyWaitText(found(), sentAt + 3 * 3600000), '답장 대기 3시간째');
+  assert.equal(replyWaitText(found(), sentAt + 50 * 3600000), '답장 대기 2일째');
+  assert.equal(replyWaitText(found({ reply: { answer: 'pass', at: SENT } }), sentAt), '');
+  assert.equal(replyWaitIsLong(found(), sentAt + 23 * 3600000), false);
+  assert.equal(replyWaitIsLong(found(), sentAt + 25 * 3600000), true);
+  assert.equal(replyWaitIsLong(found(), sentAt + 5 * 3600000, 4), true, '설정 4시간');
+  assert.equal(replyWaitIsLong(found(), sentAt + 25 * 3600000, null), true, '비어 있으면 24시간');
+});
+
+test('4단계 — 고객 답 칩과 「새 답」 열쇠(답을 바꾸면 새 답)', () => {
+  assert.deepEqual(replyChip(found({ reply: { answer: 'buy', at: '2026-10-16T05:20:00Z' } })), { kind: 'buy', text: '구매할게요 · 10.16 14:20' });
+  assert.equal(replyChip(found({ reply: { answer: 'pass', at: '2026-10-16T05:20:00Z' } })).text, '괜찮아요 · 10.16 14:20');
+  assert.equal(replyChip(found()), null);
+  assert.equal(replyChip(found({ reply: { answer: 'maybe', at: SENT } })), null);
+  assert.deepEqual(replyKeys([found(), found({ id: 'b2', reply: { answer: 'buy', at: SENT } }), null]), [`b2:${SENT}`]);
+});
+
+test('4단계 — 답장 기한 설정: 비우면 없음, 1~168 정수만', () => {
+  assert.deepEqual(parseReplyHours(''), { ok: true, value: null });
+  assert.deepEqual(parseReplyHours(' 24 '), { ok: true, value: 24 });
+  for (const bad of ['0', '169', '1.5', 'abc', '-3']) assert.equal(parseReplyHours(bad).ok, false, bad);
 });

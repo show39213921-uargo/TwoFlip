@@ -82,6 +82,45 @@ export function waitText(record, nowMs = Date.now()) {
   if (hours < 48) return `${hours}시간째`;
   return `${Math.floor(hours / 24)}일째`;
 }
+/** 답장 기한(설정) — 비우면 null(고객 화면에 기한을 보이지 않음), 아니면 1~168시간 정수 */
+export function parseReplyHours(raw) {
+  const s = String(raw ?? '').trim();
+  if (s === '') return { ok: true, value: null };
+  if (!/^\d+$/.test(s) || Number(s) < 1 || Number(s) > 168) return { ok: false, error: '1~168 사이 시간(정수)으로 적거나 비워 두세요. 저장하지 않았습니다.' };
+  return { ok: true, value: Number(s) };
+}
+
+// 4단계 B-3 — 「찾았어요」 연락을 보낸 뒤 고객 답이 없는 신청(끝난 신청 · 취소는 빼고)
+const REPLY_OPEN = new Set(['received', 'sourcing', 'secured', 'contacted']);
+export function isWaitingReply(record) {
+  return Boolean(record && REPLY_OPEN.has(record.status) && record.contact && record.contact.kind === 'found' && !record.reply);
+}
+/** 「답장 대기 n시간째」 — 연락 보낸 시각부터. 답장 대기가 아니면 '' */
+export function replyWaitText(record, nowMs = Date.now()) {
+  if (!isWaitingReply(record)) return '';
+  const t = Date.parse(record.contact.at);
+  if (!Number.isFinite(t)) return '';
+  const min = Math.max(0, Math.floor((nowMs - t) / 60000));
+  if (min < 60) return `답장 대기 ${min}분째`;
+  const hours = Math.floor(min / 60);
+  return hours < 48 ? `답장 대기 ${hours}시간째` : `답장 대기 ${Math.floor(hours / 24)}일째`;
+}
+/** 답장 기한(설정 replyHours, 없으면 24시간)을 넘겼나 — 주황 */
+export function replyWaitIsLong(record, nowMs = Date.now(), hours = null) {
+  const t = Date.parse(record && record.contact && record.contact.at);
+  return isWaitingReply(record) && Number.isFinite(t) && nowMs - t > (hours || 24) * 3600000;
+}
+/** 고객 답 칩 — 「구매할게요 · 10.16 14:20」(buy) · 「괜찮아요 · …」(pass). 답이 없으면 null */
+export function replyChip(record) {
+  const r = record && record.reply;
+  if (!r || (r.answer !== 'buy' && r.answer !== 'pass')) return null;
+  return { kind: r.answer, text: `${r.answer === 'buy' ? '구매할게요' : '괜찮아요'} · ${formatKst(r.at)}` };
+}
+/** 「새 답」을 세는 열쇠 — 신청마다 답한 시각까지(답을 바꾸면 새 답) */
+export function replyKeys(records) {
+  return (records || []).filter((r) => r && r.reply && r.reply.at).map((r) => `${r.id}:${r.reply.at}`);
+}
+
 export function waitIsLong(record, nowMs = Date.now(), hours = 24) {
   const t = Date.parse(record && record.receivedAt);
   return OPEN.has(record && record.status) && Number.isFinite(t) && nowMs - t > hours * 3600000;

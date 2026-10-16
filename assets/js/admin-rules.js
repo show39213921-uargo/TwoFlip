@@ -55,6 +55,8 @@ export const notes = {
   caseOn: (r) => `${r.id} 사례를 공개했습니다 — 첫 페이지 · 소개에는 1분 안에 보입니다.`,
   caseOff: (r) => `${r.id} 사례 공개를 껐습니다 — 1분 안에 사라집니다.`,
   appRemoved: (r) => `접수번호 ${r.id} 를 지웠습니다.`,
+  contactSent: (r) => `${r.id} 연락 보냄을 기록했습니다.`, // 4단계 B-3
+  newReplies: (n) => `새 답 ${n}건이 있습니다.`, // 4단계 B-4
   itemRegistered: (it) => (it.status === 'on_sale'
     ? `상품 ${it.id} 를 등록했습니다 — 「바로 구매」 페이지에 바로 보입니다.`
     : `상품 ${it.id} 를 등록했습니다(비공개). 공개하려면 상태를 「판매 중」으로 바꾸세요.`),

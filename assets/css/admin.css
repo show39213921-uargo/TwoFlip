@@ -74,8 +74,9 @@
 .settings input { margin-top: 4px; padding: 8px 10px !important; font-size: .9rem !important; }
 .rates { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
 .settings-grid .set-area { grid-column: 1; grid-row: 1; }
-.settings-grid .rates { grid-column: 2; grid-row: 1 / span 2; align-content: start; }
+.settings-grid .rates { grid-column: 2; grid-row: 1 / span 3; align-content: start; }
 .settings-grid .set-stale { grid-column: 1; grid-row: 2; }
+.settings-grid .set-reply { grid-column: 1; grid-row: 3; }
 .field-msg { display: block; font-size: .76rem; font-weight: 600; margin-top: 3px; min-height: 1.1em; color: var(--ink-3); }
 .field-msg[data-kind="ok"] { color: var(--ok); }
 .field-msg[data-kind="error"] { color: var(--error); }
@@ -248,7 +249,7 @@
   .detail { grid-template-columns: 1fr; }
   .cand-form { grid-template-columns: 1fr 1fr; }
   .settings-grid { grid-template-columns: 1fr; }
-  .settings-grid .set-area, .settings-grid .rates, .settings-grid .set-stale { grid-column: 1; grid-row: auto; }
+  .settings-grid .set-area, .settings-grid .rates, .settings-grid .set-stale, .settings-grid .set-reply { grid-column: 1; grid-row: auto; }
 }
 .rec-btn { display: none; }
 
@@ -364,3 +365,12 @@
 .contact-status:empty { display: none; }
 .contact-empty { margin: 0 0 10px; }
 @media (max-width: 560px) { .contact-actions .contact-btn { flex: 1 1 8rem; } }
+/* 4단계 — 문구 종류 알약 · 연락 보냄 줄 · 고객 답 칩(구매할게요 = 라임 테두리, 괜찮아요 = 회색) · 답장 대기 */
+.contact-kinds { display: flex; flex-wrap: wrap; gap: 8px; }
+.contact-link-note { margin: 0; }
+.contact-sent { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.contact-sent .tag { margin-left: 0; }
+.contact-sent .btn-sm { min-height: 40px; }
+.tag.reply-chip { color: var(--ink); }
+.tag.reply-chip.buy { border: 2px solid var(--lime); background: color-mix(in srgb, var(--lime) 14%, var(--surface)); padding: 0 5px; }
+.tag.reply-chip.pass { color: var(--ink-3); background: var(--surface-2); }

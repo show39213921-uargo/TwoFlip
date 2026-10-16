@@ -99,3 +99,8 @@ test('안내 줄 — [QA] 요청으로 예약하면 「바로 구매」에 안 �
   assert.equal(isQa('TypeError: x'), false);
   assert.equal(isQa(undefined), false);
 });
+
+test('4단계 — 연락 보냄 · 새 답 안내 줄', () => {
+  assert.equal(clean(notes.contactSent(app)), 'a3f9c210 연락 보냄을 기록했습니다.');
+  assert.equal(notes.newReplies(2), '새 답 2건이 있습니다.');
+});

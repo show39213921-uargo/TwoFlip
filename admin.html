@@ -86,8 +86,8 @@
       </div>
     </section>
     <details class="settings" id="settings">
-      <summary>설정 — 기준 지역 · 환율 · 재고 확인 유효 시간 <span class="sub" id="settings-scope"></span></summary>
-      <!-- DOM 순서 = Tab 순서 = 화면 순서: 지역 → 환율(USD…HKD) → 유효 시간 -->
+      <summary>설정 — 기준 지역 · 환율 · 재고 확인 유효 시간 · 답장 기한 <span class="sub" id="settings-scope"></span></summary>
+      <!-- DOM 순서 = Tab 순서 = 화면 순서: 지역 → 환율(USD…HKD) → 유효 시간 → 답장 기한 -->
       <div class="settings-grid">
         <label class="set-area">기준 지역 <span class="sub">오프라인 지도 검색에 붙는다</span>
           <input type="text" id="set-area" placeholder="예: 강남, 성수, 부산 서면" maxlength="20" aria-describedby="msg-area">
@@ -97,6 +97,10 @@
         <label class="set-stale">재고 확인 유효 시간 <span class="sub">1~168시간 · 이보다 오래된 확인은 「오래됨」</span>
           <input type="text" id="set-stale" inputmode="numeric" placeholder="24" maxlength="3" aria-describedby="msg-stale">
           <span class="field-msg" id="msg-stale" role="status"></span>
+        </label>
+        <label class="set-reply">답장 기한 <span class="sub">1~168시간 · 비우면 고객 화면에 기한을 보이지 않음</span>
+          <input type="text" id="set-reply" inputmode="numeric" placeholder="없음" maxlength="3" aria-describedby="msg-reply">
+          <span class="field-msg" id="msg-reply" role="status"></span>
         </label>
       </div>
       <p class="sub">환율은 원화 기준(JPY 는 1엔당 원). 해외 원가는 물품가 × 환율까지만 — 카드 수수료·관세·부가세·배송비는 별도입니다.</p>
