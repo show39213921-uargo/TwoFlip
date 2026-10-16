@@ -233,7 +233,9 @@ const ops = {
       flash('', notes.contactSent(r));
       render();
     } else saveLocal(r.id, { contact: { kind, at: nowIso() } }, notes.contactSent(r));
-    if ((r.status === 'sourcing' || r.status === 'secured') && confirm('연락을 보냈으면 상태를 「연락 완료」로 바꿉니다.')) await ops.setStatus(r, 'contacted');
+    if ((r.status === 'sourcing' || r.status === 'secured') && confirm('연락을 보냈으면 상태를 「연락 완료」로 바꿉니다.')) {
+      await apply(r, () => ({ status: 'contacted' }), (api) => api.patchApplication(r.id, { status: 'contacted' }), notes.contactSent(r, 'contacted'));
+    }
   },
   // 최근 진행 사례(개편 A-3) — 서버에서만. result 가 비면 끄기
   // 10차 QA U-1 — 거절 이유를 맨 위 알림만이 아니라 스위치 바로 아래에도 남긴다(다시 그려도 보이게 state 에)
