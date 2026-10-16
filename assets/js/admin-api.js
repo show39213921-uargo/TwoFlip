@@ -54,5 +54,6 @@ export function createAdminClient({ baseUrl, key, fetchImpl = globalThis.fetch, 
     previewItem: (id) => call('GET', `/admin/items/${enc(id)}/preview`),
     previewRequest: (id, payload) => call('POST', `/admin/items/${enc(id)}/preview-requests`, payload),
     errors: () => call('GET', '/admin/errors'),
+    deleteQaErrors: () => call('DELETE', '/admin/errors/qa'), // 19차 U-3 — [QA] 오류 기록만
   };
 }

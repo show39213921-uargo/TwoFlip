@@ -40,7 +40,13 @@
 .server-session { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 /* 오류 알림(18차 C) — 머리의 작은 줄 · 펼친 목록 */
 .site-header .server-session .err-line { color: #1a1300; background: #ffd23f; border-color: #ffd23f; font-weight: 800; }
-.err-panel { margin: 12px 0; }
+.err-panel { margin: 12px 0; scroll-margin-top: calc(var(--head-h, 61px) + 8px); } /* 19차 — 펼칠 때 고정 머리 밑에 제목이 가리지 않게 */
+/* 19차 U-3 — [QA] 오류는 회색 · 아래쪽, 진짜 오류가 없고 [QA] 만 있으면 머리 줄도 회색 */
+.site-header .server-session .err-line.is-qa { color: var(--hero-ink); background: transparent; border-color: var(--hero-line); font-weight: 700; }
+.err-list li.is-qa { color: var(--ink-3); }
+.qa-chip { background: var(--surface-2, #eee); color: var(--ink-3); border: 1px solid var(--line); }
+.err-qa-row { margin: 0 0 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.err-qa-row .btn-sm { min-height: 40px; }
 .err-panel h2 { margin: 0 0 8px; font-size: 1rem; }
 .err-list { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
 .err-list .err-head { font-size: .84rem; }
@@ -48,7 +54,7 @@
 .err-list .sub { margin: 0; overflow-wrap: anywhere; }
 .item-preview { font-size: .84rem; font-weight: 700; min-height: 40px; display: inline-flex; align-items: center; } /* 18차 A */
 .server-session #server-who { font-weight: 700; font-size: .86rem; color: var(--hero-ink); margin-right: 4px; }
-.site-header .server-session .btn-sm { background: transparent; color: var(--hero-ink); border-color: var(--hero-line); }
+.site-header .server-session .btn-sm { background: transparent; color: var(--hero-ink); border-color: var(--hero-line); min-height: 40px; } /* 19차 B-1 — 넓은 화면도 40px */
 .assignee-sel { font: inherit; font-size: .84rem; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--ink); }
 .history { margin: 0; padding-left: 18px; font-size: .84rem; font-weight: 500; }
 .history li { margin: 2px 0; }
@@ -288,7 +294,9 @@
   .app-card > summary .status-sel { grid-area: status; width: auto; min-width: 116px; }
 
   /* B-2 헤더: 이름은 숨기고(로그아웃 버튼 title 에 남김) 버튼·배지는 한 줄 */
-  .server-session { flex-wrap: nowrap; gap: 4px; }
+  /* 19차 B-1 — 「오류 n건」이 생기면 버튼 줄에 끼우지 않고 그 아래 한 줄로(큰 글자에서 로그아웃이 화면 밖으로 밀리던 것) */
+  .server-session { flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+  .site-header .server-session .err-line { order: 2; flex: 1 0 100%; }
   .server-session #server-who { display: none; }
   .site-header .server-session .btn-sm { padding: 6px 9px; min-height: 44px; } /* 3차 QA U-6 */
   .logo { gap: 6px; }

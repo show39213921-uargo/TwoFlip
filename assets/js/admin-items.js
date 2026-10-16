@@ -229,7 +229,7 @@ export function createItemsView({ root, h, ext, getApi, onFail, onNotice = () =>
     });
 
     // 미리보기(18차 A) — 공개하지 않고 바로 구매 화면에서 이 상품을 본다. 로그인 세션(이 탭)을 새 탭에 넘기려고 window.open(같은 사이트)
-    const previewHref = `shop.html?preview=${encodeURIComponent(it.id)}`;
+    const previewHref = `shop.html?demo=0&preview=${encodeURIComponent(it.id)}`; // demo=0 — 테스트 모드가 켜진 탭에서 열어도 미리보기가 뜨게(19차 U-2)
     const previewLine = h('p', { class: 'muted item-preview-line' },
       h('a', { class: 'link-btn item-preview', href: previewHref, target: '_blank', onclick: (e) => { e.preventDefault(); window.open(previewHref, '_blank'); } }, '미리보기 ', h('span', { 'aria-hidden': 'true', text: '↗' })),
       ' — 공개하지 않고 바로 구매 화면에서 봅니다(이 브라우저의 관리자 로그인으로만). 구매 요청은 이름에 [QA] 가 있을 때만 받습니다.');

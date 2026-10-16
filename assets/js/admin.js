@@ -21,7 +21,7 @@ import { formatWon } from './preview-view.js';
 import { createItemsView } from './admin-items.js';
 import { CASE_RESULTS, caseChoices } from './cases-view.js';
 import { contactDraft, smsHref } from './contact-message.js';
-import { planPrefill, notes } from './admin-rules.js';
+import { planPrefill, notes, isQa } from './admin-rules.js';
 
 const store = createLocalStore(browserStorage());
 const SETTINGS_KEY = 'twoflip.admin.settings.v1';
@@ -334,19 +334,39 @@ async function loadServer() {
 }
 
 // ── 오류 알림(18차 C) — 머리에 최근 24시간 건수만(0이면 숨김), 누르면 최근 20건 ──
+// 19차 U-3 — [QA] 오류(QA 가 일부러 낸 것)는 건수에서 빼고 목록 아래쪽에 회색 「QA」로. 진짜 오류가 0이고 [QA] 만 있으면
+// 줄을 회색 「QA 기록 n건」으로 남겨 「[QA] 기록 지우기」에 닿을 수 있게 한다(옛 서버라 qaCount 가 없으면 예전처럼)
+let errQa = 0;
 async function loadErrors() {
   const btn = $('err-line');
-  const r = state.server.key ? await adminApi().errors() : null;
-  const n = r && r.ok ? Number(r.data.count) || 0 : 0;
-  btn.hidden = n === 0;
-  btn.textContent = `오류 ${n}건 · 24시간`;
-  btn.title = '최근 24시간 화면 · 서버 오류 — 누르면 최근 20건';
-  const list = r && r.ok && Array.isArray(r.data.recent) ? r.data.recent : [];
-  $('err-list').replaceChildren(...list.map((e) => h('li', {},
-    h('div', { class: 'err-head' }, h('strong', { text: e.source === 'back' ? '서버' : '화면' }), ` ${formatKst(e.at)} · ${e.path || '/'}`),
+  const r = state.server.key ? await adminApi().errors() : null; // 404 · 네트워크 오류면 r.ok=false → 줄을 숨기고 끝(배포 순서가 어긋나도 화면은 그대로)
+  const d = r && r.ok && r.data ? r.data : {};
+  const all = Array.isArray(d.recent) ? d.recent : [];
+  const recent = all.filter((e) => !isQa(e.message));
+  const qa = [...(Array.isArray(d.qa) ? d.qa : []), ...all.filter((e) => isQa(e.message))];
+  const n = Number(d.count) || 0;
+  errQa = Number(d.qaCount) || 0;
+  btn.hidden = n === 0 && errQa === 0;
+  btn.classList.toggle('is-qa', n === 0);
+  btn.textContent = n ? `오류 ${n}건 · 24시간` : `QA 기록 ${errQa}건`;
+  btn.title = n ? '최근 24시간 화면 · 서버 오류 — 누르면 최근 20건' : 'QA 가 일부러 낸 오류만 있습니다 — 누르면 목록 · 지우기';
+  const row = (e, qaRow) => h('li', { class: qaRow ? 'is-qa' : null },
+    h('div', { class: 'err-head' }, qaRow ? h('span', { class: 'tag qa-chip', text: 'QA' }) : null, qaRow ? ' ' : null,
+      h('strong', { text: e.source === 'back' ? '서버' : '화면' }), ` ${formatKst(e.at)} · ${e.path || '/'}`),
     h('p', { class: 'err-msg', text: e.message || '' }),
-    h('p', { class: 'sub', text: [e.location, e.release ? `배포 ${e.release}` : ''].filter(Boolean).join(' · ') }))));
-  if (n === 0) { $('err-panel').hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    h('p', { class: 'sub', text: [e.location, e.release ? `배포 ${e.release}` : ''].filter(Boolean).join(' · ') }));
+  $('err-list').replaceChildren(...recent.map((e) => row(e, false)), ...qa.map((e) => row(e, true)));
+  $('err-qa-row').hidden = errQa === 0;
+  if (btn.hidden) { $('err-panel').hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+}
+
+async function clearQaErrors() {
+  if (!confirm(`[QA] 로 시작하는 오류 기록 ${errQa}건을 지웁니다.`)) return;
+  const r = await adminApi().deleteQaErrors();
+  if (!r.ok) { if (r.error.kind === 'auth') { serverFail(r); return; } flash('error', `지우지 못했습니다: ${r.error.message}`); renderToolbar(); return; }
+  flash('', notes.qaErrorsCleared(Number(r.data.deleted) || 0));
+  renderToolbar();
+  loadErrors();
 }
 
 function logout(clearMsg = true) {
@@ -1009,6 +1029,7 @@ function initGate() {
   $('src-server').addEventListener('click', () => setSource('server'));
   $('server-refresh').addEventListener('click', () => loadServer());
   $('server-logout').addEventListener('click', () => logout());
+  $('err-clear-qa').addEventListener('click', () => clearQaErrors());
   $('err-line').addEventListener('click', () => {
     const open = $('err-panel').hidden;
     $('err-panel').hidden = !open;
