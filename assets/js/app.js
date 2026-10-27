@@ -375,8 +375,7 @@ sizeInput.addEventListener('input', () => { syncChips(); syncQuick(); renderSize
 // ── 링크 칸 보조(1단계 1-1) — 붙여넣기 버튼 · 링크 확인 칩 · 사이즈 빠른 선택 ──────────
 // 클립보드 읽기가 없는 브라우저는 버튼을 숨긴다. 막히면(권한 거절 · 카카오톡 등 인앱) 오류창 없이 칸 아래 안내만
 const canPaste = Boolean(navigator.clipboard && typeof navigator.clipboard.readText === 'function');
-// 버튼이 칸 오른쪽을 차지하니 긴 안내 문구는 줄인다(버튼에 「붙여넣기」가 이미 있다)
-if (canPaste) urlInput.placeholder = '「공유 → 링크 복사」 주소';
+// 26차 U-2 — placeholder 는 HTML 의 「KREAM 링크 붙여넣기」 하나(짧아서 붙여넣기 버튼에 가려지지 않는다). 복사 방법은 칸 아래 #url-how 한 줄
 let linkInfo = { productId: null, size: null }; // 마지막으로 찾은 주소의 상품 번호 · ?size= (붙여 넣으면 칸에서는 ?size= 가 지워진다)
 
 function showUrlNote(text) {
@@ -388,6 +387,7 @@ function updateLinkUi() {
   const has = urlInput.value.trim() !== '';
   pasteBtn.hidden = !canPaste || has;
   clearBtn.hidden = !has;
+  $('url-how').hidden = has; // 복사 방법 한 줄은 칸이 비었을 때만 — 값이 있으면 링크 확인 칩 · 안내가 그 자리에 온다
   urlBox.classList.toggle('has-paste', !pasteBtn.hidden);
   urlBox.classList.toggle('has-clear', has);
   const k = parseKreamUrl(urlInput.value);

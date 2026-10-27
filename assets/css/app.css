@@ -77,6 +77,10 @@ body {
   font-family: var(--font); line-height: 1.6; letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
 }
+/* 26차 U-1 — 고객 화면 전역 줄바꿈: 낱말 중간에서 끊지 않고(keep-all), 칸보다 긴 주소·영문만 넘치기 전에 끊는다(anywhere).
+   제목(h1 · h2)은 줄 길이를 고르게(balance). 관리자(body.admin)는 admin.css 소관이라 제외 */
+body:not(.admin) { word-break: keep-all; overflow-wrap: anywhere; }
+body:not(.admin) h1, body:not(.admin) h2 { text-wrap: balance; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 var(--sp-5); }
 .mono { font-family: var(--mono); letter-spacing: 0; }
 a { color: inherit; }
@@ -620,7 +624,6 @@ textarea { resize: vertical; min-height: 88px; }
 .st-title { margin: 0; font-size: var(--fs-strong); font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
 .st-meta { margin: 0; color: var(--ink-3); font-size: var(--fs-cap); }
 .status-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; }
-.status-steps li { word-break: keep-all; } /* 「이번엔 못 찾았어요」가 낱말 중간에서 끊기지 않게 */
 .status-steps .is-done { color: var(--ink-2); }
 .status-steps .is-done .done-dot { background: var(--brand); border-color: var(--brand); }
 .status-steps .is-done .done-dot svg { fill: none; stroke: var(--brand-ink); stroke-width: 3; }
