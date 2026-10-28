@@ -381,13 +381,20 @@ let linkInfo = { productId: null, size: null }; // 마지막으로 찾은 주소
 function showUrlNote(text) {
   $('url-note').textContent = text;
   $('url-note').hidden = !text;
+  syncUrlHow();
+}
+
+// 복사 방법 한 줄은 칸이 비었고 붙여넣기 결과(#url-note)가 없을 때만 — 빈 클립보드 · 권한 거절 안내와 같은 말이 두 줄 되지 않게(27차 U-1).
+// 값이 있으면 링크 확인 칩 · 안내가 그 자리에 온다
+function syncUrlHow() {
+  $('url-how').hidden = urlInput.value.trim() !== '' || !$('url-note').hidden;
 }
 
 function updateLinkUi() {
   const has = urlInput.value.trim() !== '';
   pasteBtn.hidden = !canPaste || has;
   clearBtn.hidden = !has;
-  $('url-how').hidden = has; // 복사 방법 한 줄은 칸이 비었을 때만 — 값이 있으면 링크 확인 칩 · 안내가 그 자리에 온다
+  syncUrlHow();
   urlBox.classList.toggle('has-paste', !pasteBtn.hidden);
   urlBox.classList.toggle('has-clear', has);
   const k = parseKreamUrl(urlInput.value);
